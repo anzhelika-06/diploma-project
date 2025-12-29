@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecosteps_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ecosteps_db
+      POSTGRES_USER: ecosteps
+      POSTGRES_PASSWORD: ecosteps_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecosteps"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ecosteps_network
+
+  # Node.js сервер (разработка)
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev  # Используем специальный Dockerfile для разработки
+    container_name: ecosteps_server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ecosteps_db
+      DB_USER: ecosteps
+      DB_PASSWORD: ecosteps_password
+      JWT_SECRET: ecosteps-dev-secret-key # Только для разработки
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./server:/app           # Монтируем исходный код для hot reload
+      - /app/node_modules       # Отдельный volume для node_modules
+    networks:
+      - ecosteps_network
+    command: npm run dev
+
+networks:
+  ecosteps_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
