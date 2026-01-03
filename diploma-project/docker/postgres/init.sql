@@ -37,7 +37,7 @@ INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id)
 SELECT 
     'alex.eco@example.com',
     'АлексЭко',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqK3egJY5.7YlJc6ZRcJN5HpQoFq1a',
+    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
     '1995-05-15',
     g.id
 FROM genders g WHERE g.code = 'male'
@@ -47,7 +47,7 @@ INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id)
 SELECT 
     'maria.green@example.com',
     'МарияЗеленая',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqK3egJY5.7YlJc6ZRcJN5HpQoFq1a',
+    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
     '1998-08-22',
     g.id
 FROM genders g WHERE g.code = 'female'
@@ -57,7 +57,7 @@ INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id)
 SELECT 
     'test.user@example.com',
     'ЭкоТестер',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMy.MrqK3egJY5.7YlJc6ZRcJN5HpQoFq1a',
+    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
     '1990-12-31',
     g.id
 FROM genders g WHERE g.code = 'male'

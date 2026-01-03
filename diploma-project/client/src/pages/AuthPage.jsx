@@ -1,177 +1,186 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import '../styles/components/AuthPage.css'
+import '../styles/pages/AuthPage.css'
+import homeIcon from '../assets/images/home.png'
+import listikVideo from '../assets/videos/listik.webm'
+import { getRandomPhrase } from '../utils/randomPhrases'
 
 const AuthPage = ({ translations, currentLanguage, onLanguageChange }) => {
-  const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: ''
+    login: '',
+    password: ''
   })
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [randomPhrase, setRandomPhrase] = useState('')
+  const [errors, setErrors] = useState({})
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Генерируем случайную фразу при загрузке компонента
+  useEffect(() => {
+    setRandomPhrase(getRandomPhrase(currentLanguage))
+  }, [currentLanguage])
 
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     })
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (isLogin) {
-      // Логика входа
-      console.log('Вход:', { email: formData.email, password: formData.password })
-    } else {
-      // Логика регистрации
-      if (formData.password !== formData.confirmPassword) {
-        alert('Пароли не совпадают')
-        return
-      }
-      console.log('Регистрация:', formData)
+    
+    // Очищаем ошибку при вводе
+    if (errors[e.target.name]) {
+      setErrors({
+        ...errors,
+        [e.target.name]: ''
+      })
     }
   }
 
-  const toggleAuthMode = () => {
-    setIsLogin(!isLogin)
-    setFormData({
-      email: '',
-      password: '',
-      confirmPassword: '',
-      name: ''
-    })
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    const newErrors = {}
+    
+    // Кастомная валидация с переводами
+    if (!formData.login.trim()) {
+      newErrors.login = translations.loginRequired
+    }
+    
+    if (!formData.password.trim()) {
+      newErrors.password = translations.passwordRequired
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+    
+    setIsLoading(true)
+    setErrors({})
+    
+    try {
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          login: formData.login.trim(),
+          password: formData.password
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Успешная авторизация
+        console.log('Пользователь авторизован:', data.user)
+        // Здесь можно добавить редирект или сохранение данных пользователя
+        alert(`Добро пожаловать, ${data.user.nickname}!`)
+      } else {
+        // Обработка ошибок с сервера
+        let errorMessage = translations.serverError
+        
+        switch (data.error) {
+          case 'USER_NOT_FOUND':
+            errorMessage = translations.userNotFound
+            break
+          case 'INVALID_CREDENTIALS':
+            errorMessage = translations.invalidCredentials
+            break
+          case 'MISSING_FIELDS':
+            errorMessage = translations.serverError
+            break
+          default:
+            errorMessage = translations.serverError
+        }
+        
+        setErrors({ general: errorMessage })
+      }
+    } catch (error) {
+      console.error('Ошибка при авторизации:', error)
+      setErrors({ general: translations.networkError })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="auth-page">
-      <div className="auth-background">
+      {/* Белый блок как в MainLayout */}
+      <div className="auth-white-block">
+        {/* Ссылка "Главная" внутри белого блока */}
+        <div className="home-link">
+          <Link to="/" className="home-link-content">
+            <img src={homeIcon} alt={translations.homeAlt} className="home-icon" />
+            <span className="home-text">{translations.homeText}</span>
+          </Link>
+        </div>
+
+        {/* Основной контейнер */}
         <div className="auth-container">
-          {/* Заголовок с логотипом и языковым селектором */}
-          <div className="auth-header">
-            <Link to="/" className="auth-logo-link">
-              <div className="auth-logo">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="#7cb342"/>
-                  <path d="M12 16C15.31 16 18 13.31 18 10C18 6.69 15.31 4 12 4C8.69 4 6 6.69 6 10C6 13.31 8.69 16 12 16Z" fill="#7cb342" fillOpacity="0.3"/>
-                </svg>
-                <span className="auth-logo-text">EcoSteps</span>
-              </div>
-            </Link>
+          {/* Левый блок с формой авторизации */}
+          <div className="auth-form-block">
+            <h1 className="auth-title">{translations.loginTitle}</h1>
             
-            {/* Языковой селектор */}
-            <div className="auth-language-selector">
-              <select 
-                value={currentLanguage} 
-                onChange={(e) => onLanguageChange(e.target.value)}
-                className="auth-language-select"
+            <form onSubmit={handleSubmit} className="auth-form" noValidate>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="login"
+                  value={formData.login}
+                  onChange={handleInputChange}
+                  placeholder={translations.loginPlaceholder}
+                  className={`auth-input ${errors.login ? 'error' : ''}`}
+                  disabled={isLoading}
+                />
+                {errors.login && <div className="error-message">{errors.login}</div>}
+              </div>
+              
+              <div className="form-group">
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  placeholder={translations.passwordPlaceholder}
+                  className={`auth-input ${errors.password ? 'error' : ''}`}
+                  disabled={isLoading}
+                />
+                {errors.password && <div className="error-message">{errors.password}</div>}
+                {errors.general && <div className="error-message">{errors.general}</div>}
+              </div>
+              
+              <button 
+                type="submit" 
+                className="auth-submit-button"
+                disabled={isLoading}
               >
-                <option value="ru">RU</option>
-                <option value="en">EN</option>
-                <option value="by">BY</option>
-              </select>
-            </div>
+                {isLoading ? '...' : translations.loginButton}
+              </button>
+              
+              <div className="auth-register-link">
+                {translations.noAccountText} <span className="register-link">{translations.registerLink}</span>
+              </div>
+            </form>
           </div>
 
-          {/* Форма авторизации */}
-          <div className="auth-form-container">
-            <h1 className="auth-title">
-              {isLogin ? translations.loginTitle : translations.registerTitle}
-            </h1>
+          {/* Правый блок с видео и фразой */}
+          <div className="right-section">
+            <div className="video-block">
+              <video 
+                className="listik-video" 
+                autoPlay 
+                loop 
+                muted
+                playsInline
+              >
+                <source src={listikVideo} type="video/mp4" />
+                Ваш браузер не поддерживает видео.
+              </video>
+            </div>
             
-            <form onSubmit={handleSubmit} className="auth-form">
-              {!isLogin && (
-                <div className="form-group">
-                  <label htmlFor="name">{translations.nameLabel}</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder={translations.namePlaceholder}
-                    required={!isLogin}
-                  />
-                </div>
-              )}
-              
-              <div className="form-group">
-                <label htmlFor="email">{translations.emailLabel}</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder={translations.emailPlaceholder}
-                  required
-                />
-              </div>
-              
-              <div className="form-group">
-                <label htmlFor="password">{translations.passwordLabel}</label>
-                <div className="password-input-container">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder={translations.passwordPlaceholder}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </button>
-                </div>
-              </div>
-              
-              {!isLogin && (
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">{translations.confirmPasswordLabel}</label>
-                  <div className="password-input-container">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      placeholder={translations.confirmPasswordPlaceholder}
-                      required={!isLogin}
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              <button type="submit" className="auth-submit-button">
-                {isLogin ? translations.loginButton : translations.registerButton}
-              </button>
-            </form>
-            
-            <div className="auth-switch">
-              <p>
-                {isLogin ? translations.noAccountText : translations.hasAccountText}
-                <button 
-                  type="button" 
-                  className="auth-switch-button"
-                  onClick={toggleAuthMode}
-                >
-                  {isLogin ? translations.registerLink : translations.loginLink}
-                </button>
-              </p>
+            {/* Случайная фраза под видео */}
+            <div className="random-phrase">
+              {randomPhrase}
             </div>
           </div>
         </div>

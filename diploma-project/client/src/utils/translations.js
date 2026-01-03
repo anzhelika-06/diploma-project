@@ -93,21 +93,31 @@ export const translations = {
       "Мультипликативный эффект через влияние на других": "Мультипликативный эффект через влияние на других"
     },
     // Переводы для страницы авторизации
-    loginTitle: "Вход в аккаунт",
+    loginTitle: "Авторизация",
     registerTitle: "Создание аккаунта",
+    homeText: "Главная",
+    homeAlt: "Домой",
+    loginPlaceholder: "Введите логин",
+    passwordPlaceholder: "Введите пароль",
+    loginRequired: "Пожалуйста, заполните поле логина",
+    passwordRequired: "Пожалуйста, заполните поле пароля",
     nameLabel: "Имя",
     namePlaceholder: "Введите ваше имя",
     emailLabel: "Email",
     emailPlaceholder: "Введите ваш email",
     passwordLabel: "Пароль",
-    passwordPlaceholder: "Введите пароль",
     confirmPasswordLabel: "Подтвердите пароль",
     confirmPasswordPlaceholder: "Повторите пароль",
     registerButton: "Зарегистрироваться",
-    noAccountText: "Нет аккаунта?",
+    noAccountText: "Еще нет аккаунта?",
     hasAccountText: "Уже есть аккаунт?",
     registerLink: "Зарегистрироваться",
-    loginLink: "Войти"
+    loginLink: "Войти",
+    // Ошибки авторизации
+    invalidCredentials: "Неверный логин или пароль",
+    userNotFound: "Пользователь не найден",
+    serverError: "Ошибка сервера. Попробуйте позже",
+    networkError: "Ошибка сети. Проверьте подключение"
   },
   EN: {
     mainTitle: "Reduce your carbon footprint",
@@ -202,21 +212,31 @@ export const translations = {
       "Мультипликативный эффект через влияние на других": "Multiplicative effect through influencing others"
     },
     // Переводы для страницы авторизации
-    loginTitle: "Login to Account",
+    loginTitle: "Authorization",
     registerTitle: "Create Account",
+    homeText: "Home",
+    homeAlt: "Home",
+    loginPlaceholder: "Enter login",
+    passwordPlaceholder: "Enter password",
+    loginRequired: "Please fill in the login field",
+    passwordRequired: "Please fill in the password field",
     nameLabel: "Name",
     namePlaceholder: "Enter your name",
     emailLabel: "Email",
     emailPlaceholder: "Enter your email",
     passwordLabel: "Password",
-    passwordPlaceholder: "Enter password",
     confirmPasswordLabel: "Confirm Password",
     confirmPasswordPlaceholder: "Repeat password",
     registerButton: "Sign Up",
     noAccountText: "Don't have an account?",
     hasAccountText: "Already have an account?",
     registerLink: "Sign Up",
-    loginLink: "Login"
+    loginLink: "Login",
+    // Ошибки авторизации
+    invalidCredentials: "Invalid login or password",
+    userNotFound: "User not found",
+    serverError: "Server error. Please try again later",
+    networkError: "Network error. Check your connection"
   },
   BY: {
     mainTitle: "Паменшыце свой вугляродны след",
@@ -311,21 +331,31 @@ export const translations = {
       "Мультипликативный эффект через влияние на других": "Мультыплікатыўны эфект праз уплыў на іншых"
     },
     // Переводы для страницы авторизации
-    loginTitle: "Уваход у акаўнт",
+    loginTitle: "Аўтарызацыя",
     registerTitle: "Стварэнне акаўнта",
+    homeText: "Галоўная",
+    homeAlt: "Дадому",
+    loginPlaceholder: "Увядзіце логін",
+    passwordPlaceholder: "Увядзіце пароль",
+    loginRequired: "Калі ласка, запоўніце поле логіна",
+    passwordRequired: "Калі ласка, запоўніце поле пароля",
     nameLabel: "Імя",
     namePlaceholder: "Увядзіце ваша імя",
     emailLabel: "Email",
     emailPlaceholder: "Увядзіце ваш email",
     passwordLabel: "Пароль",
-    passwordPlaceholder: "Увядзіце пароль",
     confirmPasswordLabel: "Пацвердзіце пароль",
     confirmPasswordPlaceholder: "Паўтарыце пароль",
     registerButton: "Зарэгістравацца",
     noAccountText: "Няма акаўнта?",
     hasAccountText: "Ужо ёсць акаўнт?",
     registerLink: "Зарэгістравацца",
-    loginLink: "Увайсці"
+    loginLink: "Увайсці",
+    // Ошибки авторизации
+    invalidCredentials: "Няправільны логін або пароль",
+    userNotFound: "Карыстальнік не знойдзены",
+    serverError: "Памылка сервера. Паспрабуйце пазней",
+    networkError: "Памылка сеткі. Праверце злучэнне"
   }
 }
 

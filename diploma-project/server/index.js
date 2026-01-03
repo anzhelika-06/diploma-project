@@ -7,6 +7,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Подключаем маршруты
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+
 // Простой роутер для тестирования
 app.post('/api/calculator/calculate', (req, res) => {
   console.log('=== НОВЫЕ РЕКОМЕНДАЦИИ РАБОТАЮТ! ===');

@@ -17,7 +17,7 @@ cp .env.example .env
 docker-compose up --build
 ```
 
-Приложение будет доступно по адресу: http://localhost:3000
+Приложение будет доступно по адресу: http://localhost:3001
 
 ### Запуск для продакшена
 ```bash
