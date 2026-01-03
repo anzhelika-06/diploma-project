@@ -35,7 +35,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: development
-      PORT: 3000
+      PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ecosteps_db
@@ -43,7 +43,7 @@ services:
       DB_PASSWORD: ecosteps_password
       JWT_SECRET: ecosteps-dev-secret-key # Только для разработки
     ports:
-      - "3000:3000"
+      - "3001:3001"
     volumes:
       - ./server:/app           # Монтируем исходный код для hot reload
       - /app/node_modules       # Отдельный volume для node_modules

@@ -26,7 +26,7 @@ services:
     container_name: ecosteps_server_prod
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ecosteps_db
@@ -34,7 +34,7 @@ services:
       DB_PASSWORD: StrongPassword123!
       JWT_SECRET: ${JWT_SECRET:-production-secret-key}
     ports:
-      - "3000:3000"
+      - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy

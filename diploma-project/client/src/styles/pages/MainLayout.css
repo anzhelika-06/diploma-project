@@ -1,0 +1,515 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+
+.main-container {
+  width: 100vw;
+  height: 100vh;
+  background-color: #535E51;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.main-card {
+  width: min(90vw, 1350px);
+  height: min(80vh, 850px);
+  background-image: url('../../assets/images/earth-leaves.jpg.jpg');
+  background-size: cover; 
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius: 1.5vw;
+  overflow: hidden;
+  box-shadow: 0 2vh 4vh rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  padding: 3% 5%;
+  box-sizing: border-box;
+}
+
+
+/* Хедер */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* выровнял по центру, чтобы селектор был на уровне с логотипом */
+  width: 100%;
+  margin-bottom: 5vh;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.3vw;
+  margin-left: -2.5vw;
+}
+
+.logo-icon {
+  width: 2vw;
+  height: 2vw;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.logo-text {
+  font-size: clamp(14px, 1.2vw, 18px); /* уменьшил размер текста EcoSteps */
+  font-weight: 600;
+  color: #000000;
+  font-family: 'Libre Caslon Text', serif; /* добавил шрифт */
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  margin-right: 45vw; /* сдвинул капельку правее */
+}
+
+.language-selector {
+  position: relative;
+}
+
+/* Кастомный селектор языков */
+.custom-select {
+  position: relative;
+  background: transparent;
+  border: 2px solid #7cb342;
+  border-radius: 15px; /* вернул оригинальное закругление */
+  padding: 0.4vh 1vw;
+  font-size: clamp(10px, 0.8vw, 12px);
+  font-family: 'Libre Caslon Text', serif;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 4vw;
+  min-width: 50px;
+}
+
+.custom-select:hover {
+  border-color: #7cb342 ;
+}
+
+.selected-language {
+  font-weight: 400;
+  flex: 1;
+  text-align: center; /* центрируем текст */
+}
+
+.dropdown-arrow {
+  width: 8px;
+  height: 5px;
+  transition: transform 0.3s ease;
+  margin-left: 0.2vw;
+}
+
+.dropdown-arrow path {
+  fill: #222222;
+}
+
+.dropdown-options {
+  position: absolute;
+  top: calc(100% - 9px);
+  left: -1.9px; /* сдвинул внутрь на 1px */
+  right: -1.9px; /* сдвинул внутрь на 1px */
+  background-color: transparent;
+  background: none;
+  border: 2px solid #7cb342;
+  border-radius: 0 0 15px 15px;
+  border-top: none;
+  z-index: 100;
+  overflow: hidden;
+  box-shadow: none;
+  padding-top: 1vh; /* добавил отступ сверху для первого элемента */
+}
+
+.dropdown-option {
+  padding: 0.7vh 1.5vw; /* уменьшил вертикальные отступы */
+  font-size: clamp(10px, 0.8vw, 12px);
+  font-family: 'Libre Caslon Text', serif;
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  background-color: transparent !important;
+  background: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px; /* уменьшил минимальную высоту */
+  border: none;
+}
+
+.dropdown-option:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.dropdown-option:hover {
+  background: transparent !important; /* убрал фон при наведении */
+  color: white;
+  position: relative;
+}
+
+.dropdown-option:hover::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #7cb342;
+  width: 100%; /* сделал на всю ширину выпадающего списка */
+  height: calc(1em + 1px); /* увеличил высоту на 1 пиксель */
+  border-radius: 0;
+  z-index: -1;
+}
+
+
+/* Убираем старые стили селектора */
+.language-select {
+  display: none;
+}
+
+/* Основной контент */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  padding-top: 6vh; /* чуть поднял основной текст */
+}
+
+.main-title {
+  font-size: clamp(24px, 2.5vw, 32px);
+  font-weight: 600;
+  color: #222222;
+  line-height: 1.2;
+  margin: 0 0 2vh 0;
+  max-width: 60%;
+  font-family: 'Libre Caslon Text', serif; /* добавил шрифт */
+}
+
+.main-subtitle {
+  font-size: clamp(24px, 2.5vw, 32px);
+  font-weight: 400;
+  color: #4B4A4A;
+  line-height: 1.4;
+  margin: 0 0 5vh 0;
+  max-width: 60%;
+  font-family: 'Libre Caslon Text', serif; /* добавил шрифт */
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1vw;
+  margin-bottom: auto;
+  width: 41%; /* установил ширину на 41% */
+}
+
+.btn {
+  padding: 1vh 2vw;
+  border-radius: 3vw;
+  font-size: clamp(16px, 1.2vw, 18px);
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  outline: none;
+  white-space: nowrap;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1; /* сделал кнопки одинакового размера, растягивающиеся на всю ширину */
+  font-family: 'Libre Caslon Text', serif; /* добавил шрифт */
+}
+
+.primary-btn {
+  background: #7cb342;
+  color: white;
+}
+
+.primary-btn:hover {
+  background: #689f38;
+  transform: translateY(-0.2vh);
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #000000;
+  border: 2px solid #7cb342;
+}
+
+.secondary-btn:hover {
+  border-color: #689f38;
+  color: #000000;
+  transform: translateY(-0.2vh); /* добавил такую же анимацию как у primary-btn */
+}
+
+.secondary-btn:hover {
+  border-color: #689f38;
+  color: #000000; /* остается черным при наведении */
+}
+
+.secondary-btn:hover {
+  border-color: #689f38;
+  color: #7cb342;
+}
+
+/* Стили для ссылки-кнопки */
+a.btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Футер */
+.footer {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  width: 100%;
+  margin-top: auto;
+  padding-bottom: 0.1vh; /* опустил ссылки еще капельку ниже */
+  padding-left: 6vw;
+}
+
+.footer-links {
+  display: flex;
+  gap: 3vw;
+}
+
+.footer-link {
+  text-decoration: underline;
+  font-size: clamp(14px, 1vw, 18px); /* уменьшил размер ссылок */
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+  font-weight: 400;
+  font-family: 'Libre Caslon Text', serif; /* добавил шрифт */
+}
+
+.footer-link:hover {
+  opacity: 0.7;
+}
+
+.footer-link[href="#about"] {
+  color: #5C5A5A;
+}
+
+.footer-link[href="#register"] {
+  color: #272727;
+}
+
+/* Адаптивность для различных устройств */
+
+/* Большие экраны (больше 1920px) */
+@media (min-width: 1921px) {
+  .main-card {
+    width: 1400px;
+    height: 900px;
+  }
+  
+  .main-title {
+    font-size: 36px;
+  }
+  
+  .main-subtitle {
+    font-size: 36px;
+  }
+}
+
+/* Стандартные десктопы (1200px - 1920px) */
+@media (max-width: 1920px) and (min-width: 1200px) {
+  .main-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .main-card {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: min(90vw, 1350px);
+    height: min(80vh, 850px);
+  }
+}
+
+/* Планшеты (768px - 1199px) */
+@media (max-width: 1199px) and (min-width: 769px) {
+  .main-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2vh;
+  }
+  
+  .main-card {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 95vw;
+    height: 85vh;
+    padding: 4% 5%;
+  }
+  
+  .header {
+    justify-content: space-between; /* оставляем горизонтальное расположение */
+    align-items: center;
+    margin-bottom: 3vh;
+  }
+  
+  .header-controls {
+    margin-right: 35vw; /* адаптивный отступ для планшетов */
+  }
+  
+  .main-content {
+    padding-top: 2vh;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .main-title, .main-subtitle {
+    max-width: 90%;
+  }
+  
+  .action-buttons {
+    width: 60%;
+    justify-content: center;
+  }
+  
+  .footer {
+    justify-content: center;
+    padding-left: 0;
+  }
+}
+
+/* Мобильные устройства (до 768px) */
+@media (max-width: 768px) {
+  .main-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1vh;
+  }
+  
+  .main-card {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 98vw;
+    height: 95vh;
+    padding: 5% 6%;
+    border-radius: 4vw;
+  }
+  
+  .header {
+    justify-content: space-between; /* оставляем горизонтальное расположение */
+    align-items: center;
+    margin-bottom: 2vh;
+  }
+  
+  .logo {
+    margin-left: 0;
+  }
+  
+  .logo-icon {
+    width: 8vw;
+    height: 8vw;
+    min-width: 32px;
+    min-height: 32px;
+  }
+  
+  .logo-text {
+    font-size: clamp(18px, 4vw, 24px);
+  }
+  
+  .header-controls {
+    margin-right: 20vw; /* адаптивный отступ для мобильных */
+  }
+  
+  .custom-select {
+    width: 15vw;
+    min-width: 60px;
+  }
+  
+  .main-content {
+    padding-top: 1vh;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .main-title {
+    font-size: clamp(20px, 6vw, 28px);
+    max-width: 95%;
+    margin-bottom: 3vh;
+  }
+  
+  .main-subtitle {
+    font-size: clamp(18px, 5vw, 24px);
+    max-width: 95%;
+    margin-bottom: 4vh;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 2vh;
+    width: 80%;
+    align-items: center;
+  }
+  
+  .btn {
+    width: 100%;
+    min-width: auto;
+    padding: 2vh 4vw;
+    font-size: clamp(16px, 4vw, 20px);
+  }
+  
+  .footer {
+    justify-content: center;
+    padding-left: 0;
+    padding-bottom: 1vh;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 1vh;
+    align-items: center;
+  }
+  
+  .footer-link {
+    font-size: clamp(14px, 3.5vw, 18px);
+  }
+}
+
+/* Очень маленькие экраны (до 480px) */
+@media (max-width: 480px) {
+  .main-card {
+    padding: 6% 8%;
+  }
+  
+  .main-title {
+    font-size: clamp(18px, 5.5vw, 24px);
+  }
+  
+  .main-subtitle {
+    font-size: clamp(16px, 4.5vw, 20px);
+  }
+  
+  .btn {
+    padding: 2.5vh 6vw;
+    font-size: clamp(14px, 4vw, 18px);
+  }
+  
+  .action-buttons {
+    width: 90%;
+  }
+}
