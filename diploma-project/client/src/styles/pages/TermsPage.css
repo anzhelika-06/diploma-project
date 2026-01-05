@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+
+.terms-page {
+  min-height: 100vh;
+  background-color: #535E51;
+  padding: 40px 20px;
+  font-family: 'Libre Caslon Text', serif;
+}
+
+.terms-container {
+  max-width: 800px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.back-link {
+  color: #535E51;
+  text-decoration: none;
+  font-size: 16px;
+  margin-bottom: 30px;
+  display: inline-block;
+  transition: opacity 0.3s ease;
+}
+
+.back-link:hover {
+  opacity: 0.7;
+}
+
+.terms-container h1 {
+  color: #222222;
+  font-size: 32px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.terms-content h2 {
+  color: #535E51;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 25px 0 15px 0;
+}
+
+.terms-content p {
+  color: #444444;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.terms-content ul {
+  color: #444444;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  padding-left: 20px;
+}
+
+.terms-content li {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .terms-page {
+    padding: 20px 10px;
+  }
+  
+  .terms-container {
+    padding: 30px 20px;
+  }
+  
+  .terms-container h1 {
+    font-size: 28px;
+  }
+  
+  .terms-content h2 {
+    font-size: 18px;
+  }
+  
+  .terms-content p,
+  .terms-content ul {
+    font-size: 14px;
+  }
+}

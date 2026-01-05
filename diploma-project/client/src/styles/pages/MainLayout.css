@@ -128,7 +128,7 @@
 }
 
 .dropdown-option {
-  padding: 0.7vh 1.5vw; /* уменьшил вертикальные отступы */
+  padding: 0.5vh 1.5vw;
   font-size: clamp(10px, 0.8vw, 12px);
   font-family: 'Libre Caslon Text', serif;
   color: #222222;
@@ -140,17 +140,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px; /* уменьшил минимальную высоту */
+  min-height: 27px; 
   border: none;
 }
 
 .dropdown-option:last-child {
   border-bottom: none;
   margin-bottom: 0;
+  padding-bottom: 1vh; 
 }
 
 .dropdown-option:hover {
-  background: transparent !important; /* убрал фон при наведении */
+  background: transparent !important; 
   color: white;
   position: relative;
 }
@@ -326,6 +327,63 @@ a.btn {
   }
 }
 
+.high-contrast .primary-btn {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Увеличение размера шрифта */
+.large-text {
+  font-size: 1.2em !important;
+}
+
+.large-text .main-title {
+  font-size: clamp(28px, 3vw, 38px) !important;
+}
+
+.large-text .main-subtitle {
+  font-size: clamp(28px, 3vw, 38px) !important;
+}
+
+.large-text .btn {
+  font-size: clamp(18px, 1.4vw, 22px) !important;
+}
+
+.large-text .footer-link {
+  font-size: clamp(16px, 1.2vw, 20px) !important;
+}
+
+.large-text .custom-select,
+.large-text .selected-language {
+  font-size: clamp(12px, 1vw, 14px) !important;
+}
+
+.xlarge-text {
+  font-size: 1.4em !important;
+}
+
+.xlarge-text .main-title {
+  font-size: clamp(32px, 3.5vw, 44px) !important;
+}
+
+.xlarge-text .main-subtitle {
+  font-size: clamp(32px, 3.5vw, 44px) !important;
+}
+
+.xlarge-text .btn {
+  font-size: clamp(20px, 1.6vw, 24px) !important;
+  padding: 1.5vh 2.5vw !important;
+}
+
+.xlarge-text .footer-link {
+  font-size: clamp(18px, 1.4vw, 22px) !important;
+}
+
+.xlarge-text .custom-select,
+.xlarge-text .selected-language {
+  font-size: clamp(14px, 1.2vw, 16px) !important;
+  padding: 0.6vh 1.2vw !important;
+}
 /* Стандартные десктопы (1200px - 1920px) */
 @media (max-width: 1920px) and (min-width: 1200px) {
   .main-container {

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import '../styles/components/DemoCalculator.css'
 import { translateServerMessage, translateRecommendation } from '../utils/translations'
 
-const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage }) => {
+const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage, onShake }) => {
   const [selectedNutrition, setSelectedNutrition] = useState('')
   const [selectedTransport, setSelectedTransport] = useState('')
   const [nutritionDropdownOpen, setNutritionDropdownOpen] = useState(false)
@@ -162,7 +162,16 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage 
 
   return (
     <>
-      <div className="modal-overlay">
+      <div 
+        className="modal-overlay"
+        onClick={(e) => {
+          // Если кликнули по overlay (не по калькулятору), дергаем калькулятор
+          if (e.target === e.currentTarget) {
+            if (shake) return;
+            if (onShake) onShake();
+          }
+        }}
+      >
         <div 
           className={`modal-content ${shake ? 'shake' : ''}`}
           ref={modalRef}

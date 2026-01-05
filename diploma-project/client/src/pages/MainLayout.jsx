@@ -43,7 +43,6 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
       document.removeEventListener('click', handleClickOutside)
     }
   }, [isDropdownOpen])
-
   const handleLanguageSelect = (language) => {
     if (isCalculatorOpen) {
       triggerShake()
@@ -69,12 +68,12 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
 
   const triggerShake = () => {
     setShakeCalculator(true)
-    setTimeout(() => setShakeCalculator(false), 500) // убираем анимацию через 500мс
+    setTimeout(() => setShakeCalculator(false), 500)
   }
 
   const handleBlockedClick = (e) => {
     if (isCalculatorOpen) {
-      e.preventDefault() // предотвращаем действие по умолчанию
+      e.preventDefault()
       triggerShake()
     }
   }
@@ -162,9 +161,9 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
             <a href="#about" className="footer-link" onClick={handleBlockedClick}>
               {t.aboutLink}
             </a>
-            <a href="#register" className="footer-link" onClick={handleBlockedClick}>
+            <Link to="/register" className="footer-link">
               {t.registerLink}
-            </a>
+            </Link>
           </div>
         </footer>
       </div>
@@ -176,6 +175,7 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
         translations={t}
         shake={shakeCalculator}
         currentLanguage={selectedLanguage}
+        onShake={triggerShake}
       />
     </div>
   )

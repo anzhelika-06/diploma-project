@@ -4,6 +4,171 @@ const { pool } = require('../config/database');
 
 const router = express.Router();
 
+// Маршрут для регистрации
+router.post('/register', async (req, res) => {
+  try {
+    const { login, nickname, password, birthdate, gender } = req.body;
+
+    // Валидация входных данных
+    if (!login || !nickname || !password || !birthdate || !gender) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: 'Все поля обязательны для заполнения'
+      });
+    }
+
+    // Валидация email - строгая проверка только латинских символов
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(login)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_EMAIL',
+        message: 'Введите корректный email адрес'
+      });
+    }
+
+    // Дополнительная проверка доменной зоны - только известные почтовые сервисы
+    const domainPart = login.split('@')[1];
+    const allowedDomains = [
+      // Gmail и Google
+      'gmail.com', 'googlemail.com',
+      // Microsoft
+      'hotmail.com', 'outlook.com', 'live.com', 'msn.com',
+      // Yahoo
+      'yahoo.com', 'yahoo.co.uk', 'yahoo.de', 'yahoo.fr',
+      // Российские
+      'mail.ru', 'bk.ru', 'inbox.ru', 'list.ru',
+      'yandex.ru', 'yandex.com', 'ya.ru',
+      'rambler.ru', 'lenta.ru',
+      // Белорусские
+      'tut.by', 'mail.by', 'yandex.by',
+      // Украинские
+      'ukr.net', 'i.ua', 'meta.ua',
+      // Другие популярные
+      'aol.com', 'icloud.com', 'me.com', 'mac.com',
+      'protonmail.com', 'tutanota.com',
+      // Корпоративные зоны (для примера)
+      'example.com', 'test.com', 'demo.org'
+    ];
+    
+    const domain = domainPart.toLowerCase();
+    
+    if (!allowedDomains.includes(domain)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_EMAIL',
+        message: 'Введите корректный email адрес'
+      });
+    }
+
+    // Валидация пароля
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'PASSWORD_TOO_SHORT',
+        message: 'Пароль должен содержать минимум 6 символов'
+      });
+    }
+
+    if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        error: 'PASSWORD_TOO_WEAK',
+        message: 'Пароль должен содержать буквы и цифры'
+      });
+    }
+
+    // Валидация возраста
+    const birthDate = new Date(birthdate);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    if (age < 18) {
+      return res.status(400).json({
+        success: false,
+        error: 'AGE_RESTRICTION',
+        message: 'Вам должно быть не менее 18 лет'
+      });
+    }
+
+    // Проверка существования пользователя
+    const existingUserQuery = `
+      SELECT id FROM users WHERE email = $1 OR nickname = $2
+    `;
+    
+    const existingUserResult = await pool.query(existingUserQuery, [login, nickname]);
+
+    if (existingUserResult.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'USER_EXISTS',
+        message: 'Пользователь с таким email или никнеймом уже существует'
+      });
+    }
+
+    // Хеширование пароля
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Получаем gender_id по коду пола
+    const genderQuery = `SELECT id FROM genders WHERE code = $1`;
+    const genderResult = await pool.query(genderQuery, [gender]);
+    
+    if (genderResult.rows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_GENDER',
+        message: 'Неверное значение пола'
+      });
+    }
+    
+    const genderId = genderResult.rows[0].id;
+
+    // Создание пользователя
+    const insertUserQuery = `
+      INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, created_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      RETURNING id, email, nickname, created_at
+    `;
+    
+    const newUserResult = await pool.query(insertUserQuery, [
+      login,
+      nickname,
+      passwordHash,
+      birthdate,
+      genderId
+    ]);
+
+    const newUser = newUserResult.rows[0];
+
+    // Успешная регистрация
+    res.status(201).json({
+      success: true,
+      message: 'Регистрация успешна',
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        nickname: newUser.nickname,
+        createdAt: newUser.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Ошибка регистрации:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
 // Маршрут для авторизации
 router.post('/login', async (req, res) => {
   try {

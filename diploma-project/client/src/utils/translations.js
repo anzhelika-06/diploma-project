@@ -94,7 +94,7 @@ export const translations = {
     },
     // Переводы для страницы авторизации
     loginTitle: "Авторизация",
-    registerTitle: "Создание аккаунта",
+    registerTitle: "Регистрация",
     homeText: "Главная",
     homeAlt: "Домой",
     loginPlaceholder: "Введите логин",
@@ -110,14 +110,54 @@ export const translations = {
     confirmPasswordPlaceholder: "Повторите пароль",
     registerButton: "Зарегистрироваться",
     noAccountText: "Еще нет аккаунта?",
-    hasAccountText: "Уже есть аккаунт?",
+    hasAccountText: "Есть аккаунт?",
     registerLink: "Зарегистрироваться",
-    loginLink: "Войти",
+    loginLink: "Авторизоваться",
     // Ошибки авторизации
     invalidCredentials: "Неверный логин или пароль",
     userNotFound: "Пользователь не найден",
     serverError: "Ошибка сервера. Попробуйте позже",
-    networkError: "Ошибка сети. Проверьте подключение"
+    networkError: "Ошибка сети. Проверьте подключение",
+    // Кнопка звука
+    enableLeafSound: "Включить звук листика",
+    // Регистрация
+    nicknamePlaceholder: "Введите никнейм",
+    confirmPasswordRequired: "Пожалуйста, повторите пароль",
+    passwordMismatch: "Пароли не совпадают",
+    birthdatePlaceholder: "Выберите дату рождения",
+    birthdateRequired: "Пожалуйста, выберите дату рождения",
+    calendarPlaceholder: "дд.мм.гггг",
+    selectBirthdate: "Выберите дату рождения",
+    enterBirthdate: "Введите вашу дату рождения",
+    enterGender: "Выберите ваш пол",
+    genderRequired: "Пожалуйста, выберите пол",
+    genderPlaceholder: "Выберите пол",
+    genderMale: "Мужской",
+    genderFemale: "Женский",
+    stepOf: "Шаг {current} из {total}",
+    nextButton: "Далее",
+    backButton: "Назад",
+    ageRestriction: "Вам должно быть не менее 18 лет",
+    termsText: "Нажимая «Зарегистрироваться», вы подтверждаете, что прочитали и согласны с нашими",
+    termsOfService: "Условиями Пользования",
+    privacyPolicy: "и Политикой Конфиденциальности",
+    // Валидация
+    invalidEmail: "Введите корректный email адрес",
+    passwordTooShort: "Пароль должен содержать минимум 6 символов",
+    passwordTooWeak: "Пароль должен содержать буквы и цифры",
+    nicknameRequired: "Пожалуйста, заполните поле никнейма",
+    // Ошибки регистрации
+    userExists: "Пользователь с таким email или никнеймом уже существует",
+    registrationSuccess: "Регистрация успешна!",
+    registrationSuccessMessage: "Ваш аккаунт был успешно создан. Теперь вы можете войти в систему.",
+    goToLogin: "Перейти к авторизации",
+    // Страницы условий и политики
+    backToRegistration: "← Назад к регистрации",
+    termsPageTitle: "Условия Пользования",
+    privacyPageTitle: "Политика Конфиденциальности",
+    // Модальные окна
+    registrationErrorTitle: "Ошибка регистрации",
+    errorModalOk: "Понятно"
   },
   EN: {
     mainTitle: "Reduce your carbon footprint",
@@ -213,7 +253,7 @@ export const translations = {
     },
     // Переводы для страницы авторизации
     loginTitle: "Authorization",
-    registerTitle: "Create Account",
+    registerTitle: "Registration",
     homeText: "Home",
     homeAlt: "Home",
     loginPlaceholder: "Enter login",
@@ -236,7 +276,47 @@ export const translations = {
     invalidCredentials: "Invalid login or password",
     userNotFound: "User not found",
     serverError: "Server error. Please try again later",
-    networkError: "Network error. Check your connection"
+    networkError: "Network error. Check your connection",
+    // Кнопка звука
+    enableLeafSound: "Enable leaf sound",
+    // Регистрация
+    nicknamePlaceholder: "Enter nickname",
+    confirmPasswordRequired: "Please repeat password",
+    passwordMismatch: "Passwords do not match",
+    birthdatePlaceholder: "Select birth date",
+    birthdateRequired: "Please select birth date",
+    calendarPlaceholder: "mm/dd/yyyy",
+    selectBirthdate: "Select birth date",
+    enterBirthdate: "Enter your birth date",
+    enterGender: "Select your gender",
+    genderRequired: "Please select gender",
+    genderPlaceholder: "Select gender",
+    genderMale: "Male",
+    genderFemale: "Female",
+    stepOf: "Step {current} of {total}",
+    nextButton: "Next",
+    backButton: "Back",
+    ageRestriction: "You must be at least 18 years old",
+    termsText: "By clicking «Sign Up», you confirm that you have read and agree to our",
+    termsOfService: "Terms of Service",
+    privacyPolicy: "and Privacy Policy",
+    // Валидация
+    invalidEmail: "Please enter a valid email address",
+    passwordTooShort: "Password must be at least 6 characters long",
+    passwordTooWeak: "Password must contain letters and numbers",
+    nicknameRequired: "Please fill in the nickname field",
+    // Ошибки регистрации
+    userExists: "User with this email or nickname already exists",
+    registrationSuccess: "Registration successful!",
+    registrationSuccessMessage: "Your account has been successfully created. You can now log in.",
+    goToLogin: "Go to Login",
+    // Страницы условий и политики
+    backToRegistration: "← Back to Registration",
+    termsPageTitle: "Terms of Service",
+    privacyPageTitle: "Privacy Policy",
+    // Модальные окна
+    registrationErrorTitle: "Registration Error",
+    errorModalOk: "Got it"
   },
   BY: {
     mainTitle: "Паменшыце свой вугляродны след",
@@ -332,7 +412,7 @@ export const translations = {
     },
     // Переводы для страницы авторизации
     loginTitle: "Аўтарызацыя",
-    registerTitle: "Стварэнне акаўнта",
+    registerTitle: "Рэгістрацыя",
     homeText: "Галоўная",
     homeAlt: "Дадому",
     loginPlaceholder: "Увядзіце логін",
@@ -355,7 +435,47 @@ export const translations = {
     invalidCredentials: "Няправільны логін або пароль",
     userNotFound: "Карыстальнік не знойдзены",
     serverError: "Памылка сервера. Паспрабуйце пазней",
-    networkError: "Памылка сеткі. Праверце злучэнне"
+    networkError: "Памылка сеткі. Праверце злучэнне",
+    // Кнопка звука
+    enableLeafSound: "Уключыць гук лісціка",
+    // Регистрация
+    nicknamePlaceholder: "Увядзіце мянушку",
+    confirmPasswordRequired: "Калі ласка, паўтарыце пароль",
+    passwordMismatch: "Паролі не супадаюць",
+    birthdatePlaceholder: "Выберыце дату нараджэння",
+    birthdateRequired: "Калі ласка, выберыце дату нараджэння",
+    calendarPlaceholder: "дд.мм.гггг",
+    selectBirthdate: "Выберыце дату нараджэння",
+    enterBirthdate: "Увядзіце вашу дату нараджэння",
+    enterGender: "Выберыце ваш пол",
+    genderRequired: "Калі ласка, выберыце пол",
+    genderPlaceholder: "Выберыце пол",
+    genderMale: "Мужчынскі",
+    genderFemale: "Жаночы",
+    stepOf: "Крок {current} з {total}",
+    nextButton: "Далей",
+    backButton: "Назад",
+    ageRestriction: "Вам павінна быць не менш за 18 гадоў",
+    termsText: "Націскаючы «Зарэгістравацца», вы пацвярджаеце, што прачыталі і згодны з нашымі",
+    termsOfService: "Умовамі Карыстання",
+    privacyPolicy: "і Палітыкай Канфідэнцыяльнасці",
+    // Валидация
+    invalidEmail: "Увядзіце карэктны email адрас",
+    passwordTooShort: "Пароль павінен утрымліваць мінімум 6 сімвалаў",
+    passwordTooWeak: "Пароль павінен утрымліваць літары і лічбы",
+    nicknameRequired: "Калі ласка, запоўніце поле мянушкі",
+    // Ошибки регистрации
+    userExists: "Карыстальнік з такім email або мянушкай ужо існуе",
+    registrationSuccess: "Рэгістрацыя паспяховая!",
+    registrationSuccessMessage: "Ваш акаўнт быў паспяхова створаны. Цяпер вы можаце ўвайсці ў сістэму.",
+    goToLogin: "Перайсці да аўтарызацыі",
+    // Страницы условий и политики
+    backToRegistration: "← Назад да рэгістрацыі",
+    termsPageTitle: "Умовы Карыстання",
+    privacyPageTitle: "Палітыка Канфідэнцыяльнасці",
+    // Модальные окна
+    registrationErrorTitle: "Памылка рэгістрацыі",
+    errorModalOk: "Зразумела"
   }
 }
 

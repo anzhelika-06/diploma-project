@@ -1,0 +1,1136 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+
+/* Используем те же стили что и в AuthPage */
+.auth-page {
+  min-height: 100vh;
+  background-color: #535E51;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: 'Libre Caslon Text', serif;
+  position: relative;
+  padding: 20px;
+}
+
+.home-link {
+  position: absolute;
+  top: clamp(35px, 4vh, 45px);
+  left: clamp(25px, 3vw, 35px);
+  z-index: 10;
+}
+
+.home-link-content {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 8px);
+  text-decoration: none;
+  color: #222222;
+  font-size: clamp(14px, 1.3vw, 18px);
+  font-weight: 400;
+  transition: opacity 0.3s ease;
+}
+
+.home-link-content:hover {
+  opacity: 0.7;
+}
+
+.home-icon {
+  width: clamp(24px, 2.5vw, 32px);
+  height: clamp(24px, 2.5vw, 32px);
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.home-text {
+  border-bottom: 2px solid #222222;
+  padding-bottom: 1px;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(0.2px);
+}
+
+.auth-white-block {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  width: min(95vw, 1400px);
+  height: min(85vh, 900px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(30px, 5vw, 50px);
+  position: relative;
+}
+
+.auth-form-block {
+  background-color: rgba(158, 194, 104, 0.75);
+  padding: clamp(40px, 5vw, 60px) clamp(30px, 4vw, 50px);
+  border-radius: 25px;
+  width: clamp(400px, 40vw, 500px);
+  height: clamp(500px, 60vh, 600px);
+  display: block;
+  margin-right: clamp(20px, 8vw, 100px);
+  position: relative;
+  overflow: visible;
+}
+
+.auth-title {
+  position: absolute;
+  top: clamp(20px, 3vw, 30px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 600;
+  color: #222222;
+  text-align: center;
+  font-family: 'Libre Caslon Text', serif;
+  width: 100%;
+}
+
+.auth-form {
+  position: absolute;
+  top: clamp(80px, 12vw, 120px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(25px, 4vw, 45px);
+}
+
+.form-fields-container {
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(25px, 4vw, 45px);
+}
+
+.form-group {
+  width: 100%;
+  position: relative;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+.form-group:has(.date-selector-group) {
+  z-index: 10;
+  min-height: 110px;
+}
+
+.auth-input {
+  width: 100%;
+  padding: clamp(12px, 1.5vw, 15px) clamp(16px, 2vw, 20px);
+  border: none;
+  border-radius: 25px;
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-family: 'Libre Caslon Text', serif;
+  background-color: white;
+  color: #222222;
+  box-sizing: border-box;
+  outline: none;
+  transition: box-shadow 0.3s ease;
+  height: 50px;
+  flex-shrink: 0;
+}
+
+.auth-input::placeholder {
+  color: #BBB5B5;
+  font-family: 'Libre Caslon Text', serif;
+}
+
+.auth-input:focus {
+  box-shadow: 0 0 0 2px rgba(124, 179, 66, 0.3);
+  outline: none;
+}
+
+.auth-input.error {
+  border: 1px solid #e74c3c;
+  box-shadow: 0 0 0 1px rgba(231, 76, 60, 0.2);
+}
+
+/* Кастомный календарь с селекторами */
+/* Селекторы даты */
+.date-selector-group {
+  display: flex;
+  gap: clamp(10px, 1.2vw, 14px);
+  width: 100%;
+}
+
+.date-selector {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.date-selector-label {
+  font-size: clamp(11px, 1vw, 12px);
+  color: #535E51;
+  font-family: 'Libre Caslon Text', serif;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 3px;
+}
+
+.custom-selector {
+  position: relative;
+  width: 100%;
+}
+
+.selector-trigger {
+  width: 100%;
+  padding: clamp(12px, 1.3vw, 14px) clamp(12px, 1.2vw, 14px);
+  border: 2px solid #e0e0e0;
+  border-radius: 30px;
+  font-size: clamp(13px, 1.1vw, 14px);
+  font-family: 'Libre Caslon Text', serif;
+  background-color: white;
+  color: #222222;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  user-select: none;
+}
+
+.selector-trigger:hover {
+  border-color: #535E51;
+  box-shadow: 0 6px 16px rgba(83, 94, 81, 0.12);
+  transform: translateY(-1px);
+}
+
+.custom-selector.open .selector-trigger {
+  border-color: #535E51;
+  box-shadow: 0 0 0 3px rgba(83, 94, 81, 0.15), 0 6px 16px rgba(83, 94, 81, 0.12);
+  border-radius: 30px 30px 0 0;
+}
+
+.selector-value {
+  text-align: center;
+  flex: 1;
+}
+
+.selector-arrow {
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.selector-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.selector-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 2px solid #535E51;
+  border-top: none;
+  border-radius: 0 0 30px 30px;
+  z-index: 2000;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 6px 16px rgba(83, 94, 81, 0.12);
+  padding-right: 2px;
+}
+
+.selector-option {
+  padding: clamp(10px, 1.2vw, 12px) clamp(12px, 1.2vw, 14px);
+  font-family: 'Libre Caslon Text', serif;
+  font-size: clamp(13px, 1.1vw, 14px);
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.selector-option:last-child {
+  border-bottom: none;
+}
+
+.selector-option:hover {
+  background-color: rgba(83, 94, 81, 0.1);
+  color: #535E51;
+}
+
+.selector-option.selected {
+  background-color: rgba(83, 94, 81, 0.2);
+  color: #535E51;
+  font-weight: 600;
+}
+
+/* Стилизация скроллбара для селекторов */
+.selector-options::-webkit-scrollbar {
+  width: 4px;
+}
+
+.selector-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.selector-options::-webkit-scrollbar-thumb {
+  background: rgba(83, 94, 81, 0.3);
+  border-radius: 2px;
+}
+
+.selector-options::-webkit-scrollbar-thumb:hover {
+  background: rgba(83, 94, 81, 0.5);
+}
+
+.selector-options::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Для Firefox и других браузеров */
+.selector-options {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(83, 94, 81, 0.3) transparent;
+}
+
+.custom-calendar-birthdate {
+  width: 100%;
+  z-index: 20;
+  position: relative;
+}
+
+/* Стилизация календаря */
+
+/* Кастомный выпадающий список для пола */
+.custom-gender-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.gender-dropdown-trigger {
+  width: 100%;
+  padding: clamp(12px, 1.5vw, 15px) clamp(16px, 2vw, 20px);
+  border: none;
+  border-radius: 25px;
+  font-size: clamp(14px, 1.2vw, 16px);
+  font-family: 'Libre Caslon Text', serif;
+  background-color: white;
+  color: #222222;
+  box-sizing: border-box;
+  outline: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 50px;
+  box-shadow: 0 0 0 1px #e0e0e0;
+}
+
+.gender-dropdown-trigger:hover {
+  box-shadow: 0 0 0 2px rgba(83, 94, 81, 0.2);
+}
+
+.gender-dropdown-trigger.active {
+  box-shadow: 0 0 0 2px rgba(83, 94, 81, 0.3);
+  border-radius: 25px 25px 0 0;
+}
+
+.gender-dropdown-trigger .placeholder {
+  color: #BBB5B5;
+}
+
+.gender-dropdown-trigger .selected {
+  color: #222222;
+}
+
+.dropdown-arrow-gender {
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.dropdown-arrow-gender.rotated {
+  transform: rotate(180deg);
+}
+
+.gender-dropdown-options {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  background-color: white;
+  border-radius: 0 0 25px 25px;
+  z-index: 10;
+  overflow: hidden;
+  box-shadow: 0 0 0 2px rgba(83, 94, 81, 0.3), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gender-dropdown-option {
+  padding: clamp(12px, 1.5vw, 15px) clamp(16px, 2vw, 20px);
+  font-family: 'Libre Caslon Text', serif;
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: #222222;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  background-color: white;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.gender-dropdown-option:last-child {
+  border-bottom: none;
+}
+
+.gender-dropdown-option:hover {
+  background-color: rgba(83, 94, 81, 0.1);
+  color: #535E51;
+}
+
+.custom-gender-dropdown.error .gender-dropdown-trigger {
+  box-shadow: 0 0 0 1px #e74c3c;
+}
+
+.error-message {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  color: #e74c3c;
+  font-size: clamp(11px, 1vw, 12px);
+  margin-top: clamp(1px, 0.3vw, 3px);
+  font-family: 'Libre Caslon Text', serif;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.error-message.birthdate-error {
+  top: 80px;
+  text-align: center;
+  width: 100%;
+  white-space: normal;
+}
+
+/* Кнопки */
+.button-group {
+  display: flex;
+  gap: 15px;
+  justify-content: space-between;
+  margin-top: clamp(-15px, 0.2vw, -8px);
+}
+
+.button-group .auth-submit-button:only-child {
+  margin-left: auto;
+}
+
+.auth-submit-button {
+  background-color: rgba(83, 94, 81, 0.7);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: clamp(12px, 1.5vw, 15px) clamp(35px, 4vw, 50px);
+  font-size: clamp(16px, 1.4vw, 18px);
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  font-family: 'Libre Caslon Text', serif;
+  min-width: clamp(130px, 12vw, 160px);
+  margin-top: clamp(-25px, 0vw, -15px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.auth-back-button {
+  background-color: rgba(83, 94, 81, 0.3);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: clamp(12px, 1.5vw, 15px) clamp(35px, 4vw, 50px);
+  font-size: clamp(16px, 1.4vw, 18px);
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Libre Caslon Text', serif;
+  min-width: clamp(130px, 12vw, 160px);
+  margin-top: clamp(-25px, 0vw, -15px);
+}
+
+.auth-submit-button:hover {
+  background-color: rgba(83, 94, 81, 0.9);
+  transform: translateY(-2px);
+}
+
+.auth-back-button:hover {
+  background-color: rgba(83, 94, 81, 0.5);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.auth-submit-button:active,
+.auth-back-button:active {
+  transform: translateY(0);
+}
+
+.auth-submit-button:disabled,
+.auth-back-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-submit-button:disabled:hover,
+.auth-back-button:disabled:hover {
+  background-color: #9ca3af;
+  transform: none;
+}
+
+.auth-register-link {
+  position: absolute;
+  bottom: -70px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  font-size: 14px;
+  color: #5C5A5A;
+  font-family: 'Libre Caslon Text', serif;
+  width: 100%;
+}
+
+.register-link {
+  text-decoration: underline;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  color: #5C5A5A;
+}
+
+.register-link:hover {
+  opacity: 0.7;
+}
+
+/* Условия использования в низу белого блока */
+.terms-section-bottom {
+  position: absolute;
+  bottom: 20px;
+  left: 30%;
+  transform: translateX(-50%);
+  width: 90%;
+  text-align: center;
+}
+
+.terms-text-bottom {
+  font-size: clamp(9px, 0.7vw, 11px);
+  color: #666666;
+  font-family: 'Libre Caslon Text', serif;
+  line-height: 1.3;
+  margin: 0;
+  text-align: center;
+}
+
+.terms-link-bottom {
+  color: #535E51;
+  text-decoration: underline;
+  transition: opacity 0.3s ease;
+  font-weight: 500;
+}
+
+.terms-link-bottom:hover {
+  opacity: 0.7;
+}
+
+/* Правая секция с деревом */
+.right-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.video-block {
+  width: clamp(250px, 30vw, 400px);
+  height: clamp(250px, 30vw, 400px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 25px;
+  overflow: visible;
+  background: transparent;
+}
+
+.tree-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 25px;
+  background: transparent;
+  transition: opacity 0.3s ease;
+}
+
+.random-phrase {
+  text-align: center;
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: #222222;
+  font-weight: 600;
+  max-width: clamp(250px, 30vw, 400px);
+  line-height: 1.4;
+  font-family: 'Libre Caslon Text', serif;
+}
+
+/* Адаптивность */
+@media (max-width: 1024px) {
+  .auth-page {
+    padding: 15px;
+  }
+  
+  .auth-white-block {
+    padding: 30px;
+    height: min(90vh, 800px);
+  }
+  
+  .auth-container {
+    flex-direction: column;
+    gap: 40px;
+  }
+  
+  .auth-form-block {
+    width: clamp(350px, 80vw, 450px);
+    height: clamp(450px, 55vh, 550px);
+    margin-right: 0;
+  }
+  
+  .terms-section-bottom {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    margin-top: 20px;
+  }
+  
+  .auth-form {
+    top: clamp(70px, 10vw, 100px);
+    width: 85%;
+  }
+  
+  .form-fields-container {
+    height: 150px;
+    gap: clamp(20px, 3vw, 35px);
+  }
+  
+  .form-group {
+    min-height: 65px;
+  }
+
+  .auth-register-link {
+    bottom: -35px;
+    font-size: 13px;
+  }
+  
+  .right-section {
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .video-block {
+    width: clamp(200px, 50vw, 350px);
+    height: clamp(200px, 50vw, 350px);
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-page {
+    padding: 10px;
+  }
+  
+  .home-link {
+    top: clamp(18px, 3vh, 25px);
+    left: clamp(12px, 2vw, 18px);
+  }
+  
+  .home-link-content {
+    font-size: clamp(12px, 2.5vw, 14px);
+    gap: clamp(4px, 1vw, 6px);
+  }
+  
+  .home-icon {
+    width: clamp(20px, 4vw, 26px);
+    height: clamp(20px, 4vw, 26px);
+  }
+  
+  .auth-white-block {
+    padding: 20px;
+    height: min(95vh, 700px);
+  }
+  
+  .auth-container {
+    gap: 30px;
+  }
+  
+  .auth-form-block {
+    width: clamp(300px, 85vw, 400px);
+    height: clamp(400px, 50vh, 500px);
+    padding: clamp(30px, 4vw, 40px) clamp(25px, 3vw, 35px);
+  }
+  
+  .form-group {
+    min-height: 60px;
+  }
+  
+  .auth-title {
+    top: clamp(15px, 2vw, 20px);
+    font-size: clamp(20px, 4vw, 26px);
+  }
+  
+  .auth-form {
+    top: clamp(60px, 8vw, 90px);
+    width: 90%;
+  }
+  
+  .form-fields-container {
+    height: 140px;
+    gap: clamp(18px, 2.5vw, 30px);
+  }
+  
+  .form-group {
+    min-height: 60px;
+  }
+
+  .auth-input {
+    padding: clamp(10px, 1.2vw, 12px) clamp(14px, 1.8vw, 16px);
+    font-size: clamp(13px, 1vw, 14px);
+  }
+
+  .auth-submit-button,
+  .auth-back-button {
+    padding: clamp(10px, 1.2vw, 12px) clamp(30px, 3vw, 40px);
+    font-size: clamp(14px, 1.2vw, 16px);
+    min-width: clamp(120px, 10vw, 140px);
+  }
+  
+  .button-group {
+    gap: 10px;
+  }
+
+  .auth-register-link {
+    bottom: -30px;
+    font-size: 12px;
+  }
+  
+  .video-block {
+    width: clamp(180px, 45vw, 300px);
+    height: clamp(180px, 45vw, 300px);
+  }
+  
+  .random-phrase {
+    font-size: clamp(13px, 1vw, 15px);
+    max-width: clamp(200px, 45vw, 300px);
+  }
+}
+
+@media (max-width: 480px) {
+  .home-link {
+    top: clamp(15px, 2.5vh, 20px);
+    left: clamp(8px, 1.5vw, 12px);
+  }
+  
+  .home-link-content {
+    font-size: clamp(10px, 2vw, 12px);
+    gap: clamp(3px, 0.8vw, 5px);
+  }
+  
+  .home-icon {
+    width: clamp(18px, 3.5vw, 22px);
+    height: clamp(18px, 3.5vw, 22px);
+  }
+  
+  .auth-white-block {
+    padding: 15px;
+    height: min(98vh, 600px);
+  }
+  
+  .auth-form-block {
+    width: clamp(280px, 90vw, 350px);
+    height: clamp(350px, 45vh, 450px);
+    padding: clamp(25px, 3vw, 35px) clamp(20px, 2.5vw, 30px);
+  }
+  
+  .form-group {
+    min-height: 55px;
+  }
+  
+  .error-message {
+    top: 47px;
+    font-size: 10px;
+    margin-top: 1px;
+  }
+  
+  .auth-title {
+    top: clamp(10px, 1.5vw, 15px);
+    font-size: clamp(18px, 3.5vw, 24px);
+  }
+  
+  .auth-form {
+    top: clamp(50px, 7vw, 80px);
+    width: 95%;
+  }
+  
+  .form-fields-container {
+    height: 130px;
+    gap: clamp(15px, 2vw, 25px);
+  }
+  
+  .form-group {
+    min-height: 55px;
+  }
+  
+  .error-message {
+    top: 47px;
+    font-size: 10px;
+    margin-top: 1px;
+  }
+
+  .auth-input {
+    padding: clamp(8px, 1vw, 10px) clamp(12px, 1.5vw, 14px);
+    font-size: clamp(12px, 0.9vw, 13px);
+  }
+
+  .auth-submit-button,
+  .auth-back-button {
+    padding: clamp(8px, 1vw, 10px) clamp(25px, 2.5vw, 35px);
+    font-size: clamp(13px, 1vw, 15px);
+    min-width: clamp(110px, 8vw, 130px);
+  }
+  
+  .button-group {
+    gap: 8px;
+  }
+
+  .auth-register-link {
+    bottom: -25px;
+    font-size: 11px;
+  }
+  
+  .video-block {
+    width: clamp(150px, 40vw, 250px);
+    height: clamp(150px, 40vw, 250px);
+  }
+  
+  .random-phrase {
+    font-size: clamp(12px, 0.9vw, 14px);
+    max-width: clamp(150px, 40vw, 250px);
+  }
+  
+  .terms-text {
+    font-size: clamp(10px, 0.8vw, 12px);
+  }
+}
+/* Дополнительные стили для мобильных устройств */
+@media (max-width: 768px) {
+  .button-group {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .button-group {
+    gap: 8px;
+  }
+}
+
+/* Модальное окно ошибки */
+.error-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+.error-modal {
+  background: white;
+  border-radius: 25px;
+  width: min(90vw, 400px);
+  padding: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  border-top: 4px solid #e74c3c;
+}
+
+.error-modal-header {
+  padding: 25px 30px 15px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error-modal-header h3 {
+  margin: 0;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  text-align: center;
+}
+
+.error-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  position: absolute;
+  right: 15px;
+  top: 15px;
+}
+
+.error-modal-close:hover {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.error-modal-body {
+  padding: 20px 30px;
+}
+
+.error-modal-body p {
+  margin: 0;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.error-modal-footer {
+  padding: 0 30px 25px;
+}
+
+.error-modal-button {
+  width: 100%;
+  background: rgba(83, 94, 81, 0.7);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 15px 20px;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-modal-button:hover {
+  background: rgba(83, 94, 81, 0.9);
+  transform: translateY(-1px);
+}
+
+.error-modal-button:active {
+  transform: translateY(0);
+}
+
+/* Адаптивность для модального окна ошибки */
+@media (max-width: 768px) {
+  .error-modal {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .error-modal-header {
+    padding: 20px 25px 12px;
+  }
+  
+  .error-modal-header h3 {
+    font-size: 18px;
+  }
+  
+  .error-modal-close {
+    right: 12px;
+    top: 12px;
+    width: 26px;
+    height: 26px;
+    font-size: 20px;
+  }
+  
+  .error-modal-body {
+    padding: 15px 25px;
+  }
+  
+  .error-modal-body p {
+    font-size: 14px;
+  }
+  
+  .error-modal-footer {
+    padding: 0 25px 20px;
+  }
+  
+  .error-modal-button {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+}
+/* Модальное окно успешной регистрации */
+.success-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+}
+
+.success-modal {
+  background: white;
+  border-radius: 25px;
+  width: min(90vw, 400px);
+  padding: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  border-top: 4px solid #4caf50;
+}
+
+.success-modal-header {
+  padding: 25px 30px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.success-modal-header h3 {
+  margin: 0;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+}
+
+.success-modal-body {
+  padding: 20px 30px;
+}
+
+.success-modal-body p {
+  margin: 0;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.success-modal-footer {
+  padding: 0 30px 25px;
+}
+
+.success-modal-button {
+  width: 100%;
+  background: rgba(83, 94, 81, 0.7);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 15px 20px;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-modal-button:hover {
+  background: rgba(83, 94, 81, 0.9);
+  transform: translateY(-1px);
+}
+
+.success-modal-button:active {
+  transform: translateY(0);
+}
+
+/* Анимации */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Адаптивность для модального окна */
+@media (max-width: 768px) {
+  .success-modal {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .success-modal-header {
+    padding: 20px 25px 12px;
+  }
+  
+  .success-modal-header h3 {
+    font-size: 18px;
+  }
+  
+  .success-modal-body {
+    padding: 15px 25px;
+  }
+  
+  .success-modal-body p {
+    font-size: 14px;
+  }
+  
+  .success-modal-footer {
+    padding: 0 25px 20px;
+  }
+  
+  .success-modal-button {
+    font-size: 14px;
+    padding: 12px 16px;
+  }
+}
