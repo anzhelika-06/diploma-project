@@ -5,6 +5,7 @@ import AuthPage from './pages/AuthPage'
 import RegisterPage from './pages/RegisterPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
+import AboutPage from './pages/AboutPage'
 import { translations, getSavedLanguage, saveLanguage } from './utils/translations'
 
 function App() {
@@ -52,6 +53,16 @@ function App() {
         />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route 
+          path="/about" 
+          element={
+            <AboutPage 
+              translations={currentTranslations}
+              currentLanguage={currentLanguage}
+              onLanguageChange={handleLanguageChange}
+            />
+          } 
+        />
       </Routes>
     </Router>
   )

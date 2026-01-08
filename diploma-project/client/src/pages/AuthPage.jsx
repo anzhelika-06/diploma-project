@@ -15,27 +15,33 @@ const AuthPage = ({ translations, currentLanguage }) => {
     password: ''
   })
   const [randomPhrase, setRandomPhrase] = useState('')
+  const [staticPhrase, setStaticPhrase] = useState('')
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
   const audioRef = useRef(null)
   const videoRef = useRef(null)
-  const [showStaticLeaf, setShowStaticLeaf] = useState(false)
+  const [showStaticLeaf, setShowStaticLeaf] = useState(true)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [showSoundButton, setShowSoundButton] = useState(false)
+  const [showSoundButton, setShowSoundButton] = useState(true)
+  const [leafText, setLeafText] = useState('')
+  const [showLeafText, setShowLeafText] = useState(false)
 
-  // Генерируем случайную фразу при загрузке компонента
+  // Устанавливаем рандомную фразу над листиком и статичную под ним
   useEffect(() => {
-    setRandomPhrase(getRandomPhrase(currentLanguage))
-  }, [currentLanguage])
-
-  // Воспроизводим голос листика при монтировании компонента
-  useEffect(() => {
-    // Сбрасываем все состояния при монтировании
-    setShowStaticLeaf(false)
-    setIsTransitioning(false)
-    setShowSoundButton(false)
+    const randomBubblePhrase = getRandomPhrase(currentLanguage)
+    const staticBottomPhrase = translations.leafStaticPhrase || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
     
-    // Останавливаем предыдущее аудио если есть
+    setRandomPhrase(randomBubblePhrase)
+    setStaticPhrase(staticBottomPhrase)
+    setLeafText(randomBubblePhrase)
+    setShowLeafText(true)
+  }, [currentLanguage, translations])
+
+  // Инициализация аудио без автоматического воспроизведения
+  useEffect(() => {
+    setShowStaticLeaf(true)
+    setIsTransitioning(false)
+    
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.currentTime = 0
@@ -50,12 +56,9 @@ const AuthPage = ({ translations, currentLanguage }) => {
     
     const audioSrc = audioMap[currentLanguage] || listikRu
     audioRef.current = new Audio(audioSrc)
-    
-    // Устанавливаем параметры
     audioRef.current.volume = 0.7
     audioRef.current.playbackRate = 1.2
     
-    // Обработчик окончания аудио
     audioRef.current.addEventListener('ended', () => {
       setIsTransitioning(true)
       setTimeout(() => {
@@ -63,24 +66,6 @@ const AuthPage = ({ translations, currentLanguage }) => {
         setIsTransitioning(false)
       }, 100)
     })
-    
-    const playAudio = async () => {
-      try {
-        await audioRef.current.play()
-        console.log('Audio started successfully')
-        setShowSoundButton(false)
-        // Запускаем видео программно
-        if (videoRef.current) {
-          videoRef.current.play().catch(console.log)
-        }
-      } catch (error) {
-        console.log('Audio blocked, showing sound button')
-        setShowSoundButton(true)
-      }
-    }
-    
-    // Запускаем сразу
-    setTimeout(playAudio, 300)
     
     return () => {
       if (audioRef.current) {
@@ -99,17 +84,15 @@ const AuthPage = ({ translations, currentLanguage }) => {
   const handleSoundButtonClick = async () => {
     if (audioRef.current) {
       try {
-        // Сбрасываем аудио на начало
+        setShowStaticLeaf(false)
         audioRef.current.currentTime = 0
         await audioRef.current.play()
         setShowSoundButton(false)
-        // Запускаем видео программно
         if (videoRef.current) {
           videoRef.current.play().catch(console.log)
         }
-        console.log('Audio started by user click')
       } catch (error) {
-        console.log('Failed to play audio even after user click:', error)
+        console.log('Audio play failed:', error)
       }
     }
   }
@@ -120,7 +103,6 @@ const AuthPage = ({ translations, currentLanguage }) => {
       [e.target.name]: e.target.value
     })
     
-    // Очищаем ошибку при вводе
     if (errors[e.target.name]) {
       setErrors({
         ...errors,
@@ -134,7 +116,6 @@ const AuthPage = ({ translations, currentLanguage }) => {
     
     const newErrors = {}
     
-    // Кастомная валидация с переводами
     if (!formData.login.trim()) {
       newErrors.login = translations.loginRequired
     }
@@ -166,12 +147,9 @@ const AuthPage = ({ translations, currentLanguage }) => {
       const data = await response.json()
       
       if (data.success) {
-        // Успешная авторизация
         console.log('Пользователь авторизован:', data.user)
-        // Здесь можно добавить редирект или сохранение данных пользователя
         alert(`Добро пожаловать, ${data.user.nickname}!`)
       } else {
-        // Обработка ошибок с сервера
         let errorMessage = translations.serverError
         
         switch (data.error) {
@@ -200,9 +178,7 @@ const AuthPage = ({ translations, currentLanguage }) => {
 
   return (
     <div className="auth-page">
-      {/* Белый блок как в MainLayout */}
       <div className="auth-white-block">
-        {/* Ссылка "Главная" внутри белого блока */}
         <div className="home-link">
           <Link to="/" className="home-link-content">
             <img src={homeIcon} alt={translations.homeAlt} className="home-icon" />
@@ -210,9 +186,7 @@ const AuthPage = ({ translations, currentLanguage }) => {
           </Link>
         </div>
 
-        {/* Основной контейнер */}
         <div className="auth-container">
-          {/* Левый блок с формой авторизации */}
           <div className="auth-form-block">
             <h1 className="auth-title">{translations.loginTitle}</h1>
             
@@ -262,8 +236,15 @@ const AuthPage = ({ translations, currentLanguage }) => {
             </form>
           </div>
 
-          {/* Правый блок с видео и фразой */}
           <div className="right-section">
+            {showLeafText && (
+              <div className="leaf-text-bubble">
+                <div className="leaf-text">
+                  {leafText}
+                </div>
+              </div>
+            )}
+            
             <div className="video-block">
               <div className={`listik-container ${isTransitioning ? 'transitioning' : ''}`}>
                 {showStaticLeaf ? (
@@ -286,7 +267,6 @@ const AuthPage = ({ translations, currentLanguage }) => {
                   </video>
                 )}
                 
-                {/* Кнопка звука для случаев блокировки автовоспроизведения */}
                 {showSoundButton && (
                   <button 
                     className="sound-button"
@@ -300,9 +280,8 @@ const AuthPage = ({ translations, currentLanguage }) => {
               </div>
             </div>
             
-            {/* Случайная фраза под видео */}
             <div className="random-phrase">
-              {randomPhrase}
+              {staticPhrase}
             </div>
           </div>
         </div>

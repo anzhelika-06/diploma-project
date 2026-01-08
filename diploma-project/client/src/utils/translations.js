@@ -1,4 +1,5 @@
 // Файл с переводами для всех языков приложения
+
 export const translations = {
   RU: {
     mainTitle: "Уменьшите свой углеродный след",
@@ -39,6 +40,7 @@ export const translations = {
       kgCO2Year: "кг CO₂/год",
       kgCO2PerTreeYear: "кг CO₂ на дерево в год"
     },
+    kgCO2: "кг CO₂",
     // Переводы уровней экологичности
     ecoLevels: {
       excellent: "Отличный результат! Очень низкий углеродный след",
@@ -46,51 +48,6 @@ export const translations = {
       medium: "Средний углеродный след",
       high: "Высокий углеродный след",
       critical: "Критически высокий углеродный след"
-    },
-    // Переводы рекомендаций
-    recommendationCategories: {
-      "Питание": "Питание",
-      "Транспорт": "Транспорт", 
-      "Общее": "Общее"
-    },
-    recommendationTexts: {
-      "Сократите потребление красного мяса до 2-3 раз в неделю": "Сократите потребление красного мяса до 2-3 раз в неделю",
-      "Попробуйте один день в неделю без мяса (Meatless Monday)": "Попробуйте один день в неделю без мяса (Meatless Monday)",
-      "Увеличьте долю растительных белков (бобовые, орехи)": "Увеличьте долю растительных белков (бобовые, орехи)",
-      "Выбирайте местные и сезонные продукты": "Выбирайте местные и сезонные продукты",
-      "Отлично! Рассмотрите переход на веганские альтернативы молочных продуктов": "Отлично! Рассмотрите переход на веганские альтернативы молочных продуктов",
-      "Превосходно! Ваша диета уже оптимальна для климата": "Превосходно! Ваша диета уже оптимальна для климата",
-      "Используйте общественный транспорт для поездок на работу": "Используйте общественный транспорт для поездок на работу",
-      "Рассмотрите покупку гибридного или электрического автомобиля": "Рассмотрите покупку гибридного или электрического автомобиля",
-      "Планируйте поездки и объединяйте несколько дел в одну": "Планируйте поездки и объединяйте несколько дел в одну",
-      "Увеличьте долю поездок на общественном транспорте": "Увеличьте долю поездок на общественном транспорте",
-      "Для коротких расстояний используйте велосипед или ходите пешком": "Для коротких расстояний используйте велосипед или ходите пешком",
-      "Отлично! Для коротких поездок попробуйте велосипед": "Отлично! Для коротких поездок попробуйте велосипед",
-      "Рассмотрите удаленную работу 1-2 дня в неделю": "Рассмотрите удаленную работу 1-2 дня в неделю",
-      "Превосходно! Ваш выбор транспорта идеален для климата": "Превосходно! Ваш выбор транспорта идеален для климата",
-      "Рассмотрите компенсацию выбросов через посадку деревьев": "Рассмотрите компенсацию выбросов через посадку деревьев",
-      "Установите солнечные панели или выберите зеленую энергию": "Установите солнечные панели или выберите зеленую энергию",
-      "Сократите потребление и выбирайте товары длительного пользования": "Сократите потребление и выбирайте товары длительного пользования",
-      "Отлично! Поделитесь своим опытом с друзьями и семьей": "Отлично! Поделитесь своим опытом с друзьями и семьей",
-      "Используйте общественный транспорт или велосипед для коротких поездок": "Используйте общественный транспорт или велосипед для коротких поездок"
-    },
-    impactTexts: {
-      "Снижение на 500-800 кг CO₂/год": "Снижение на 500-800 {kgCO2Year}",
-      "Снижение на 200-300 кг CO₂/год": "Снижение на 200-300 {kgCO2Year}",
-      "Снижение на 150-250 кг CO₂/год": "Снижение на 150-250 {kgCO2Year}",
-      "Снижение на 100-200 кг CO₂/год": "Снижение на 100-200 {kgCO2Year}",
-      "Снижение на 200-400 кг CO₂/год": "Снижение на 200-400 {kgCO2Year}",
-      "Вы уже экономите 1500+ кг CO₂/год": "Вы уже экономите 1500+ {kgCO2Year}",
-      "Снижение на 1500-2500 кг CO₂/год": "Снижение на 1500-2500 {kgCO2Year}",
-      "Снижение на 2000-3000 кг CO₂/год": "Снижение на 2000-3000 {kgCO2Year}",
-      "Снижение на 300-500 кг CO₂/год": "Снижение на 300-500 {kgCO2Year}",
-      "Снижение на 400-800 кг CO₂/год": "Снижение на 400-800 {kgCO2Year}",
-      "Снижение на 100-300 кг CO₂/год": "Снижение на 100-300 {kgCO2Year}",
-      "Вы уже экономите 3000+ кг CO₂/год": "Вы уже экономите 3000+ {kgCO2Year}",
-      "Компенсация 20-50 кг CO₂ на дерево в год": "Компенсация 20-50 {kgCO2PerTreeYear}",
-      "Снижение на 1000-2000 кг CO₂/год": "Снижение на 1000-2000 {kgCO2Year}",
-      "Снижение на 300-600 кг CO₂/год": "Снижение на 300-600 {kgCO2Year}",
-      "Мультипликативный эффект через влияние на других": "Мультипликативный эффект через влияние на других"
     },
     // Переводы для страницы авторизации
     loginTitle: "Авторизация",
@@ -101,63 +58,80 @@ export const translations = {
     passwordPlaceholder: "Введите пароль",
     loginRequired: "Пожалуйста, заполните поле логина",
     passwordRequired: "Пожалуйста, заполните поле пароля",
-    nameLabel: "Имя",
-    namePlaceholder: "Введите ваше имя",
-    emailLabel: "Email",
-    emailPlaceholder: "Введите ваш email",
-    passwordLabel: "Пароль",
-    confirmPasswordLabel: "Подтвердите пароль",
-    confirmPasswordPlaceholder: "Повторите пароль",
+    // Тексты для ссылок между авторизацией и регистрацией
+    noAccountText: "Нет аккаунта?",
+    hasAccountText: "Уже есть аккаунт?",
+    loginLink: "Войти",
+    nextButton: "Далее",
     registerButton: "Зарегистрироваться",
-    noAccountText: "Еще нет аккаунта?",
-    hasAccountText: "Есть аккаунт?",
-    registerLink: "Зарегистрироваться",
-    loginLink: "Авторизоваться",
     // Ошибки авторизации
     invalidCredentials: "Неверный логин или пароль",
     userNotFound: "Пользователь не найден",
     serverError: "Ошибка сервера. Попробуйте позже",
     networkError: "Ошибка сети. Проверьте подключение",
-    // Кнопка звука
+    // Кнопка звука и статичная фраза листика
     enableLeafSound: "Включить звук листика",
-    // Регистрация
-    nicknamePlaceholder: "Введите никнейм",
-    confirmPasswordRequired: "Пожалуйста, повторите пароль",
-    passwordMismatch: "Пароли не совпадают",
-    birthdatePlaceholder: "Выберите дату рождения",
-    birthdateRequired: "Пожалуйста, выберите дату рождения",
-    calendarPlaceholder: "дд.мм.гггг",
-    selectBirthdate: "Выберите дату рождения",
-    enterBirthdate: "Введите вашу дату рождения",
-    enterGender: "Выберите ваш пол",
-    genderRequired: "Пожалуйста, выберите пол",
-    genderPlaceholder: "Выберите пол",
-    genderMale: "Мужской",
-    genderFemale: "Женский",
-    stepOf: "Шаг {current} из {total}",
-    nextButton: "Далее",
-    backButton: "Назад",
-    ageRestriction: "Вам должно быть не менее 18 лет",
-    termsText: "Нажимая «Зарегистрироваться», вы подтверждаете, что прочитали и согласны с нашими",
-    termsOfService: "Условиями Пользования",
-    privacyPolicy: "и Политикой Конфиденциальности",
-    // Валидация
-    invalidEmail: "Введите корректный email адрес",
-    passwordTooShort: "Пароль должен содержать минимум 6 символов",
-    passwordTooWeak: "Пароль должен содержать буквы и цифры",
-    nicknameRequired: "Пожалуйста, заполните поле никнейма",
-    // Ошибки регистрации
-    userExists: "Пользователь с таким email или никнеймом уже существует",
-    registrationSuccess: "Регистрация успешна!",
-    registrationSuccessMessage: "Ваш аккаунт был успешно создан. Теперь вы можете войти в систему.",
-    goToLogin: "Перейти к авторизации",
-    // Страницы условий и политики
-    backToRegistration: "← Назад к регистрации",
-    termsPageTitle: "Условия Пользования",
-    privacyPageTitle: "Политика Конфиденциальности",
-    // Модальные окна
-    registrationErrorTitle: "Ошибка регистрации",
-    errorModalOk: "Понятно"
+    leafStaticPhrase: "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?",
+    // Сообщения калькулятора
+    calculatorError: "Ошибка",
+    calculatorErrorMessage: "Пожалуйста, выберите все параметры",
+    calculatorErrorButton: "Понятно",
+    calculatorTranslating: "Переводим рекомендации...",
+    // Страница "О нас"
+    aboutPageTitle: "О проекте EcoSteps",
+    aboutPageSubtitle: "Вместе к экологичному будущему",
+    aboutTabAbout: "О нас",
+    aboutTabStories: "Истории успеха",
+    aboutTabRatings: "Рейтинги",
+    aboutMissionTitle: "Наша миссия",
+    aboutMissionText: "EcoSteps — это платформа для тех, кто хочет внести свой вклад в защиту окружающей среды. Мы помогаем людям понять их углеродный след и предлагаем конкретные шаги для его уменьшения.",
+    aboutWhatWeOfferTitle: "Что мы предлагаем",
+    aboutFeatureCalculator: "Калькулятор углеродного следа",
+    aboutFeatureCalculatorDesc: "Рассчитайте свой углеродный след и получите персональные рекомендации",
+    aboutFeatureCommunity: "Сообщество",
+    aboutFeatureCommunityDesc: "Присоединяйтесь к командам единомышленников и делитесь опытом",
+    aboutFeatureRatings: "Рейтинги и достижения",
+    aboutFeatureRatingsDesc: "Отслеживайте свой прогресс и соревнуйтесь с другими пользователями",
+    aboutFeatureStories: "Истории успеха",
+    aboutFeatureStoriesDesc: "Делитесь своими достижениями и вдохновляйтесь опытом других",
+    aboutAchievementsTitle: "Наши достижения",
+    aboutActiveUsers: "Активных пользователей",
+    aboutCO2Saved: "CO₂ сэкономлено",
+    aboutEcoTeams: "Эко-команд",
+    aboutSuccessStories: "Историй успеха",
+    aboutStoriesAll: "Все истории",
+    aboutStoriesBest: "Лучшие",
+    aboutStoriesRecent: "Недавние",
+    aboutCategoriesLabel: "Категории:",
+    aboutCategoriesAll: "Все",
+    aboutStoriesLoading: "Загрузка историй...",
+    aboutCarbonSaved: "Сэкономлено:",
+    aboutTopUsers: "Топ-5 пользователей по экономии CO₂",
+    aboutTopTeams: "Топ-5 команд по экономии CO₂",
+    aboutRatingsUsers: "Топ пользователей",
+    aboutRatingsTeams: "Топ команд",
+    aboutMembersCount: "участников",
+    // Переводы категорий историй
+    categoryTransport: "Транспорт",
+    categoryFood: "Питание", 
+    categoryEnergy: "Энергия",
+    categoryWaste: "Отходы",
+    categoryWater: "Вода",
+    categoryGeneral: "Общее",
+    categoryConsumption: "Потребление",
+    // Эко-уровни пользователей (только реально используемые)
+    ecoLevelBeginner: "Новичок",
+    ecoLevelAdvanced: "Продвинутый",
+    ecoLevelExpert: "Эксперт",
+    ecoLevelMaster: "Мастер",
+    ecoLevelChampion: "Чемпион",
+    ecoLevelEcoHero: "Эко-герой",
+    // Дополнительные уровни из БД
+    ecoLevelEcoNovice: "Эко-новичок",
+    ecoLevelEcoStarter: "Эко-стартер",
+    ecoLevelEcoEnthusiast: "Эко-энтузиаст",
+    ecoLevelEcoActivist: "Эко-активист",
+    ecoLevelEcoMaster: "Эко-мастер"
   },
   EN: {
     mainTitle: "Reduce your carbon footprint",
@@ -198,6 +172,7 @@ export const translations = {
       kgCO2Year: "kg CO₂/year",
       kgCO2PerTreeYear: "kg CO₂ per tree per year"
     },
+    kgCO2: "kg CO₂",
     // Переводы уровней экологичности
     ecoLevels: {
       excellent: "Excellent result! Very low carbon footprint",
@@ -205,51 +180,6 @@ export const translations = {
       medium: "Medium carbon footprint", 
       high: "High carbon footprint",
       critical: "Critically high carbon footprint"
-    },
-    // Переводы рекомендаций
-    recommendationCategories: {
-      "Питание": "Nutrition",
-      "Транспорт": "Transport",
-      "Общее": "General"
-    },
-    recommendationTexts: {
-      "Сократите потребление красного мяса до 2-3 раз в неделю": "Reduce red meat consumption to 2-3 times per week",
-      "Попробуйте один день в неделю без мяса (Meatless Monday)": "Try one meatless day per week (Meatless Monday)",
-      "Увеличьте долю растительных белков (бобовые, орехи)": "Increase plant-based proteins (legumes, nuts)",
-      "Выбирайте местные и сезонные продукты": "Choose local and seasonal products",
-      "Отлично! Рассмотрите переход на веганские альтернативы молочных продуктов": "Great! Consider switching to vegan dairy alternatives",
-      "Превосходно! Ваша диета уже оптимальна для климата": "Excellent! Your diet is already climate-optimal",
-      "Используйте общественный транспорт для поездок на работу": "Use public transport for work commutes",
-      "Рассмотрите покупку гибридного или электрического автомобиля": "Consider buying a hybrid or electric vehicle",
-      "Планируйте поездки и объединяйте несколько дел в одну": "Plan trips and combine multiple errands",
-      "Увеличьте долю поездок на общественном транспорте": "Increase public transport usage",
-      "Для коротких расстояний используйте велосипед или ходите пешком": "Use bike or walk for short distances",
-      "Отлично! Для коротких поездок попробуйте велосипед": "Great! Try cycling for short trips",
-      "Рассмотрите удаленную работу 1-2 дня в неделю": "Consider remote work 1-2 days per week",
-      "Превосходно! Ваш выбор транспорта идеален для климата": "Excellent! Your transport choice is climate-perfect",
-      "Рассмотрите компенсацию выбросов через посадку деревьев": "Consider offsetting emissions through tree planting",
-      "Установите солнечные панели или выберите зеленую энергию": "Install solar panels or choose green energy",
-      "Сократите потребление и выбирайте товары длительного пользования": "Reduce consumption and choose durable goods",
-      "Отлично! Поделитесь своим опытом с друзьями и семьей": "Great! Share your experience with friends and family",
-      "Используйте общественный транспорт или велосипед для коротких поездок": "Use public transport or bike for short trips"
-    },
-    impactTexts: {
-      "Снижение на 500-800 кг CO₂/год": "Reduction of 500-800 {kgCO2Year}",
-      "Снижение на 200-300 кг CO₂/год": "Reduction of 200-300 {kgCO2Year}",
-      "Снижение на 150-250 кг CO₂/год": "Reduction of 150-250 {kgCO2Year}",
-      "Снижение на 100-200 кг CO₂/год": "Reduction of 100-200 {kgCO2Year}",
-      "Снижение на 200-400 кг CO₂/год": "Reduction of 200-400 {kgCO2Year}",
-      "Вы уже экономите 1500+ кг CO₂/год": "You're already saving 1500+ {kgCO2Year}",
-      "Снижение на 1500-2500 кг CO₂/год": "Reduction of 1500-2500 {kgCO2Year}",
-      "Снижение на 2000-3000 кг CO₂/год": "Reduction of 2000-3000 {kgCO2Year}",
-      "Снижение на 300-500 кг CO₂/год": "Reduction of 300-500 {kgCO2Year}",
-      "Снижение на 400-800 кг CO₂/год": "Reduction of 400-800 {kgCO2Year}",
-      "Снижение на 100-300 кг CO₂/год": "Reduction of 100-300 {kgCO2Year}",
-      "Вы уже экономите 3000+ кг CO₂/год": "You're already saving 3000+ {kgCO2Year}",
-      "Компенсация 20-50 кг CO₂ на дерево в год": "Offset 20-50 {kgCO2PerTreeYear}",
-      "Снижение на 1000-2000 кг CO₂/год": "Reduction of 1000-2000 {kgCO2Year}",
-      "Снижение на 300-600 кг CO₂/год": "Reduction of 300-600 {kgCO2Year}",
-      "Мультипликативный эффект через влияние на других": "Multiplicative effect through influencing others"
     },
     // Переводы для страницы авторизации
     loginTitle: "Authorization",
@@ -260,63 +190,80 @@ export const translations = {
     passwordPlaceholder: "Enter password",
     loginRequired: "Please fill in the login field",
     passwordRequired: "Please fill in the password field",
-    nameLabel: "Name",
-    namePlaceholder: "Enter your name",
-    emailLabel: "Email",
-    emailPlaceholder: "Enter your email",
-    passwordLabel: "Password",
-    confirmPasswordLabel: "Confirm Password",
-    confirmPasswordPlaceholder: "Repeat password",
-    registerButton: "Sign Up",
+    // Тексты для ссылок между авторизацией и регистрацией
     noAccountText: "Don't have an account?",
     hasAccountText: "Already have an account?",
-    registerLink: "Sign Up",
     loginLink: "Login",
+    nextButton: "Next",
+    registerButton: "Register",
     // Ошибки авторизации
     invalidCredentials: "Invalid login or password",
     userNotFound: "User not found",
     serverError: "Server error. Please try again later",
     networkError: "Network error. Check your connection",
-    // Кнопка звука
+    // Кнопка звука и статичная фраза листика
     enableLeafSound: "Enable leaf sound",
-    // Регистрация
-    nicknamePlaceholder: "Enter nickname",
-    confirmPasswordRequired: "Please repeat password",
-    passwordMismatch: "Passwords do not match",
-    birthdatePlaceholder: "Select birth date",
-    birthdateRequired: "Please select birth date",
-    calendarPlaceholder: "mm/dd/yyyy",
-    selectBirthdate: "Select birth date",
-    enterBirthdate: "Enter your birth date",
-    enterGender: "Select your gender",
-    genderRequired: "Please select gender",
-    genderPlaceholder: "Select gender",
-    genderMale: "Male",
-    genderFemale: "Female",
-    stepOf: "Step {current} of {total}",
-    nextButton: "Next",
-    backButton: "Back",
-    ageRestriction: "You must be at least 18 years old",
-    termsText: "By clicking «Sign Up», you confirm that you have read and agree to our",
-    termsOfService: "Terms of Service",
-    privacyPolicy: "and Privacy Policy",
-    // Валидация
-    invalidEmail: "Please enter a valid email address",
-    passwordTooShort: "Password must be at least 6 characters long",
-    passwordTooWeak: "Password must contain letters and numbers",
-    nicknameRequired: "Please fill in the nickname field",
-    // Ошибки регистрации
-    userExists: "User with this email or nickname already exists",
-    registrationSuccess: "Registration successful!",
-    registrationSuccessMessage: "Your account has been successfully created. You can now log in.",
-    goToLogin: "Go to Login",
-    // Страницы условий и политики
-    backToRegistration: "← Back to Registration",
-    termsPageTitle: "Terms of Service",
-    privacyPageTitle: "Privacy Policy",
-    // Модальные окна
-    registrationErrorTitle: "Registration Error",
-    errorModalOk: "Got it"
+    leafStaticPhrase: "Hello! Every choice you make now is a contribution. Let's track our footprint together?",
+    // Сообщения калькулятора
+    calculatorError: "Error",
+    calculatorErrorMessage: "Please select all parameters",
+    calculatorErrorButton: "Understood",
+    calculatorTranslating: "Translating recommendations...",
+    // Страница "О нас"
+    aboutPageTitle: "About EcoSteps Project",
+    aboutPageSubtitle: "Together towards an ecological future",
+    aboutTabAbout: "About us",
+    aboutTabStories: "Success stories",
+    aboutTabRatings: "Rankings",
+    aboutMissionTitle: "Our mission",
+    aboutMissionText: "EcoSteps is a platform for those who want to contribute to environmental protection. We help people understand their carbon footprint and offer concrete steps to reduce it.",
+    aboutWhatWeOfferTitle: "What we offer",
+    aboutFeatureCalculator: "Carbon footprint calculator",
+    aboutFeatureCalculatorDesc: "Calculate your carbon footprint and get personalized recommendations",
+    aboutFeatureCommunity: "Community",
+    aboutFeatureCommunityDesc: "Join teams of like-minded people and share experiences",
+    aboutFeatureRatings: "Rankings and achievements",
+    aboutFeatureRatingsDesc: "Track your progress and compete with other users",
+    aboutFeatureStories: "Success stories",
+    aboutFeatureStoriesDesc: "Share your achievements and get inspired by others' experiences",
+    aboutAchievementsTitle: "Our achievements",
+    aboutActiveUsers: "Active users",
+    aboutCO2Saved: "CO₂ saved",
+    aboutEcoTeams: "Eco-teams",
+    aboutSuccessStories: "Success stories",
+    aboutStoriesAll: "All stories",
+    aboutStoriesBest: "Best",
+    aboutStoriesRecent: "Recent",
+    aboutCategoriesLabel: "Categories:",
+    aboutCategoriesAll: "All",
+    aboutStoriesLoading: "Loading stories...",
+    aboutCarbonSaved: "Saved:",
+    aboutTopUsers: "Top-5 users by CO₂ savings",
+    aboutTopTeams: "Top-5 teams by CO₂ savings",
+    aboutRatingsUsers: "Top users",
+    aboutRatingsTeams: "Top teams",
+    aboutMembersCount: "members",
+    // Переводы категорий историй
+    categoryTransport: "Transport",
+    categoryFood: "Food", 
+    categoryEnergy: "Energy",
+    categoryWaste: "Waste",
+    categoryWater: "Water",
+    categoryGeneral: "General",
+    categoryConsumption: "Consumption",
+    // Эко-уровни пользователей
+    ecoLevelBeginner: "Beginner",
+    ecoLevelAdvanced: "Advanced",
+    ecoLevelExpert: "Expert",
+    ecoLevelMaster: "Master",
+    ecoLevelChampion: "Champion",
+    ecoLevelEcoHero: "Eco Hero",
+    // Дополнительные уровни из БД
+    ecoLevelEcoNovice: "Eco Novice",
+    ecoLevelEcoStarter: "Eco Starter",
+    ecoLevelEcoEnthusiast: "Eco Enthusiast",
+    ecoLevelEcoActivist: "Eco Activist",
+    ecoLevelEcoMaster: "Eco Master"
   },
   BY: {
     mainTitle: "Паменшыце свой вугляродны след",
@@ -357,6 +304,7 @@ export const translations = {
       kgCO2Year: "кг CO₂/год",
       kgCO2PerTreeYear: "кг CO₂ на дрэва ў год"
     },
+    kgCO2: "кг CO₂",
     // Переводы уровней экологичности
     ecoLevels: {
       excellent: "Выдатны вынік! Вельмі нізкі вугляродны след",
@@ -364,51 +312,6 @@ export const translations = {
       medium: "Сярэдні вугляродны след",
       high: "Высокі вугляродны след", 
       critical: "Крытычна высокі вугляродны след"
-    },
-    // Переводы рекомендаций
-    recommendationCategories: {
-      "Питание": "Харчаванне",
-      "Транспорт": "Транспарт",
-      "Общее": "Агульнае"
-    },
-    recommendationTexts: {
-      "Сократите потребление красного мяса до 2-3 раз в неделю": "Скараціце спажыванне чырвонага мяса да 2-3 разоў на тыдзень",
-      "Попробуйте один день в неделю без мяса (Meatless Monday)": "Паспрабуйце адзін дзень на тыдзень без мяса",
-      "Увеличьте долю растительных белков (бобовые, орехи)": "Павялічце долю раслінных бялкоў (бабовыя, арэхі)",
-      "Выбирайте местные и сезонные продукты": "Выбірайце мясцовыя і сезонныя прадукты",
-      "Отлично! Рассмотрите переход на веганские альтернативы молочных продуктов": "Выдатна! Разгледзьце пераход на веганскія альтэрнатывы малочных прадуктаў",
-      "Превосходно! Ваша диета уже оптимальна для климата": "Выдатна! Ваша дыета ўжо аптымальная для клімату",
-      "Используйте общественный транспорт для поездок на работу": "Выкарыстоўвайце грамадскі транспарт для паездак на працу",
-      "Рассмотрите покупку гибридного или электрического автомобиля": "Разгледзьце пакупку гібрыднага або электрычнага аўтамабіля",
-      "Планируйте поездки и объединяйте несколько дел в одну": "Планіруйце паездкі і аб'ядноўвайце некалькі спраў у адну",
-      "Увеличьте долю поездок на общественном транспорте": "Павялічце долю паездак на грамадскім транспарце",
-      "Для коротких расстояний используйте велосипед или ходите пешком": "Для кароткіх адлегласцей выкарыстоўвайце ровар або хадзіце пешшу",
-      "Отлично! Для коротких поездок попробуйте велосипед": "Выдатна! Для кароткіх паездак паспрабуйце ровар",
-      "Рассмотрите удаленную работу 1-2 дня в неделю": "Разгледзьце аддаленую працу 1-2 дні на тыдзень",
-      "Превосходно! Ваш выбор транспорта идеален для климата": "Выдатна! Ваш выбар транспарту ідэальны для клімату",
-      "Рассмотрите компенсацию выбросов через посадку деревьев": "Разгледзьце кампенсацыю выкідаў праз пасадку дрэў",
-      "Установите солнечные панели или выберите зеленую энергию": "Усталюйце сонечныя панэлі або выберыце зялёную энергію",
-      "Сократите потребление и выбирайте товары длительного пользования": "Скараціце спажыванне і выбірайце тавары доўгага карыстання",
-      "Отлично! Поделитесь своим опытом с друзьями и семьей": "Выдатна! Падзяліцеся сваім досведам з сябрамі і сям'ёй",
-      "Используйте общественный транспорт или велосипед для коротких поездок": "Выкарыстоўвайце грамадскі транспарт або ровар для кароткіх паездак"
-    },
-    impactTexts: {
-      "Снижение на 500-800 кг CO₂/год": "Зніжэнне на 500-800 {kgCO2Year}",
-      "Снижение на 200-300 кг CO₂/год": "Зніжэнне на 200-300 {kgCO2Year}",
-      "Снижение на 150-250 кг CO₂/год": "Зніжэнне на 150-250 {kgCO2Year}",
-      "Снижение на 100-200 кг CO₂/год": "Зніжэнне на 100-200 {kgCO2Year}",
-      "Снижение на 200-400 кг CO₂/год": "Зніжэнне на 200-400 {kgCO2Year}",
-      "Вы уже экономите 1500+ кг CO₂/год": "Вы ўжо эканоміце 1500+ {kgCO2Year}",
-      "Снижение на 1500-2500 кг CO₂/год": "Зніжэнне на 1500-2500 {kgCO2Year}",
-      "Снижение на 2000-3000 кг CO₂/год": "Зніжэнне на 2000-3000 {kgCO2Year}",
-      "Снижение на 300-500 кг CO₂/год": "Зніжэнне на 300-500 {kgCO2Year}",
-      "Снижение на 400-800 кг CO₂/год": "Зніжэнне на 400-800 {kgCO2Year}",
-      "Снижение на 100-300 кг CO₂/год": "Зніжэнне на 100-300 {kgCO2Year}",
-      "Вы уже экономите 3000+ кг CO₂/год": "Вы ўжо эканоміце 3000+ {kgCO2Year}",
-      "Компенсация 20-50 кг CO₂ на дерево в год": "Кампенсацыя 20-50 {kgCO2PerTreeYear}",
-      "Снижение на 1000-2000 кг CO₂/год": "Зніжэнне на 1000-2000 {kgCO2Year}",
-      "Снижение на 300-600 кг CO₂/год": "Зніжэнне на 300-600 {kgCO2Year}",
-      "Мультипликативный эффект через влияние на других": "Мультыплікатыўны эфект праз уплыў на іншых"
     },
     // Переводы для страницы авторизации
     loginTitle: "Аўтарызацыя",
@@ -419,63 +322,80 @@ export const translations = {
     passwordPlaceholder: "Увядзіце пароль",
     loginRequired: "Калі ласка, запоўніце поле логіна",
     passwordRequired: "Калі ласка, запоўніце поле пароля",
-    nameLabel: "Імя",
-    namePlaceholder: "Увядзіце ваша імя",
-    emailLabel: "Email",
-    emailPlaceholder: "Увядзіце ваш email",
-    passwordLabel: "Пароль",
-    confirmPasswordLabel: "Пацвердзіце пароль",
-    confirmPasswordPlaceholder: "Паўтарыце пароль",
-    registerButton: "Зарэгістравацца",
+    // Тексты для ссылок между авторизацией и регистрацией
     noAccountText: "Няма акаўнта?",
     hasAccountText: "Ужо ёсць акаўнт?",
-    registerLink: "Зарэгістравацца",
     loginLink: "Увайсці",
+    nextButton: "Далей",
+    registerButton: "Зарэгістравацца",
     // Ошибки авторизации
     invalidCredentials: "Няправільны логін або пароль",
     userNotFound: "Карыстальнік не знойдзены",
     serverError: "Памылка сервера. Паспрабуйце пазней",
     networkError: "Памылка сеткі. Праверце злучэнне",
-    // Кнопка звука
+    // Кнопка звука и статичная фраза листика
     enableLeafSound: "Уключыць гук лісціка",
-    // Регистрация
-    nicknamePlaceholder: "Увядзіце мянушку",
-    confirmPasswordRequired: "Калі ласка, паўтарыце пароль",
-    passwordMismatch: "Паролі не супадаюць",
-    birthdatePlaceholder: "Выберыце дату нараджэння",
-    birthdateRequired: "Калі ласка, выберыце дату нараджэння",
-    calendarPlaceholder: "дд.мм.гггг",
-    selectBirthdate: "Выберыце дату нараджэння",
-    enterBirthdate: "Увядзіце вашу дату нараджэння",
-    enterGender: "Выберыце ваш пол",
-    genderRequired: "Калі ласка, выберыце пол",
-    genderPlaceholder: "Выберыце пол",
-    genderMale: "Мужчынскі",
-    genderFemale: "Жаночы",
-    stepOf: "Крок {current} з {total}",
-    nextButton: "Далей",
-    backButton: "Назад",
-    ageRestriction: "Вам павінна быць не менш за 18 гадоў",
-    termsText: "Націскаючы «Зарэгістравацца», вы пацвярджаеце, што прачыталі і згодны з нашымі",
-    termsOfService: "Умовамі Карыстання",
-    privacyPolicy: "і Палітыкай Канфідэнцыяльнасці",
-    // Валидация
-    invalidEmail: "Увядзіце карэктны email адрас",
-    passwordTooShort: "Пароль павінен утрымліваць мінімум 6 сімвалаў",
-    passwordTooWeak: "Пароль павінен утрымліваць літары і лічбы",
-    nicknameRequired: "Калі ласка, запоўніце поле мянушкі",
-    // Ошибки регистрации
-    userExists: "Карыстальнік з такім email або мянушкай ужо існуе",
-    registrationSuccess: "Рэгістрацыя паспяховая!",
-    registrationSuccessMessage: "Ваш акаўнт быў паспяхова створаны. Цяпер вы можаце ўвайсці ў сістэму.",
-    goToLogin: "Перайсці да аўтарызацыі",
-    // Страницы условий и политики
-    backToRegistration: "← Назад да рэгістрацыі",
-    termsPageTitle: "Умовы Карыстання",
-    privacyPageTitle: "Палітыка Канфідэнцыяльнасці",
-    // Модальные окна
-    registrationErrorTitle: "Памылка рэгістрацыі",
-    errorModalOk: "Зразумела"
+    leafStaticPhrase: "Прывітанне! Кожны твой выбар цяпер — гэта ўклад. Сочым за следам разам?",
+    // Сообщения калькулятора
+    calculatorError: "Памылка",
+    calculatorErrorMessage: "Калі ласка, выберыце ўсе параметры",
+    calculatorErrorButton: "Зразумела",
+    calculatorTranslating: "Перакладаем рэкамендацыі...",
+    // Страница "О нас"
+    aboutPageTitle: "Пра праект EcoSteps",
+    aboutPageSubtitle: "Разам да экалагічнай будучыні",
+    aboutTabAbout: "Пра нас",
+    aboutTabStories: "Гісторыі поспеху",
+    aboutTabRatings: "Рэйтынгі",
+    aboutMissionTitle: "Наша місія",
+    aboutMissionText: "EcoSteps — гэта платформа для тых, хто хоче ўнесці свой уклад у абарону навакольнага асяроддзя. Мы дапамагаем людзям зразумець іх вугляродны след і прапануем канкрэтныя крокі для яго памяншэння.",
+    aboutWhatWeOfferTitle: "Што мы прапануем",
+    aboutFeatureCalculator: "Калькулятар вугляроднага следу",
+    aboutFeatureCalculatorDesc: "Разлічыце свой вугляродны след і атрымайце персанальныя рэкамендацыі",
+    aboutFeatureCommunity: "Супольнасць",
+    aboutFeatureCommunityDesc: "Далучайцеся да каманд аднадумцаў і дзяліцеся досведам",
+    aboutFeatureRatings: "Рэйтынгі і дасягненні",
+    aboutFeatureRatingsDesc: "Сачыце за сваім прагрэсам і спаборнічайце з іншымі карыстальнікамі",
+    aboutFeatureStories: "Гісторыі поспеху",
+    aboutFeatureStoriesDesc: "Дзяліцеся сваімі дасягненнямі і натхняйцеся досведам іншых",
+    aboutAchievementsTitle: "Нашы дасягненні",
+    aboutActiveUsers: "Актыўных карыстальнікаў",
+    aboutCO2Saved: "CO₂ зэканомлена",
+    aboutEcoTeams: "Эка-каманд",
+    aboutSuccessStories: "Гісторый поспеху",
+    aboutStoriesAll: "Усе гісторыі",
+    aboutStoriesBest: "Лепшыя",
+    aboutStoriesRecent: "Нядаўнія",
+    aboutCategoriesLabel: "Катэгорыі:",
+    aboutCategoriesAll: "Усе",
+    aboutStoriesLoading: "Загрузка гісторый...",
+    aboutCarbonSaved: "Зэканомлена:",
+    aboutTopUsers: "Топ-5 карыстальнікаў па эканоміі CO₂",
+    aboutTopTeams: "Топ-5 каманд па эканоміі CO₂",
+    aboutRatingsUsers: "Топ карыстальнікаў",
+    aboutRatingsTeams: "Топ каманд",
+    aboutMembersCount: "удзельнікаў",
+    // Переводы категорий историй
+    categoryTransport: "Транспарт",
+    categoryFood: "Харчаванне", 
+    categoryEnergy: "Энергія",
+    categoryWaste: "Адходы",
+    categoryWater: "Вада",
+    categoryGeneral: "Агульнае",
+    categoryConsumption: "Спажыванне",
+    // Эко-уровни пользователей
+    ecoLevelBeginner: "Пачаткоўец",
+    ecoLevelAdvanced: "Прасунуты",
+    ecoLevelExpert: "Эксперт",
+    ecoLevelMaster: "Майстар",
+    ecoLevelChampion: "Чэмпіён",
+    ecoLevelEcoHero: "Эка-герой",
+    // Дополнительные уровни из БД
+    ecoLevelEcoNovice: "Эка-навічок",
+    ecoLevelEcoStarter: "Эка-стартар",
+    ecoLevelEcoEnthusiast: "Эка-энтузіяст",
+    ecoLevelEcoActivist: "Эка-актывіст",
+    ecoLevelEcoMaster: "Эка-майстар"
   }
 }
 
@@ -507,9 +427,116 @@ export const saveLanguage = (language) => {
   }
 }
 
+// Функция для перевода категорий
+export const translateCategory = (category, language) => {
+  if (!category || language === 'RU') {
+    return category
+  }
+
+  const t = translations[language]
+  
+  // Статические переводы категорий
+  const categoryMap = {
+    'Транспорт': t.categoryTransport,
+    'Питание': t.categoryFood,
+    'Энергия': t.categoryEnergy,
+    'Отходы': t.categoryWaste,
+    'Вода': t.categoryWater,
+    'Общее': t.categoryGeneral,
+    'Потребление': t.categoryConsumption,
+    // Английские варианты
+    'Transport': t.categoryTransport,
+    'Food': t.categoryFood,
+    'Energy': t.categoryEnergy,
+    'Waste': t.categoryWaste,
+    'Water': t.categoryWater,
+    'General': t.categoryGeneral,
+    'Consumption': t.categoryConsumption
+  }
+  
+  return categoryMap[category] || category
+}
+
+// Функция для перевода эко-уровней
+export const translateEcoLevel = (level, language) => {
+  if (!level || language === 'RU') {
+    return level
+  }
+
+  const t = translations[language]
+  
+  // Сначала проверяем статические переводы
+  const levelMap = {
+    // Основные уровни
+    'Новичок': t.ecoLevelBeginner,
+    'Продвинутый': t.ecoLevelAdvanced,
+    'Эксперт': t.ecoLevelExpert,
+    'Мастер': t.ecoLevelMaster,
+    'Чемпион': t.ecoLevelChampion,
+    'Эко-герой': t.ecoLevelEcoHero,
+    // Уровни из БД
+    'Эко-новичок': t.ecoLevelEcoNovice,
+    'Эко-стартер': t.ecoLevelEcoStarter,
+    'Эко-энтузиаст': t.ecoLevelEcoEnthusiast,
+    'Эко-активист': t.ecoLevelEcoActivist,
+    'Эко-мастер': t.ecoLevelEcoMaster,
+    // Английские варианты
+    'Beginner': t.ecoLevelBeginner,
+    'Advanced': t.ecoLevelAdvanced,
+    'Expert': t.ecoLevelExpert,
+    'Master': t.ecoLevelMaster,
+    'Champion': t.ecoLevelChampion,
+    'Eco Hero': t.ecoLevelEcoHero,
+    'Eco Novice': t.ecoLevelEcoNovice,
+    'Eco Starter': t.ecoLevelEcoStarter,
+    'Eco Enthusiast': t.ecoLevelEcoEnthusiast,
+    'Eco Activist': t.ecoLevelEcoActivist,
+    'Eco Master': t.ecoLevelEcoMaster,
+    // Дополнительные синонимы
+    'Эколог': t.ecoLevelExpert
+  }
+  
+  return levelMap[level] || level
+}
+
 // Функция для перевода сообщений с сервера
 export const translateServerMessage = (message, language) => {
   const t = translations[language]
+  
+  // Статичные переводы сообщений сервера
+  const serverMessages = {
+    RU: {
+      'Новые персонализированные рекомендации работают!': 'Новые персонализированные рекомендации работают!',
+      'Критически высокий углеродный след': 'Критически высокий углеродный след',
+      'Высокий углеродный след': 'Высокий углеродный след',
+      'Средний углеродный след': 'Средний углеродный след',
+      'Низкий углеродный след': 'Низкий углеродный след',
+      'Очень низкий углеродный след': 'Очень низкий углеродный след'
+    },
+    EN: {
+      'Новые персонализированные рекомендации работают!': 'New personalized recommendations are working!',
+      'Критически высокий углеродный след': 'Critically high carbon footprint',
+      'Высокий углеродный след': 'High carbon footprint',
+      'Средний углеродный след': 'Medium carbon footprint',
+      'Низкий углеродный след': 'Low carbon footprint',
+      'Очень низкий углеродный след': 'Very low carbon footprint'
+    },
+    BY: {
+      'Новые персонализированные рекомендации работают!': 'Новыя персаналізаваныя рэкамендацыі працуюць!',
+      'Критически высокий углеродный след': 'Крытычна высокі вугляродны след',
+      'Высокий углеродный след': 'Высокі вугляродны след',
+      'Средний углеродный след': 'Сярэдні вугляродны след',
+      'Низкий углеродный след': 'Нізкі вугляродны след',
+      'Очень низкий углеродный след': 'Вельмі нізкі вугляродны след'
+    }
+  }
+  
+  const langMessages = serverMessages[language] || serverMessages.RU
+  
+  // Проверяем статичные переводы сообщений
+  if (langMessages[message]) {
+    return langMessages[message]
+  }
   
   // Переводим уровни экологичности
   for (const [level, translation] of Object.entries(t.ecoLevels)) {
@@ -521,23 +548,103 @@ export const translateServerMessage = (message, language) => {
   return message // Если перевод не найден, возвращаем оригинал
 }
 
-// Функция для перевода рекомендаций
+// Функция для перевода рекомендаций (статичные переводы)
 export const translateRecommendation = (recommendation, language) => {
   const t = translations[language]
   
-  let translatedImpact = t.impactTexts[recommendation.impact] || recommendation.impact
+  // Статичные переводы рекомендаций
+  const recommendationTranslations = {
+    RU: {
+      'Питание': 'Питание',
+      'Транспорт': 'Транспорт', 
+      'Общее': 'Общее',
+      'Сократите потребление красного мяса до 2-3 раз в неделю': 'Сократите потребление красного мяса до 2-3 раз в неделю',
+      'Попробуйте один день в неделю без мяса (Meatless Monday)': 'Попробуйте один день в неделю без мяса (Meatless Monday)',
+      'Используйте общественный транспорт для поездок на работу': 'Используйте общественный транспорт для поездок на работу',
+      'Рассмотрите покупку гибридного или электрического автомобиля': 'Рассмотрите покупку гибридного или электрического автомобиля',
+      'Планируйте поездки и объединяйте несколько дел в одну': 'Планируйте поездки и объединяйте несколько дел в одну',
+      'Рассмотрите компенсацию выбросов через посадку деревьев': 'Рассмотрите компенсацию выбросов через посадку деревьев',
+      'Снижение на 500-800 кг CO₂/год': 'Снижение на 500-800 кг CO₂/год',
+      'Снижение на 200-300 кг CO₂/год': 'Снижение на 200-300 кг CO₂/год',
+      'Снижение на 1500-2500 кг CO₂/год': 'Снижение на 1500-2500 кг CO₂/год',
+      'Снижение на 2000-3000 кг CO₂/год': 'Снижение на 2000-3000 кг CO₂/год',
+      'Снижение на 300-500 кг CO₂/год': 'Снижение на 300-500 кг CO₂/год',
+      'Компенсация 20-50 кг CO₂ на дерево в год': 'Компенсация 20-50 кг CO₂ на дерево в год'
+    },
+    EN: {
+      'Питание': 'Nutrition',
+      'Транспорт': 'Transport',
+      'Общее': 'General',
+      'Сократите потребление красного мяса до 2-3 раз в неделю': 'Reduce red meat consumption to 2-3 times per week',
+      'Попробуйте один день в неделю без мяса (Meatless Monday)': 'Try one day a week without meat (Meatless Monday)',
+      'Используйте общественный транспорт для поездок на работу': 'Use public transport for commuting to work',
+      'Рассмотрите покупку гибридного или электрического автомобиля': 'Consider buying a hybrid or electric car',
+      'Планируйте поездки и объединяйте несколько дел в одну': 'Plan trips and combine multiple errands into one',
+      'Рассмотрите компенсацию выбросов через посадку деревьев': 'Consider offsetting emissions through tree planting',
+      'Снижение на 500-800 кг CO₂/год': 'Reduction of 500-800 kg CO₂/year',
+      'Снижение на 200-300 кг CO₂/год': 'Reduction of 200-300 kg CO₂/year',
+      'Снижение на 1500-2500 кг CO₂/год': 'Reduction of 1500-2500 kg CO₂/year',
+      'Снижение на 2000-3000 кг CO₂/год': 'Reduction of 2000-3000 kg CO₂/year',
+      'Снижение на 300-500 кг CO₂/год': 'Reduction of 300-500 kg CO₂/year',
+      'Компенсация 20-50 кг CO₂ на дерево в год': 'Offset 20-50 kg CO₂ per tree per year'
+    },
+    BY: {
+      'Питание': 'Харчаванне',
+      'Транспорт': 'Транспарт',
+      'Общее': 'Агульнае',
+      'Сократите потребление красного мяса до 2-3 раз в неделю': 'Скараціце спажыванне чырвонага мяса да 2-3 разоў на тыдзень',
+      'Попробуйте один день в неделю без мяса (Meatless Monday)': 'Паспрабуйце адзін дзень у тыдзень без мяса (Meatless Monday)',
+      'Используйте общественный транспорт для поездок на работу': 'Выкарыстоўвайце грамадскі транспарт для паездак на працу',
+      'Рассмотрите покупку гибридного или электрического автомобиля': 'Разгледзьце пакупку гібрыднага або электрычнага аўтамабіля',
+      'Планируйте поездки и объединяйте несколько дел в одну': 'Планавайце паездкі і аб\'ядноўвайце некалькі спраў у адну',
+      'Рассмотрите компенсацию выбросов через посадку деревьев': 'Разгледзьце кампенсацыю выкідаў праз пасадку дрэў',
+      'Снижение на 500-800 кг CO₂/год': 'Зніжэнне на 500-800 кг CO₂/год',
+      'Снижение на 200-300 кг CO₂/год': 'Зніжэнне на 200-300 кг CO₂/год',
+      'Снижение на 1500-2500 кг CO₂/год': 'Зніжэнне на 1500-2500 кг CO₂/год',
+      'Снижение на 2000-3000 кг CO₂/год': 'Зніжэнне на 2000-3000 кг CO₂/год',
+      'Снижение на 300-500 кг CO₂/год': 'Зніжэнне на 300-500 кг CO₂/год',
+      'Компенсация 20-50 кг CO₂ на дерево в год': 'Кампенсацыя 20-50 кг CO₂ на дрэва ў год'
+    }
+  }
   
-  // Заменяем плейсхолдеры единиц измерения
-  if (translatedImpact.includes('{kgCO2Year}')) {
-    translatedImpact = translatedImpact.replace('{kgCO2Year}', t.units.kgCO2Year)
-  }
-  if (translatedImpact.includes('{kgCO2PerTreeYear}')) {
-    translatedImpact = translatedImpact.replace('{kgCO2PerTreeYear}', t.units.kgCO2PerTreeYear)
-  }
+  const langTranslations = recommendationTranslations[language] || recommendationTranslations.RU
   
   return {
-    category: t.recommendationCategories[recommendation.category] || recommendation.category,
-    suggestion: t.recommendationTexts[recommendation.suggestion] || recommendation.suggestion,
-    impact: translatedImpact
+    category: langTranslations[recommendation.category] || recommendation.category,
+    suggestion: langTranslations[recommendation.suggestion] || recommendation.suggestion,
+    impact: langTranslations[recommendation.impact] || recommendation.impact
   }
+}
+
+// Универсальная функция для перевода любого контента (только статичные переводы)
+export const translateContent = (content, targetLanguage, contentType = 'text') => {
+  if (!content || targetLanguage === 'RU') return content
+  
+  // Сначала пытаемся найти готовый перевод
+  let translatedContent = content
+  
+  switch (contentType) {
+    case 'category':
+      translatedContent = translateCategory(content, targetLanguage)
+      break
+    case 'ecoLevel':
+      translatedContent = translateEcoLevel(content, targetLanguage)
+      break
+  }
+  
+  // Если готовый перевод найден и отличается от оригинала, возвращаем его
+  if (translatedContent !== content) {
+    return translatedContent
+  }
+  
+  // Для пользовательского контента (отзывы) возвращаем оригинал
+  // так как внешний API не работает
+  return content
+}
+
+// Простая функция для перевода отзывов (заглушка)
+export const translateStoryContent = (content, targetLanguage) => {
+  // Возвращаем оригинальный контент, так как API не работает
+  // В будущем здесь можно добавить другой сервис перевода
+  return content
 }

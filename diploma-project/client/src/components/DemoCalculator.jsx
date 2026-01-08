@@ -15,6 +15,29 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
   const [calculationResult, setCalculationResult] = useState(null)
   const modalRef = useRef(null)
 
+  // Функция для перевода рекомендаций
+  const translateRecommendationsAsync = async (recommendations) => {
+    if (!recommendations || recommendations.length === 0) {
+      return []
+    }
+    
+    setIsTranslatingRecommendations(true)
+    
+    try {
+      const translated = await Promise.all(
+        recommendations.map(rec => translateRecommendation(rec, currentLanguage))
+      )
+      setTranslatedRecommendations(translated)
+      return translated
+    } catch (error) {
+      console.error('Error translating recommendations:', error)
+      setTranslatedRecommendations(recommendations) // Fallback to original
+      return recommendations
+    } finally {
+      setIsTranslatingRecommendations(false)
+    }
+  }
+
   // Сброс позиции при открытии модального окна
   useEffect(() => {
     if (isOpen) {
@@ -289,7 +312,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
             }}
           >
             <div className="notification-header">
-              <h3>Ошибка</h3>
+              <h3>{translations.calculatorError}</h3>
               <button 
                 className="notification-close" 
                 onClick={(e) => {
@@ -301,7 +324,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 ×
               </button>
             </div>
-            <p>Пожалуйста, выберите все параметры</p>
+            <p>{translations.calculatorErrorMessage}</p>
             <button 
               className="notification-button" 
               onClick={(e) => {
@@ -310,7 +333,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 setShowError(false)
               }}
             >
-              Понятно
+              {translations.calculatorErrorButton}
             </button>
           </div>
         </div>

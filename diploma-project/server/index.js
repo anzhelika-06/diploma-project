@@ -9,9 +9,62 @@ app.use(express.json());
 
 // Подключаем маршруты
 const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+const storiesRoutes = require('./routes/stories');
+const rankingsRoutes = require('./routes/rankings');
 
-// Простой роутер для тестирования
+app.use('/api/auth', authRoutes);
+app.use('/api/stories', storiesRoutes);
+app.use('/api/rankings', rankingsRoutes);
+
+// Простой тестовый роут
+app.get('/test-endpoint', (req, res) => {
+  res.json({ message: 'Test endpoint works!' });
+});
+
+// API для статистики
+app.get('/api/stats', async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      user: process.env.DB_USER || 'ecosteps',
+      host: process.env.DB_HOST || 'localhost',
+      database: process.env.DB_NAME || 'ecosteps',
+      password: process.env.DB_PASSWORD || 'ecosteps_password',
+      port: process.env.DB_PORT || 5432,
+    });
+
+    // Получаем все статистики одним запросом
+    const statsQuery = `
+      SELECT 
+        (SELECT COUNT(*) FROM users) as active_users,
+        (SELECT COALESCE(SUM(carbon_saved), 0) FROM users) as total_co2_saved,
+        (SELECT COUNT(*) FROM teams) as eco_teams,
+        (SELECT COUNT(*) FROM success_stories) as success_stories
+    `;
+    
+    const result = await pool.query(statsQuery);
+    const stats = result.rows[0];
+    
+    // Форматируем CO2 в удобный вид (тонны)
+    const co2InTons = Math.round(stats.total_co2_saved / 1000 * 10) / 10;
+    
+    res.json({
+      success: true,
+      stats: {
+        activeUsers: parseInt(stats.active_users),
+        co2Saved: co2InTons,
+        ecoTeams: parseInt(stats.eco_teams),
+        successStories: parseInt(stats.success_stories)
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка при получении статистики:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR'
+    });
+  }
+});
 app.post('/api/calculator/calculate', (req, res) => {
   console.log('=== НОВЫЕ РЕКОМЕНДАЦИИ РАБОТАЮТ! ===');
   
@@ -78,5 +131,5 @@ app.get('/api/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ EcoSteps API Server запущен на порту ${PORT}`);
   console.log(`📡 http://localhost:${PORT}`);
-  console.log(`🌐 Новые персонализированные рекомендации готовы!`);
+
 });

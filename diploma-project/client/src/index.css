@@ -1,16 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
-
 body {
   font-family: 'Libre Caslon Text', serif;
   background-color: #535E51;
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+/* Глобальные стили для ссылок */
+a {
+  color: #535E51;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #7cb342;
+}
+
+a:visited {
+  color: #535E51;
+}
+
+a:active {
+  color: #689f38;
 }
 
 #root {

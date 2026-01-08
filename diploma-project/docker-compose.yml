@@ -7,7 +7,7 @@ services:
     container_name: ecosteps_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ecosteps_db
+      POSTGRES_DB: ecosteps
       POSTGRES_USER: ecosteps
       POSTGRES_PASSWORD: ecosteps_password
     ports:
@@ -38,7 +38,7 @@ services:
       PORT: 3001
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_NAME: ecosteps_db
+      DB_NAME: ecosteps
       DB_USER: ecosteps
       DB_PASSWORD: ecosteps_password
       JWT_SECRET: ecosteps-dev-secret-key # Только для разработки

@@ -158,9 +158,9 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
         {/* Футер с ссылками */}
         <footer className="footer">
           <div className="footer-links">
-            <a href="#about" className="footer-link" onClick={handleBlockedClick}>
+            <Link to="/about" className="footer-link">
               {t.aboutLink}
-            </a>
+            </Link>
             <Link to="/register" className="footer-link">
               {t.registerLink}
             </Link>

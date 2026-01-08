@@ -1,5 +1,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
 
+/* Текст листика */
+.leaf-text-bubble {
+  position: relative;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.leaf-text {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #7cb342;
+  border-radius: 20px;
+  padding: 15px 20px;
+  font-size: clamp(14px, 1.2vw, 16px);
+  color: #535E51;
+  font-family: 'Libre Caslon Text', serif;
+  text-align: center;
+  max-width: clamp(250px, 30vw, 350px);
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  animation: fadeInBounce 0.6s ease-out;
+}
+
+.leaf-text::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #7cb342;
+}
+
+@keyframes fadeInBounce {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .auth-page {
   min-height: 100vh;
   background-color: #535E51;
@@ -341,8 +393,8 @@
 .random-phrase {
   text-align: center;
   font-size: clamp(14px, 1.2vw, 16px);
-  color: #222222;
-  font-weight: 600;
+  color: #666666;
+  font-weight: 400;
   max-width: clamp(250px, 30vw, 400px);
   line-height: 1.4;
   font-family: 'Libre Caslon Text', serif;
@@ -503,6 +555,7 @@
   .random-phrase {
     font-size: clamp(13px, 1vw, 15px);
     max-width: clamp(200px, 45vw, 300px);
+    color: #666666;
   }
 }
 
@@ -593,5 +646,6 @@
   .random-phrase {
     font-size: clamp(12px, 0.9vw, 14px);
     max-width: clamp(150px, 40vw, 250px);
+    color: #666666;
   }
 }
