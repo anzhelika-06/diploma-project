@@ -1,0 +1,188 @@
+.leaderboard-page {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.leaderboard-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.leaderboard-header h1 {
+  font-size: 32px;
+  margin-bottom: 10px;
+  color: #2c3e50;
+}
+
+.leaderboard-header p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+.leaderboard-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 15px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 16px;
+  font-weight: 600;
+  color: #7f8c8d;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  color: #2c3e50;
+}
+
+.tab-btn.active {
+  color: #7cb342;
+  border-bottom-color: #7cb342;
+}
+
+.leaderboard-content {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  transition: all 0.3s;
+}
+
+.leaderboard-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.leaderboard-item.top-three {
+  background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+  border: 2px solid #ffd700;
+}
+
+.leaderboard-item.top-three:hover {
+  background: linear-gradient(135deg, #fff5cc 0%, #fffef7 100%);
+}
+
+.rank {
+  font-size: 24px;
+  font-weight: bold;
+  min-width: 50px;
+  text-align: center;
+  color: #2c3e50;
+}
+
+.user-info,
+.team-info {
+  flex: 1;
+}
+
+.username,
+.team-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.team-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.team-icon {
+  font-size: 24px;
+}
+
+.stats {
+  display: flex;
+  gap: 15px;
+  font-size: 14px;
+  color: #7f8c8d;
+}
+
+.stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.score {
+  font-size: 20px;
+  font-weight: bold;
+  color: #7cb342;
+  min-width: 80px;
+  text-align: right;
+}
+
+.empty-message {
+  text-align: center;
+  color: #7f8c8d;
+  padding: 40px;
+  font-size: 16px;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+  .leaderboard-page {
+    padding: 15px;
+  }
+
+  .leaderboard-header h1 {
+    font-size: 24px;
+  }
+
+  .leaderboard-item {
+    padding: 12px;
+  }
+
+  .rank {
+    font-size: 20px;
+    min-width: 40px;
+  }
+
+  .username,
+  .team-name {
+    font-size: 16px;
+  }
+
+  .stats {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .score {
+    font-size: 16px;
+    min-width: 60px;
+  }
+}

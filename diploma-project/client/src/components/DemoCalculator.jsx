@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import '../styles/components/DemoCalculator.css'
-import { translateServerMessage, translateRecommendation } from '../utils/translations'
+import { translateServerMessage, translateRecommendation, formatCarbonFootprint } from '../utils/translations'
 
 const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage, onShake }) => {
   const [selectedNutrition, setSelectedNutrition] = useState('')
@@ -106,14 +106,9 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
   }, [])
 
   const handleCalculate = async () => {
-    console.log('Начинаем расчет...');
-    
     // Получаем текущие значения (выбранные или по умолчанию)
     const currentNutrition = selectedNutrition || Object.values(translations.nutritionOptions)[0];
     const currentTransport = selectedTransport || Object.values(translations.transportOptions)[0];
-    
-    console.log('currentNutrition:', currentNutrition);
-    console.log('currentTransport:', currentTransport);
     
     if (currentNutrition && currentTransport) {
       try {
@@ -125,16 +120,11 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
           key => translations.transportOptions[key] === currentTransport
         );
 
-        console.log('nutritionKey:', nutritionKey);
-        console.log('transportKey:', transportKey);
-
         if (!nutritionKey || !transportKey) {
           console.error('Не удалось найти ключи для отправки');
           setShowError(true);
           return;
         }
-
-        console.log('Отправляем запрос на сервер...');
 
         // Отправляем запрос на сервер
         const response = await fetch('http://localhost:3001/api/calculator/calculate', {
@@ -148,10 +138,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
           })
         });
 
-        console.log('Ответ сервера получен:', response.status);
-
         const result = await response.json();
-        console.log('Результат:', result);
 
         if (result.success) {
           setCalculationResult(result.data)
@@ -166,7 +153,6 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
         setShowError(true)
       }
     } else {
-      console.log('Не выбраны параметры');
       setShowError(true)
     }
   }
@@ -300,14 +286,12 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
         <div 
           className="notification-overlay" 
           onClick={(e) => {
-            console.log('Clicked on error overlay')
             setShowError(false)
           }}
         >
           <div 
             className="notification-modal error" 
             onClick={(e) => {
-              console.log('Clicked on error modal')
               e.stopPropagation()
             }}
           >
@@ -316,7 +300,6 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
               <button 
                 className="notification-close" 
                 onClick={(e) => {
-                  console.log('Clicked on error close button')
                   e.stopPropagation()
                   setShowError(false)
                 }}
@@ -328,7 +311,6 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
             <button 
               className="notification-button" 
               onClick={(e) => {
-                console.log('Clicked on error understand button')
                 e.stopPropagation()
                 setShowError(false)
               }}
@@ -344,14 +326,12 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
         <div 
           className="notification-overlay" 
           onClick={(e) => {
-            console.log('Clicked on success overlay')
             setShowSuccess(false)
           }}
         >
           <div 
             className="notification-modal success" 
             onClick={(e) => {
-              console.log('Clicked on success modal')
               e.stopPropagation()
             }}
           >
@@ -360,7 +340,6 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
               <button 
                 className="notification-close" 
                 onClick={(e) => {
-                  console.log('Clicked on success close button')
                   e.stopPropagation()
                   setShowSuccess(false)
                 }}
@@ -374,11 +353,11 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                   {translateServerMessage(calculationResult.total.message, currentLanguage)}
                 </p>
                 <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
-                  {translations.totalFootprint}: <strong>{calculationResult.total.carbon} {translations.units.kgCO2Year}</strong>
+                  {translations.totalFootprint}: <strong>{formatCarbonFootprint(calculationResult.total.carbon, currentLanguage)}/год</strong>
                 </p>
                 <div style={{ fontSize: '12px', color: '#888' }}>
-                  <div>{translations.nutrition}: {calculationResult.nutrition.carbon} {translations.units.kgCO2Year}</div>
-                  <div>{translations.transport}: {calculationResult.transport.carbon} {translations.units.kgCO2Year}</div>
+                  <div>{translations.nutrition}: {formatCarbonFootprint(calculationResult.nutrition.carbon, currentLanguage)}/год</div>
+                  <div>{translations.transport}: {formatCarbonFootprint(calculationResult.transport.carbon, currentLanguage)}/год</div>
                 </div>
                 {calculationResult.recommendations && calculationResult.recommendations.length > 0 && (
                   <div style={{ marginTop: '10px', fontSize: '12px', color: '#7cb342' }}>
@@ -411,7 +390,6 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
             <button 
               className="notification-button" 
               onClick={(e) => {
-                console.log('Clicked on success ok button')
                 e.stopPropagation()
                 setShowSuccess(false)
               }}

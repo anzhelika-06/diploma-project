@@ -1,25 +1,180 @@
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
+const redisClient = require('./utils/redisClient');
+const sessionManager = require('./utils/sessionManager');
+const { requestLogger } = require('./utils/logger');
+const { generalLimiter, authLimiter, calculatorLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Настраиваем Redis adapter для Socket.IO (для multi-server support)
+const pubClient = redisClient.duplicate();
+const subClient = redisClient.duplicate();
+
+Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+  io.adapter(createAdapter(pubClient, subClient));
+  console.log('✅ Socket.IO Redis adapter подключен');
+}).catch((err) => {
+  console.error('❌ Ошибка подключения Redis adapter:', err);
+});
+
 const PORT = process.env.PORT || 3001;
 
+// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Ограничиваем размер запроса
+app.use(requestLogger); // Логирование запросов
+
+// Rate limiting
+app.use('/api/', generalLimiter); // Общий лимит для всех API
+app.use('/api/auth/', authLimiter); // Строгий лимит для авторизации
+app.use('/api/calculator/', calculatorLimiter); // Лимит для калькулятора
+
+// Делаем io доступным для роутов
+app.set('io', io);
+
+// WebSocket подключения
+io.on('connection', (socket) => {
+  console.log('🔌 Новое WebSocket подключение:', socket.id);
+  
+  // Аутентификация пользователя
+  socket.on('authenticate', async (data) => {
+    const { userId, nickname } = data;
+    
+    if (!userId) {
+      console.log('⚠️ Попытка аутентификации без userId');
+      return;
+    }
+    
+    // Сохраняем сессию в Redis
+    await sessionManager.saveSession(socket.id, {
+      userId,
+      nickname: nickname || `User${userId}`,
+      connectedAt: new Date().toISOString()
+    });
+    
+    // Присоединяем к персональной комнате
+    socket.join(`user:${userId}`);
+    
+    console.log(`👤 Пользователь аутентифицирован: ${nickname} (ID: ${userId}, Socket: ${socket.id})`);
+    
+    // Получаем количество онлайн пользователей
+    const onlineCount = await sessionManager.getOnlineCount();
+    
+    // Отправляем подтверждение
+    socket.emit('authenticated', {
+      success: true,
+      userId,
+      nickname,
+      onlineUsers: onlineCount
+    });
+    
+    // Уведомляем всех о новом пользователе онлайн
+    io.emit('user:online', {
+      userId,
+      nickname,
+      onlineCount
+    });
+  });
+  
+  // Присоединение к комнате (например, команда)
+  socket.on('join:room', (roomId) => {
+    socket.join(roomId);
+    console.log(`📍 Socket ${socket.id} присоединился к комнате: ${roomId}`);
+  });
+  
+  // Выход из комнаты
+  socket.on('leave:room', (roomId) => {
+    socket.leave(roomId);
+    console.log(`📍 Socket ${socket.id} покинул комнату: ${roomId}`);
+  });
+  
+  // Отправка личного сообщения
+  socket.on('message:private', async (data) => {
+    const { targetUserId, message } = data;
+    const session = await sessionManager.getSession(socket.id);
+    
+    if (!session) {
+      socket.emit('error', { message: 'Не аутентифицирован' });
+      return;
+    }
+    
+    // Отправляем сообщение всем сокетам целевого пользователя
+    io.to(`user:${targetUserId}`).emit('message:received', {
+      fromUserId: session.userId,
+      fromNickname: session.nickname,
+      message,
+      timestamp: new Date()
+    });
+    
+    console.log(`💬 Личное сообщение от ${session.nickname} к пользователю ${targetUserId}`);
+  });
+  
+  // Запрос списка онлайн пользователей
+  socket.on('get:online:users', async () => {
+    const users = await sessionManager.getOnlineUsers();
+    socket.emit('online:users:list', {
+      users,
+      total: users.length
+    });
+  });
+  
+  // Отключение
+  socket.on('disconnect', async () => {
+    // Получаем сессию ДО удаления
+    const session = await sessionManager.getSession(socket.id);
+    const result = await sessionManager.deleteSession(socket.id);
+    
+    if (result && session) {
+      const { userId, isFullyOffline } = result;
+      
+      if (isFullyOffline) {
+        const onlineCount = await sessionManager.getOnlineCount();
+        
+        // Уведомляем всех что пользователь офлайн
+        io.emit('user:offline', {
+          userId,
+          nickname: session.nickname,
+          onlineCount
+        });
+        
+        console.log(`👋 Пользователь отключился: ${session.nickname} (ID: ${userId})`);
+      } else {
+        console.log(`🔌 Закрыто одно соединение пользователя ${session.nickname}`);
+      }
+    } else {
+      console.log('👋 Неаутентифицированное соединение закрыто:', socket.id);
+    }
+  });
+});
+
+// Экспортируем sessionManager для использования в роутах
+app.set('sessionManager', sessionManager);
 
 // Подключаем маршруты
 const authRoutes = require('./routes/auth');
 const storiesRoutes = require('./routes/stories');
 const rankingsRoutes = require('./routes/rankings');
+const teamsRoutes = require('./routes/teams');
+const achievementsRoutes = require('./routes/achievements');
+const leaderboardRoutes = require('./routes/leaderboard');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/stories', storiesRoutes);
 app.use('/api/rankings', rankingsRoutes);
-
-// Простой тестовый роут
-app.get('/test-endpoint', (req, res) => {
-  res.json({ message: 'Test endpoint works!' });
-});
+app.use('/api/teams', teamsRoutes);
+app.use('/api/achievements', achievementsRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 // API для статистики
 app.get('/api/stats', async (req, res) => {
@@ -66,12 +221,10 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 app.post('/api/calculator/calculate', (req, res) => {
-  console.log('=== НОВЫЕ РЕКОМЕНДАЦИИ РАБОТАЮТ! ===');
-  
   const { nutrition, transport } = req.body;
   const recommendations = [];
   
-  // Новые персонализированные рекомендации
+  // Персонализированные рекомендации
   if (nutrition === 'meat') {
     recommendations.push({
       category: 'Питание',
@@ -110,8 +263,6 @@ app.post('/api/calculator/calculate', (req, res) => {
     impact: 'Компенсация 20-50 кг CO₂ на дерево в год'
   });
   
-  console.log('Новые рекомендации:', recommendations);
-  
   res.json({
     success: true,
     data: {
@@ -128,8 +279,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
+// API для получения онлайн пользователей
+app.get('/api/online-users', async (req, res) => {
+  const sessionManager = req.app.get('sessionManager');
+  const onlineUsers = await sessionManager.getOnlineUsers();
+  
+  res.json({
+    success: true,
+    users: onlineUsers,
+    total: onlineUsers.length
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`✅ EcoSteps API Server запущен на порту ${PORT}`);
   console.log(`📡 http://localhost:${PORT}`);
-
+  console.log(`🔌 WebSocket готов к подключениям`);
 });

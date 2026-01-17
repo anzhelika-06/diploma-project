@@ -5,19 +5,35 @@ services:
     image: postgres:15-alpine
     container_name: ecosteps_postgres_prod
     environment:
-      POSTGRES_DB: ecosteps_db
-      POSTGRES_USER: ecosteps
-      POSTGRES_PASSWORD: StrongPassword123!  # ← ОБЯЗАТЕЛЬНО ДОБАВЬТЕ ЭТУ СТРОКУ
+      POSTGRES_DB: ${DB_NAME:-ecosteps_prod}
+      POSTGRES_USER: ${DB_USER:-ecosteps}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ecosteps_password}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/postgres/backup:/backup
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ecosteps || pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ecosteps}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - ecosteps_network
+    # Настройки производительности
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
 
   server:
     build:
@@ -26,25 +42,56 @@ services:
     container_name: ecosteps_server_prod
     environment:
       NODE_ENV: production
-      PORT: 3001
       DB_HOST: postgres
+      DB_USER: ${DB_USER:-ecosteps}
+      DB_PASSWORD: ${DB_PASSWORD:-ecosteps_password}
+      DB_NAME: ${DB_NAME:-ecosteps_prod}
       DB_PORT: 5432
-      DB_NAME: ecosteps_db
-      DB_USER: ecosteps
-      DB_PASSWORD: StrongPassword123!
-      JWT_SECRET: ${JWT_SECRET:-production-secret-key}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret}
+      PORT: 3001
     ports:
       - "3001:3001"
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - ecosteps_network
+    # Ограничения ресурсов
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Nginx для продакшена (опционально)
+  nginx:
+    image: nginx:alpine
+    container_name: ecosteps_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./client/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - server
+    restart: unless-stopped
+    networks:
+      - ecosteps_network
+
+volumes:
+  postgres_data_prod:
+    driver: local
 
 networks:
   ecosteps_network:
     driver: bridge
-
-volumes:
-  postgres_data:

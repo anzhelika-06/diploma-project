@@ -1,10 +1,23 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { translations, getSavedLanguage } from '../utils/translations'
 import '../styles/pages/TermsPage.css'
 
 const TermsPage = () => {
+  const navigate = useNavigate()
   const currentLanguage = getSavedLanguage()
   const t = translations[currentLanguage]
+  const [returnPath, setReturnPath] = useState('/')
+
+  useEffect(() => {
+    // Проверяем, залогинен ли пользователь
+    const user = localStorage.getItem('user')
+    if (user) {
+      setReturnPath('/feed')
+    } else {
+      setReturnPath('/')
+    }
+  }, [])
 
   const getTermsContent = () => {
     switch (currentLanguage) {
@@ -109,7 +122,7 @@ const TermsPage = () => {
   return (
     <div className="terms-page">
       <div className="terms-container">
-        <Link to="/register" className="back-link">{t.backToRegistration}</Link>
+        <button onClick={() => navigate(returnPath)} className="back-link">← Назад</button>
         
         <h1>{t.termsPageTitle}</h1>
         

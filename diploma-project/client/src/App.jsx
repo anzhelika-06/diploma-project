@@ -1,15 +1,50 @@
-import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './pages/MainLayout'
 import AuthPage from './pages/AuthPage'
 import RegisterPage from './pages/RegisterPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import AboutPage from './pages/AboutPage'
+import DashboardLayout from './layouts/DashboardLayout'
+import FeedPage from './pages/FeedPage'
+import PetPage from './pages/PetPage'
+import TeamsPage from './pages/TeamsPage'
+import MessagesPage from './pages/MessagesPage'
+import FriendsPage from './pages/FriendsPage'
+import NotificationsPage from './pages/NotificationsPage'
+import CreatePostPage from './pages/CreatePostPage'
+import AchievementsPage from './pages/AchievementsPage'
+import StatisticsPage from './pages/StatisticsPage'
+import LeaderboardPage from './pages/LeaderboardPage'
+import ContributionPage from './pages/ContributionPage'
+import ReviewsPage from './pages/ReviewsPage'
+import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
+import SearchPage from './pages/SearchPage'
 import { translations, getSavedLanguage, saveLanguage } from './utils/translations'
 
 function App() {
   const [currentLanguage, setCurrentLanguage] = useState(getSavedLanguage())
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Проверяем авторизацию при загрузке приложения
+    const user = localStorage.getItem('user')
+    if (user) {
+      try {
+        const userData = JSON.parse(user)
+        if (userData && userData.id) {
+          setIsAuthenticated(true)
+        }
+      } catch (error) {
+        console.error('Ошибка парсинга данных пользователя:', error)
+        localStorage.removeItem('user')
+      }
+    }
+    setIsLoading(false)
+  }, [])
 
   const handleLanguageChange = (newLanguage) => {
     setCurrentLanguage(newLanguage)
@@ -18,17 +53,36 @@ function App() {
 
   const currentTranslations = translations[currentLanguage] || translations.RU
 
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '24px'
+      }}>
+        🌱 Загрузка...
+      </div>
+    )
+  }
+
   return (
     <Router>
       <Routes>
+        {/* Главная страница - редирект в зависимости от авторизации */}
         <Route 
           path="/" 
           element={
-            <MainLayout 
-              translations={currentTranslations}
-              currentLanguage={currentLanguage}
-              onLanguageChange={handleLanguageChange}
-            />
+            isAuthenticated ? (
+              <Navigate to="/feed" replace />
+            ) : (
+              <MainLayout 
+                translations={currentTranslations}
+                currentLanguage={currentLanguage}
+                onLanguageChange={handleLanguageChange}
+              />
+            )
           } 
         />
         <Route 
@@ -63,6 +117,25 @@ function App() {
             />
           } 
         />
+
+        {/* Защищенные страницы с Dashboard Layout */}
+        <Route element={<DashboardLayout />}>
+          <Route path="/feed" element={<FeedPage />} />
+          <Route path="/pet" element={<PetPage />} />
+          <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/friends" element={<FriendsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/create" element={<CreatePostPage />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/contribution" element={<ContributionPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/search" element={<SearchPage />} />
+        </Route>
       </Routes>
     </Router>
   )

@@ -23,6 +23,11 @@
   margin-bottom: 30px;
   display: inline-block;
   transition: opacity 0.3s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: 'Libre Caslon Text', serif;
 }
 
 .back-link:hover {

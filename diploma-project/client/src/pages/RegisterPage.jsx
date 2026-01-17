@@ -5,6 +5,7 @@ import homeIcon from '../assets/images/home.png'
 import treeStage1 from '../assets/images/tree-growth-stage1.png'
 import treeStage2 from '../assets/images/tree growth stage2.png'
 import treeStage3 from '../assets/images/tree growth stage3.png'
+import { getRegistrationPhrase } from '../utils/randomPhrases'
 
 const RegisterPage = ({ translations, currentLanguage }) => {
   const navigate = useNavigate()
@@ -23,6 +24,7 @@ const RegisterPage = ({ translations, currentLanguage }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [registrationPhrase, setRegistrationPhrase] = useState('')
   
   // Состояния для селекторов даты
   const [isDayOpen, setIsDayOpen] = useState(false)
@@ -175,6 +177,12 @@ const RegisterPage = ({ translations, currentLanguage }) => {
       }
     }
   }, [currentStep, formData.birthdate, formData.gender, translations])
+
+  // Установка случайной фразы регистрации при смене языка
+  useEffect(() => {
+    const phrase = getRegistrationPhrase(currentLanguage)
+    setRegistrationPhrase(phrase)
+  }, [currentLanguage])
 
   // Закрытие выпадающего списка при клике вне его
   useEffect(() => {
@@ -329,6 +337,7 @@ const RegisterPage = ({ translations, currentLanguage }) => {
     setErrors({})
     
     try {
+      // Простая регистрация без подтверждения email
       const response = await fetch('http://localhost:3001/api/auth/register', {
         method: 'POST',
         headers: {
@@ -346,9 +355,13 @@ const RegisterPage = ({ translations, currentLanguage }) => {
       const data = await response.json()
       
       if (data.success) {
-        // Успешная регистрация
-        console.log('Пользователь зарегистрирован:', data.user)
+        // Показываем модалку успеха
         setShowSuccessModal(true)
+        
+        // Редирект на страницу авторизации через 2 секунды
+        setTimeout(() => {
+          navigate('/auth')
+        }, 2000)
       } else {
         // Обработка ошибок с сервера
         let errorMessage = translations.serverError
@@ -706,6 +719,13 @@ const RegisterPage = ({ translations, currentLanguage }) => {
           </div>
 
           <div className="right-section">
+            {/* Случайная фраза над деревом */}
+            <div className="registration-phrase-bubble">
+              <div className="registration-phrase-text">
+                {registrationPhrase}
+              </div>
+            </div>
+            
             <div className="video-block">
               <img 
                 src={treeImages[currentStep - 1]} 

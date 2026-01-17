@@ -57,10 +57,11 @@
   background-color: #535E51;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   font-family: 'Libre Caslon Text', serif;
   position: relative;
   padding: 20px;
+  padding-top: 40px;
 }
 
 /* Ссылка "Главная" внутри белого блока - на уровне с иконкой */
@@ -108,12 +109,13 @@
   border-radius: 20px;
   padding: 40px;
   width: min(95vw, 1400px);
-  height: min(85vh, 900px);
+  min-height: min(85vh, 900px);
+  max-height: none;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Основной контейнер - возвращаем центрирование */
@@ -389,11 +391,13 @@
   }
 }
 
-/* Случайная фраза под видео */
-.random-phrase {
+
+
+/* Статичная фраза под видео */
+.static-phrase {
   text-align: center;
   font-size: clamp(14px, 1.2vw, 16px);
-  color: #666666;
+  color: #2e2c2c;
   font-weight: 400;
   max-width: clamp(250px, 30vw, 400px);
   line-height: 1.4;
@@ -408,7 +412,7 @@
   
   .auth-white-block {
     padding: 30px;
-    height: min(90vh, 800px);
+    min-height: min(90vh, 800px);
   }
   
   .auth-container {
@@ -487,7 +491,7 @@
   
   .auth-white-block {
     padding: 20px;
-    height: min(95vh, 700px);
+    min-height: min(95vh, 700px);
   }
   
   .auth-container {
@@ -555,7 +559,13 @@
   .random-phrase {
     font-size: clamp(13px, 1vw, 15px);
     max-width: clamp(200px, 45vw, 300px);
-    color: #666666;
+    color: #888888;
+  }
+  
+  .static-phrase {
+    font-size: clamp(13px, 1vw, 15px);
+    max-width: clamp(200px, 45vw, 300px);
+    color: #888888;
   }
 }
 
@@ -577,7 +587,7 @@
   
   .auth-white-block {
     padding: 15px;
-    height: min(98vh, 600px);
+    min-height: min(98vh, 600px);
   }
   
   .auth-form-block {
@@ -646,6 +656,12 @@
   .random-phrase {
     font-size: clamp(12px, 0.9vw, 14px);
     max-width: clamp(150px, 40vw, 250px);
-    color: #666666;
+    color: #888888;
+  }
+  
+  .static-phrase {
+    font-size: clamp(12px, 0.9vw, 14px);
+    max-width: clamp(150px, 40vw, 250px);
+    color: #888888;
   }
 }

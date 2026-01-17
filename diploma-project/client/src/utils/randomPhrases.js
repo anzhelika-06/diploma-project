@@ -1,4 +1,4 @@
-// 100 случайных фраз для страницы авторизации на разных языках
+
 export const randomPhrases = {
   RU: [
     "Каждый шаг к экологии - шаг к будущему",
@@ -68,9 +68,86 @@ export const randomPhrases = {
   ]
 };
 
+// Фразы для регистрации
+export const registrationPhrases = {
+  RU: [
+    "Добро пожаловать в экологическое сообщество!",
+    "Твой путь к зеленому будущему начинается здесь",
+    "Присоединяйся к тысячам эко-активистов",
+    "Каждый новый участник - это надежда планеты",
+    "Вместе мы изменим мир к лучшему",
+    "Стань частью экологической революции",
+    "Твой углеродный след начнет уменьшаться уже сегодня",
+    "Регистрация - первый шаг к осознанной жизни",
+    "Планета ждет твоего вклада в экологию",
+    "Начни свое эко-путешествие прямо сейчас",
+    "Каждый эко-герой когда-то был новичком",
+    "Твоя экологическая история начинается здесь",
+    "Присоединяйся к движению за чистую планету",
+    "Сделай первый шаг к устойчивому образу жизни",
+    "Твое участие поможет спасти природу",
+    "Регистрируйся и начинай менять мир",
+    "Эко-сообщество приветствует тебя!",
+    "Твой зеленый образ жизни начинается сегодня",
+    "Стань эко-героем своего времени",
+    "Вместе мы сделаем планету чище"
+  ],
+  EN: [
+    "Welcome to the ecological community!",
+    "Your path to a green future starts here",
+    "Join thousands of eco-activists",
+    "Every new member is hope for the planet",
+    "Together we will change the world for the better",
+    "Become part of the ecological revolution",
+    "Your carbon footprint will start decreasing today",
+    "Registration is the first step to conscious living",
+    "The planet awaits your contribution to ecology",
+    "Start your eco-journey right now",
+    "Every eco-hero was once a beginner",
+    "Your ecological story begins here",
+    "Join the movement for a clean planet",
+    "Take the first step towards sustainable living",
+    "Your participation will help save nature",
+    "Register and start changing the world",
+    "The eco-community welcomes you!",
+    "Your green lifestyle starts today",
+    "Become an eco-hero of your time",
+    "Together we will make the planet cleaner"
+  ],
+  BY: [
+    "Сардэчна запрашаем у экалагічную супольнасць!",
+    "Твой шлях да зялёнай будучыні пачынаецца тут",
+    "Далучайся да тысяч эка-актывістаў",
+    "Кожны новы ўдзельнік - гэта надзея планеты",
+    "Разам мы зменім свет да лепшага",
+    "Стань часткай экалагічнай рэвалюцыі",
+    "Твой вугляродны след пачне памяншацца ўжо сёння",
+    "Рэгістрацыя - першы крок да свядомага жыцця",
+    "Планета чакае твайго ўкладу ў экалогію",
+    "Пачні сваё эка-падарожжа прама зараз",
+    "Кожны эка-герой калісьці быў навічком",
+    "Твая экалагічная гісторыя пачынаецца тут",
+    "Далучайся да руху за чыстую планету",
+    "Зрабі першы крок да ўстойлівага ладу жыцця",
+    "Тваё ўдзел дапаможа выратаваць прыроду",
+    "Рэгіструйся і пачынай мяняць свет",
+    "Эка-супольнасць вітае цябе!",
+    "Твой зялёны лад жыцця пачынаецца сёння",
+    "Стань эка-героем свайго часу",
+    "Разам мы зробім планету чысцейшай"
+  ]
+};
+
 // Функция для получения случайной фразы на нужном языке
 export const getRandomPhrase = (language = 'RU') => {
   const phrases = randomPhrases[language] || randomPhrases.RU;
+  const randomIndex = Math.floor(Math.random() * phrases.length);
+  return phrases[randomIndex];
+};
+
+// Функция для получения случайной фразы регистрации
+export const getRegistrationPhrase = (language = 'RU') => {
+  const phrases = registrationPhrases[language] || registrationPhrases.RU;
   const randomIndex = Math.floor(Math.random() * phrases.length);
   return phrases[randomIndex];
 };

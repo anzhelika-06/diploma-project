@@ -1,0 +1,32 @@
+.dashboard-layout {
+  min-height: 100vh;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-main {
+  transition: margin-left 0.3s ease, padding-bottom 0.3s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Десктоп */
+@media (min-width: 769px) {
+  .dashboard-main.sidebar-collapsed {
+    margin-left: 80px;
+  }
+
+  .dashboard-main.sidebar-expanded {
+    margin-left: 260px;
+  }
+}
+
+/* Мобильная версия */
+@media (max-width: 768px) {
+  .dashboard-main {
+    margin-left: 0;
+    padding-bottom: 0; /* Footer сам добавит отступ */
+  }
+}

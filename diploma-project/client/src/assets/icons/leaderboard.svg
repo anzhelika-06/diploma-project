@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Podium - 2nd place (left) -->
+  <rect x="2" y="13" width="6" height="8" stroke="#4A5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="5" y="18" font-size="8" fill="#4A5568" text-anchor="middle" font-weight="bold">2</text>
+  
+  <!-- Podium - 1st place (center, tallest) -->
+  <rect x="9" y="8" width="6" height="13" stroke="#4A5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="12" y="16" font-size="8" fill="#4A5568" text-anchor="middle" font-weight="bold">1</text>
+  
+  <!-- Podium - 3rd place (right) -->
+  <rect x="16" y="15" width="6" height="6" stroke="#4A5568" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="19" y="19" font-size="8" fill="#4A5568" text-anchor="middle" font-weight="bold">3</text>
+  
+  <!-- Crown on 1st place -->
+  <path d="M9 6L10 8L12 5L14 8L15 6V8H9V6Z" stroke="#4A5568" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

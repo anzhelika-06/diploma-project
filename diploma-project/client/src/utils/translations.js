@@ -38,7 +38,8 @@ export const translations = {
     // Единицы измерения
     units: {
       kgCO2Year: "кг CO₂/год",
-      kgCO2PerTreeYear: "кг CO₂ на дерево в год"
+      kgCO2PerTreeYear: "кг CO₂ на дерево в год",
+      tons: "т"
     },
     kgCO2: "кг CO₂",
     // Переводы уровней экологичности
@@ -64,11 +65,41 @@ export const translations = {
     loginLink: "Войти",
     nextButton: "Далее",
     registerButton: "Зарегистрироваться",
+    backButton: "Назад",
     // Ошибки авторизации
     invalidCredentials: "Неверный логин или пароль",
     userNotFound: "Пользователь не найден",
     serverError: "Ошибка сервера. Попробуйте позже",
     networkError: "Ошибка сети. Проверьте подключение",
+    // Переводы для регистрации
+    passwordPlaceholder: "Введите пароль",
+    confirmPasswordPlaceholder: "Подтвердите пароль",
+    nicknamePlaceholder: "Введите никнейм",
+    userExists: "Пользователь с таким email уже существует",
+    invalidEmail: "Неверный формат email",
+    passwordTooShort: "Пароль слишком короткий",
+    passwordTooWeak: "Пароль слишком слабый",
+    ageRestriction: "Возрастное ограничение",
+    errorModalOk: "Понятно",
+    registrationSuccess: "Регистрация успешна!",
+    registrationSuccessMessage: "Ваш аккаунт создан. Теперь вы можете войти в систему.",
+    goToLogin: "Перейти к входу",
+    stepOf: "Шаг {current} из {total}",
+    // Переводы для полей регистрации
+    genderPlaceholder: "Выберите пол",
+    genderMale: "Мужской",
+    genderFemale: "Женский",
+    // Сообщения валидации
+    nicknameRequired: "Пожалуйста, введите никнейм",
+    confirmPasswordRequired: "Пожалуйста, подтвердите пароль",
+    passwordMismatch: "Пароли не совпадают",
+    birthdateRequired: "Пожалуйста, выберите дату рождения",
+    genderRequired: "Пожалуйста, выберите пол",
+    // Тексты для условий использования
+    termsText: "Нажимая «Зарегистрироваться», вы соглашаетесь с",
+    termsOfService: "Условиями использования",
+    privacyPolicy: "Политикой конфиденциальности",
+    registrationErrorTitle: "Ошибка регистрации",
     // Кнопка звука и статичная фраза листика
     enableLeafSound: "Включить звук листика",
     leafStaticPhrase: "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?",
@@ -77,6 +108,7 @@ export const translations = {
     calculatorErrorMessage: "Пожалуйста, выберите все параметры",
     calculatorErrorButton: "Понятно",
     calculatorTranslating: "Переводим рекомендации...",
+    storiesTranslating: "Загрузка историй...",
     // Страница "О нас"
     aboutPageTitle: "О проекте EcoSteps",
     aboutPageSubtitle: "Вместе к экологичному будущему",
@@ -94,6 +126,10 @@ export const translations = {
     aboutFeatureRatingsDesc: "Отслеживайте свой прогресс и соревнуйтесь с другими пользователями",
     aboutFeatureStories: "Истории успеха",
     aboutFeatureStoriesDesc: "Делитесь своими достижениями и вдохновляйтесь опытом других",
+    aboutFeatureEducation: "Экологические вызовы",
+    aboutFeatureEducationDesc: "Участвуйте в челленджах и достигайте новых экологических целей",
+    aboutFeatureProgress: "Отслеживание прогресса",
+    aboutFeatureProgressDesc: "Визуализируйте свои достижения и следите за динамикой изменений",
     aboutAchievementsTitle: "Наши достижения",
     aboutActiveUsers: "Активных пользователей",
     aboutCO2Saved: "CO₂ сэкономлено",
@@ -131,7 +167,11 @@ export const translations = {
     ecoLevelEcoStarter: "Эко-стартер",
     ecoLevelEcoEnthusiast: "Эко-энтузиаст",
     ecoLevelEcoActivist: "Эко-активист",
-    ecoLevelEcoMaster: "Эко-мастер"
+    ecoLevelEcoMaster: "Эко-мастер",
+    // Страницы условий и конфиденциальности
+    backToRegistration: "Назад к регистрации",
+    termsPageTitle: "Условия использования",
+    privacyPageTitle: "Политика конфиденциальности"
   },
   EN: {
     mainTitle: "Reduce your carbon footprint",
@@ -170,7 +210,8 @@ export const translations = {
     // Единицы измерения
     units: {
       kgCO2Year: "kg CO₂/year",
-      kgCO2PerTreeYear: "kg CO₂ per tree per year"
+      kgCO2PerTreeYear: "kg CO₂ per tree per year",
+      tons: "t"
     },
     kgCO2: "kg CO₂",
     // Переводы уровней экологичности
@@ -196,11 +237,41 @@ export const translations = {
     loginLink: "Login",
     nextButton: "Next",
     registerButton: "Register",
+    backButton: "Back",
     // Ошибки авторизации
     invalidCredentials: "Invalid login or password",
     userNotFound: "User not found",
     serverError: "Server error. Please try again later",
     networkError: "Network error. Check your connection",
+    // Переводы для регистрации
+    passwordPlaceholder: "Enter password",
+    confirmPasswordPlaceholder: "Confirm password",
+    nicknamePlaceholder: "Enter nickname",
+    userExists: "User with this email already exists",
+    invalidEmail: "Invalid email format",
+    passwordTooShort: "Password is too short",
+    passwordTooWeak: "Password is too weak",
+    ageRestriction: "Age restriction",
+    errorModalOk: "OK",
+    registrationSuccess: "Registration successful!",
+    registrationSuccessMessage: "Your account has been created. You can now log in.",
+    goToLogin: "Go to login",
+    stepOf: "Step {current} of {total}",
+    // Переводы для полей регистрации
+    genderPlaceholder: "Select gender",
+    genderMale: "Male",
+    genderFemale: "Female",
+    // Сообщения валидации
+    nicknameRequired: "Please enter a nickname",
+    confirmPasswordRequired: "Please confirm your password",
+    passwordMismatch: "Passwords do not match",
+    birthdateRequired: "Please select your birth date",
+    genderRequired: "Please select your gender",
+    // Тексты для условий использования
+    termsText: "By clicking «Register», you agree to the",
+    termsOfService: "Terms of Service",
+    privacyPolicy: "Privacy Policy",
+    registrationErrorTitle: "Registration Error",
     // Кнопка звука и статичная фраза листика
     enableLeafSound: "Enable leaf sound",
     leafStaticPhrase: "Hello! Every choice you make now is a contribution. Let's track our footprint together?",
@@ -209,6 +280,7 @@ export const translations = {
     calculatorErrorMessage: "Please select all parameters",
     calculatorErrorButton: "Understood",
     calculatorTranslating: "Translating recommendations...",
+    storiesTranslating: "Loading stories...",
     // Страница "О нас"
     aboutPageTitle: "About EcoSteps Project",
     aboutPageSubtitle: "Together towards an ecological future",
@@ -226,6 +298,10 @@ export const translations = {
     aboutFeatureRatingsDesc: "Track your progress and compete with other users",
     aboutFeatureStories: "Success stories",
     aboutFeatureStoriesDesc: "Share your achievements and get inspired by others' experiences",
+    aboutFeatureEducation: "Eco challenges",
+    aboutFeatureEducationDesc: "Participate in challenges and achieve new environmental goals",
+    aboutFeatureProgress: "Progress tracking",
+    aboutFeatureProgressDesc: "Visualize your achievements and monitor changes over time",
     aboutAchievementsTitle: "Our achievements",
     aboutActiveUsers: "Active users",
     aboutCO2Saved: "CO₂ saved",
@@ -263,7 +339,11 @@ export const translations = {
     ecoLevelEcoStarter: "Eco Starter",
     ecoLevelEcoEnthusiast: "Eco Enthusiast",
     ecoLevelEcoActivist: "Eco Activist",
-    ecoLevelEcoMaster: "Eco Master"
+    ecoLevelEcoMaster: "Eco Master",
+    // Страницы условий и конфиденциальности
+    backToRegistration: "Back to Registration",
+    termsPageTitle: "Terms of Service",
+    privacyPageTitle: "Privacy Policy"
   },
   BY: {
     mainTitle: "Паменшыце свой вугляродны след",
@@ -302,7 +382,8 @@ export const translations = {
     // Единицы измерения
     units: {
       kgCO2Year: "кг CO₂/год",
-      kgCO2PerTreeYear: "кг CO₂ на дрэва ў год"
+      kgCO2PerTreeYear: "кг CO₂ на дрэва ў год",
+      tons: "т"
     },
     kgCO2: "кг CO₂",
     // Переводы уровней экологичности
@@ -328,11 +409,36 @@ export const translations = {
     loginLink: "Увайсці",
     nextButton: "Далей",
     registerButton: "Зарэгістравацца",
+    backButton: "Назад",
     // Ошибки авторизации
     invalidCredentials: "Няправільны логін або пароль",
     userNotFound: "Карыстальнік не знойдзены",
     serverError: "Памылка сервера. Паспрабуйце пазней",
     networkError: "Памылка сеткі. Праверце злучэнне",
+    // Переводы для регистрации
+    passwordPlaceholder: "Увядзіце пароль",
+    confirmPasswordPlaceholder: "Пацвердзіце пароль",
+    nicknamePlaceholder: "Увядзіце нік",
+    userExists: "Карыстальнік з такім email ужо існуе",
+    invalidEmail: "Няправільны фармат email",
+    passwordTooShort: "Пароль занадта кароткі",
+    passwordTooWeak: "Пароль занадта слабы",
+    ageRestriction: "Узроставае абмежаванне",
+    errorModalOk: "Зразумела",
+    registrationSuccess: "Рэгістрацыя паспяховая!",
+    registrationSuccessMessage: "Ваш акаўнт створаны. Цяпер вы можаце ўвайсці ў сістэму.",
+    goToLogin: "Перайсці да ўваходу",
+    stepOf: "Крок {current} з {total}",
+    // Переводы для полей регистрации
+    genderPlaceholder: "Выберыце пол",
+    genderMale: "Мужчынскі",
+    genderFemale: "Жаночы",
+    // Сообщения валидации
+    nicknameRequired: "Калі ласка, увядзіце нік",
+    confirmPasswordRequired: "Калі ласка, пацвердзіце пароль",
+    passwordMismatch: "Паролі не супадаюць",
+    birthdateRequired: "Калі ласка, выберыце дату нараджэння",
+    genderRequired: "Калі ласка, выберыце пол",
     // Кнопка звука и статичная фраза листика
     enableLeafSound: "Уключыць гук лісціка",
     leafStaticPhrase: "Прывітанне! Кожны твой выбар цяпер — гэта ўклад. Сочым за следам разам?",
@@ -341,6 +447,7 @@ export const translations = {
     calculatorErrorMessage: "Калі ласка, выберыце ўсе параметры",
     calculatorErrorButton: "Зразумела",
     calculatorTranslating: "Перакладаем рэкамендацыі...",
+    storiesTranslating: "Загрузка гісторый...",
     // Страница "О нас"
     aboutPageTitle: "Пра праект EcoSteps",
     aboutPageSubtitle: "Разам да экалагічнай будучыні",
@@ -358,6 +465,10 @@ export const translations = {
     aboutFeatureRatingsDesc: "Сачыце за сваім прагрэсам і спаборнічайце з іншымі карыстальнікамі",
     aboutFeatureStories: "Гісторыі поспеху",
     aboutFeatureStoriesDesc: "Дзяліцеся сваімі дасягненнямі і натхняйцеся досведам іншых",
+    aboutFeatureEducation: "Экалагічныя выклікі",
+    aboutFeatureEducationDesc: "Удзельнічайце ў выкліках і дасягайце новых экалагічных мэт",
+    aboutFeatureProgress: "Адсочванне прагрэсу",
+    aboutFeatureProgressDesc: "Візуалізуйце свае дасягненні і сачыце за дынамікай змен",
     aboutAchievementsTitle: "Нашы дасягненні",
     aboutActiveUsers: "Актыўных карыстальнікаў",
     aboutCO2Saved: "CO₂ зэканомлена",
@@ -395,7 +506,16 @@ export const translations = {
     ecoLevelEcoStarter: "Эка-стартар",
     ecoLevelEcoEnthusiast: "Эка-энтузіяст",
     ecoLevelEcoActivist: "Эка-актывіст",
-    ecoLevelEcoMaster: "Эка-майстар"
+    ecoLevelEcoMaster: "Эка-майстар",
+    // Тексты для условий использования
+    termsText: "Рэгіструючыся, вы згаджаецеся з",
+    termsOfService: "Умовамі выкарыстання",
+    privacyPolicy: "Палітыкай канфідэнцыяльнасці",
+    registrationErrorTitle: "Памылка рэгістрацыі",
+    // Страницы условий и конфиденциальности
+    backToRegistration: "Назад да рэгістрацыі",
+    termsPageTitle: "Умовы выкарыстання",
+    privacyPageTitle: "Палітыка канфідэнцыяльнасці"
   }
 }
 
@@ -427,76 +547,273 @@ export const saveLanguage = (language) => {
   }
 }
 
-// Функция для перевода категорий
-export const translateCategory = (category, language) => {
-  if (!category || language === 'RU') {
+// Функция для перевода категорий с автоопределением языка
+export const translateCategory = (category, targetLanguage) => {
+  if (!category) return category
+  
+  // Определяем исходный язык категории
+  const sourceLanguage = detectTextLanguage(category)
+  const normalizedTarget = targetLanguage.toLowerCase()
+  
+  // Если языки совпадают, возвращаем оригинал
+  if (sourceLanguage === normalizedTarget) {
     return category
   }
-
-  const t = translations[language]
   
-  // Статические переводы категорий
+  // Статические переводы категорий (все возможные варианты)
   const categoryMap = {
-    'Транспорт': t.categoryTransport,
-    'Питание': t.categoryFood,
-    'Энергия': t.categoryEnergy,
-    'Отходы': t.categoryWaste,
-    'Вода': t.categoryWater,
-    'Общее': t.categoryGeneral,
-    'Потребление': t.categoryConsumption,
+    // Русские варианты
+    'Транспорт': {
+      en: 'Transport',
+      by: 'Транспарт'
+    },
+    'Питание': {
+      en: 'Food',
+      by: 'Харчаванне'
+    },
+    'Энергия': {
+      en: 'Energy', 
+      by: 'Энергія'
+    },
+    'Отходы': {
+      en: 'Waste',
+      by: 'Адходы'
+    },
+    'Вода': {
+      en: 'Water',
+      by: 'Вада'
+    },
+    'Общее': {
+      en: 'General',
+      by: 'Агульнае'
+    },
+    'Потребление': {
+      en: 'Consumption',
+      by: 'Спажыванне'
+    },
     // Английские варианты
-    'Transport': t.categoryTransport,
-    'Food': t.categoryFood,
-    'Energy': t.categoryEnergy,
-    'Waste': t.categoryWaste,
-    'Water': t.categoryWater,
-    'General': t.categoryGeneral,
-    'Consumption': t.categoryConsumption
+    'Transport': {
+      ru: 'Транспорт',
+      by: 'Транспарт'
+    },
+    'Food': {
+      ru: 'Питание',
+      by: 'Харчаванне'
+    },
+    'Energy': {
+      ru: 'Энергия',
+      by: 'Энергія'
+    },
+    'Waste': {
+      ru: 'Отходы',
+      by: 'Адходы'
+    },
+    'Water': {
+      ru: 'Вода',
+      by: 'Вада'
+    },
+    'General': {
+      ru: 'Общее',
+      by: 'Агульнае'
+    },
+    'Consumption': {
+      ru: 'Потребление',
+      by: 'Спажыванне'
+    },
+    // Белорусские варианты
+    'Транспарт': {
+      ru: 'Транспорт',
+      en: 'Transport'
+    },
+    'Харчаванне': {
+      ru: 'Питание',
+      en: 'Food'
+    },
+    'Энергія': {
+      ru: 'Энергия',
+      en: 'Energy'
+    },
+    'Адходы': {
+      ru: 'Отходы',
+      en: 'Waste'
+    },
+    'Вада': {
+      ru: 'Вода',
+      en: 'Water'
+    },
+    'Агульнае': {
+      ru: 'Общее',
+      en: 'General'
+    },
+    'Спажыванне': {
+      ru: 'Потребление',
+      en: 'Consumption'
+    }
   }
   
-  return categoryMap[category] || category
+  // Ищем перевод в статической таблице
+  if (categoryMap[category] && categoryMap[category][normalizedTarget]) {
+    return categoryMap[category][normalizedTarget]
+  }
+  
+  // Если статический перевод не найден, возвращаем оригинал
+  return category
 }
 
-// Функция для перевода эко-уровней
-export const translateEcoLevel = (level, language) => {
-  if (!level || language === 'RU') {
+// Функция для перевода эко-уровней с автоопределением языка
+export const translateEcoLevel = (level, targetLanguage) => {
+  if (!level) return level
+
+  const sourceLanguage = detectTextLanguage(level)
+  const normalizedTarget = targetLanguage.toLowerCase()
+  
+  // Если языки совпадают, возвращаем оригинал
+  if (sourceLanguage === normalizedTarget) {
     return level
   }
 
-  const t = translations[language]
-  
-  // Сначала проверяем статические переводы
+  // Статические переводы эко-уровней (все возможные варианты)
   const levelMap = {
-    // Основные уровни
-    'Новичок': t.ecoLevelBeginner,
-    'Продвинутый': t.ecoLevelAdvanced,
-    'Эксперт': t.ecoLevelExpert,
-    'Мастер': t.ecoLevelMaster,
-    'Чемпион': t.ecoLevelChampion,
-    'Эко-герой': t.ecoLevelEcoHero,
-    // Уровни из БД
-    'Эко-новичок': t.ecoLevelEcoNovice,
-    'Эко-стартер': t.ecoLevelEcoStarter,
-    'Эко-энтузиаст': t.ecoLevelEcoEnthusiast,
-    'Эко-активист': t.ecoLevelEcoActivist,
-    'Эко-мастер': t.ecoLevelEcoMaster,
+    // Русские варианты
+    'Эко-герой': {
+      en: 'Eco Hero',
+      by: 'Эка-герой'
+    },
+    'Эко-новичок': {
+      en: 'Eco Novice',
+      by: 'Эка-навічок'
+    },
+    'Эко-стартер': {
+      en: 'Eco Starter',
+      by: 'Эка-стартар'
+    },
+    'Эко-энтузиаст': {
+      en: 'Eco Enthusiast',
+      by: 'Эка-энтузіяст'
+    },
+    'Эко-активист': {
+      en: 'Eco Activist',
+      by: 'Эка-актывіст'
+    },
+    'Эко-мастер': {
+      en: 'Eco Master',
+      by: 'Эка-майстар'
+    },
+    'Новичок': {
+      en: 'Beginner',
+      by: 'Пачаткоўец'
+    },
+    'Продвинутый': {
+      en: 'Advanced',
+      by: 'Прасунуты'
+    },
+    'Эксперт': {
+      en: 'Expert',
+      by: 'Эксперт'
+    },
+    'Мастер': {
+      en: 'Master',
+      by: 'Майстар'
+    },
+    'Чемпион': {
+      en: 'Champion',
+      by: 'Чэмпіён'
+    },
     // Английские варианты
-    'Beginner': t.ecoLevelBeginner,
-    'Advanced': t.ecoLevelAdvanced,
-    'Expert': t.ecoLevelExpert,
-    'Master': t.ecoLevelMaster,
-    'Champion': t.ecoLevelChampion,
-    'Eco Hero': t.ecoLevelEcoHero,
-    'Eco Novice': t.ecoLevelEcoNovice,
-    'Eco Starter': t.ecoLevelEcoStarter,
-    'Eco Enthusiast': t.ecoLevelEcoEnthusiast,
-    'Eco Activist': t.ecoLevelEcoActivist,
-    'Eco Master': t.ecoLevelEcoMaster,
-    // Дополнительные синонимы
-    'Эколог': t.ecoLevelExpert
+    'Eco Hero': {
+      ru: 'Эко-герой',
+      by: 'Эка-герой'
+    },
+    'Eco Novice': {
+      ru: 'Эко-новичок',
+      by: 'Эка-навічок'
+    },
+    'Eco Starter': {
+      ru: 'Эко-стартер',
+      by: 'Эка-стартар'
+    },
+    'Eco Enthusiast': {
+      ru: 'Эко-энтузиаст',
+      by: 'Эка-энтузіяст'
+    },
+    'Eco Activist': {
+      ru: 'Эко-активист',
+      by: 'Эка-актывіст'
+    },
+    'Eco Master': {
+      ru: 'Эко-мастер',
+      by: 'Эка-майстар'
+    },
+    'Beginner': {
+      ru: 'Новичок',
+      by: 'Пачаткоўец'
+    },
+    'Advanced': {
+      ru: 'Продвинутый',
+      by: 'Прасунуты'
+    },
+    'Expert': {
+      ru: 'Эксперт',
+      by: 'Эксперт'
+    },
+    'Master': {
+      ru: 'Мастер',
+      by: 'Майстар'
+    },
+    'Champion': {
+      ru: 'Чемпион',
+      by: 'Чэмпіён'
+    },
+    // Белорусские варианты
+    'Эка-герой': {
+      ru: 'Эко-герой',
+      en: 'Eco Hero'
+    },
+    'Эка-навічок': {
+      ru: 'Эко-новичок',
+      en: 'Eco Novice'
+    },
+    'Эка-стартар': {
+      ru: 'Эко-стартер',
+      en: 'Eco Starter'
+    },
+    'Эка-энтузіяст': {
+      ru: 'Эко-энтузиаст',
+      en: 'Eco Enthusiast'
+    },
+    'Эка-актывіст': {
+      ru: 'Эко-активист',
+      en: 'Eco Activist'
+    },
+    'Эка-майстар': {
+      ru: 'Эко-мастер',
+      en: 'Eco Master'
+    },
+    'Пачаткоўец': {
+      ru: 'Новичок',
+      en: 'Beginner'
+    },
+    'Прасунуты': {
+      ru: 'Продвинутый',
+      en: 'Advanced'
+    },
+    'Майстар': {
+      ru: 'Мастер',
+      en: 'Master'
+    },
+    'Чэмпіён': {
+      ru: 'Чемпион',
+      en: 'Champion'
+    }
   }
   
-  return levelMap[level] || level
+  // Ищем перевод в статической таблице
+  if (levelMap[level] && levelMap[level][normalizedTarget]) {
+    return levelMap[level][normalizedTarget]
+  }
+  
+  // Если статический перевод не найден, возвращаем оригинал
+  return level
 }
 
 // Функция для перевода сообщений с сервера
@@ -616,8 +933,8 @@ export const translateRecommendation = (recommendation, language) => {
   }
 }
 
-// Универсальная функция для перевода любого контента (только статичные переводы)
-export const translateContent = (content, targetLanguage, contentType = 'text') => {
+// Универсальная функция для перевода любого контента (статичные переводы + Chrome Translator API)
+export const translateContent = async (content, targetLanguage, contentType = 'text') => {
   if (!content || targetLanguage === 'RU') return content
   
   // Сначала пытаемся найти готовый перевод
@@ -637,14 +954,166 @@ export const translateContent = (content, targetLanguage, contentType = 'text') 
     return translatedContent
   }
   
-  // Для пользовательского контента (отзывы) возвращаем оригинал
-  // так как внешний API не работает
+  // Для пользовательского контента используем Chrome Translator API
+  if (contentType === 'userContent' || contentType === 'story') {
+    try {
+      return await translateWithChromeAPI(content, 'ru', targetLanguage.toLowerCase())
+    } catch (error) {
+      console.warn('Chrome Translator API недоступна:', error)
+      return content // Возвращаем оригинал если API недоступна
+    }
+  }
+  
   return content
 }
 
-// Простая функция для перевода отзывов (заглушка)
-export const translateStoryContent = (content, targetLanguage) => {
-  // Возвращаем оригинальный контент, так как API не работает
-  // В будущем здесь можно добавить другой сервис перевода
-  return content
+// Функция для перевода с помощью Chrome Translator API
+export const translateWithChromeAPI = async (text, sourceLanguage, targetLanguage) => {
+  // Проверяем поддержку API
+  if (!('Translator' in self)) {
+    throw new Error('Chrome Translator API не поддерживается')
+  }
+  
+  // Конвертируем коды языков в формат BCP 47
+  const langMap = {
+    'ru': 'ru',
+    'en': 'en', 
+    'by': 'uk' // Используем украинский как ближайший к белорусскому
+  }
+  
+  let sourceLang = langMap[sourceLanguage] || sourceLanguage
+  let targetLang = langMap[targetLanguage] || targetLanguage
+  
+  // Специальная обработка для белорусского языка
+  if (sourceLanguage === 'by' || targetLanguage === 'by') {
+    // Пробуем разные варианты для белорусского
+    const belarusianOptions = ['be', 'bel', 'uk', 'pl', 'ru']
+    
+    for (const option of belarusianOptions) {
+      try {
+        const testSourceLang = sourceLanguage === 'by' ? option : sourceLang
+        const testTargetLang = targetLanguage === 'by' ? option : targetLang
+        
+        const availability = await self.Translator.availability({
+          sourceLanguage: testSourceLang,
+          targetLanguage: testTargetLang
+        })
+        
+        if (availability === 'available' || availability === 'downloadable') {
+          if (sourceLanguage === 'by') sourceLang = option
+          if (targetLanguage === 'by') targetLang = option
+          break
+        }
+      } catch (error) {
+        continue
+      }
+    }
+  }
+  
+  // Если языки одинаковые, возвращаем оригинал
+  if (sourceLang === targetLang) {
+    return text
+  }
+  
+  try {
+    // Проверяем доступность языковой пары
+    const availability = await self.Translator.availability({
+      sourceLanguage: sourceLang,
+      targetLanguage: targetLang
+    })
+    
+    if (availability !== 'available' && availability !== 'downloadable') {
+      throw new Error(`Языковая пара ${sourceLang}->${targetLang} недоступна`)
+    }
+    
+    // Создаем переводчик
+    const translator = await self.Translator.create({
+      sourceLanguage: sourceLang,
+      targetLanguage: targetLang
+    })
+    
+    // Переводим текст
+    const translatedText = await translator.translate(text)
+    
+    // Очищаем ресурсы
+    translator.destroy()
+    
+    return translatedText
+    
+  } catch (error) {
+    throw error
+  }
+}
+
+// Функция для перевода историй успеха с автоопределением языка
+export const translateStoryContent = async (content, targetLanguage, sourceLanguage = 'auto') => {
+  if (!content) return content
+  
+  // Нормализуем коды языков
+  const normalizedTarget = targetLanguage.toLowerCase()
+  let normalizedSource = sourceLanguage.toLowerCase()
+  
+  // Если исходный язык не указан, пытаемся определить автоматически
+  if (normalizedSource === 'auto') {
+    normalizedSource = detectTextLanguage(content)
+  }
+  
+  // Если целевой язык совпадает с исходным, возвращаем оригинал
+  if (normalizedTarget === normalizedSource) {
+    return content
+  }
+  
+  try {
+    const result = await translateWithChromeAPI(content, normalizedSource, normalizedTarget)
+    return result
+  } catch (error) {
+    console.warn(`Ошибка перевода с ${sourceLanguage} на ${targetLanguage}:`, error)
+    return content // Возвращаем оригинал при ошибке
+  }
+}
+
+// Функция для определения языка текста
+export const detectTextLanguage = (text) => {
+  if (!text) return 'ru'
+  
+  // Подсчитываем символы разных алфавитов
+  const latinChars = (text.match(/[a-zA-Z]/g) || []).length
+  const cyrillicChars = (text.match(/[а-яёА-ЯЁ]/g) || []).length
+  const belarusianChars = (text.match(/[ўЎіІ]/g) || []).length
+  
+  // Общее количество букв
+  const totalLetters = latinChars + cyrillicChars + belarusianChars
+  
+  let detectedLang = 'ru'
+  
+  // Если есть белорусские символы - белорусский
+  if (belarusianChars > 0) {
+    detectedLang = 'by'
+  }
+  // Если латинских символов больше 50% от всех букв - английский
+  else if (totalLetters > 0 && (latinChars / totalLetters) > 0.5) {
+    detectedLang = 'en'
+  }
+  // Если кириллических символов больше 50% - русский
+  else if (totalLetters > 0 && (cyrillicChars / totalLetters) > 0.5) {
+    detectedLang = 'ru'
+  }
+  // Если только латинские символы и нет кириллицы - английский
+  else if (latinChars > 0 && cyrillicChars === 0) {
+    detectedLang = 'en'
+  }
+  
+  return detectedLang
+}
+
+// Функция для форматирования углеродного следа (кг -> тонны при необходимости)
+export const formatCarbonFootprint = (carbonKg, language = 'RU') => {
+  const t = translations[language] || translations.RU
+  
+  if (carbonKg >= 1000) {
+    const tons = Math.round(carbonKg / 1000 * 10) / 10 // Округляем до 1 знака после запятой
+    return `${tons}${t.units?.tons || 'т'} CO₂`
+  } else {
+    return `${carbonKg} ${t.kgCO2 || 'кг CO₂'}`
+  }
 }

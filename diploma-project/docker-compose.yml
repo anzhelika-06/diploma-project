@@ -23,6 +23,24 @@ services:
     networks:
       - ecosteps_network
 
+  # Redis для WebSocket сессий и кэширования
+  redis:
+    image: redis:7-alpine
+    container_name: ecosteps_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ecosteps_network
+
   # Node.js сервер (разработка)
   server:
     build:
@@ -33,6 +51,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       NODE_ENV: development
       PORT: 3001
@@ -41,6 +61,9 @@ services:
       DB_NAME: ecosteps
       DB_USER: ecosteps
       DB_PASSWORD: ecosteps_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      # REDIS_PASSWORD: ecosteps_redis_password # Отключен для разработки
       JWT_SECRET: ecosteps-dev-secret-key # Только для разработки
     ports:
       - "3001:3001"
@@ -57,4 +80,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
     driver: local

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import '../styles/pages/AuthPage.css'
 import homeIcon from '../assets/images/home.png'
 import listikVideo from '../assets/videos/listik.webm'
@@ -10,6 +10,7 @@ import listikBy from '../assets/audio/listik-by.mp3'
 import listikImage from '../assets/images/listik.png'
 
 const AuthPage = ({ translations, currentLanguage }) => {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     login: '',
     password: ''
@@ -147,8 +148,12 @@ const AuthPage = ({ translations, currentLanguage }) => {
       const data = await response.json()
       
       if (data.success) {
-        console.log('Пользователь авторизован:', data.user)
-        alert(`Добро пожаловать, ${data.user.nickname}!`)
+        // Сохраняем данные пользователя в localStorage
+        localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('isAuthenticated', 'true')
+        
+        // Редирект на страницу ленты
+        navigate('/feed')
       } else {
         let errorMessage = translations.serverError
         
@@ -280,7 +285,7 @@ const AuthPage = ({ translations, currentLanguage }) => {
               </div>
             </div>
             
-            <div className="random-phrase">
+            <div className="static-phrase">
               {staticPhrase}
             </div>
           </div>
