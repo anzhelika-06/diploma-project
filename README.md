@@ -2,37 +2,38 @@
 
 Веб-приложение для экологического трекинга с использованием Node.js, PostgreSQL, Redis и Docker.
 
-## 🚀 Быстрый старт
+## 🚀 Быстрый старт (одна команда!)
 
 ### Требования
-- Docker и Docker Compose
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (включает Docker Compose)
 - Git
 
-### Запуск для разработки
+### Запуск проекта
 ```bash
+# Клонируем репозиторий
 git clone https://github.com/anzhelika-06/diploma-project.git
 cd diploma-project/diploma-project
-cp .env.example .env
-# Отредактируйте .env файл с вашими настройками
-docker-compose up -d
+
+# Запускаем все сервисы одной командой
+# Для Linux/Mac:
+./start.sh
+
+# Для Windows:
+start.bat
+
+# Или напрямую через Docker Compose:
+docker-compose up --build -d
 ```
 
-Сервисы будут доступны:
-- **API Server**: http://localhost:3001
+**Готово!** 🎉 Все сервисы запущены и доступны:
+- **Клиент (React)**: http://localhost:5173
+- **API Server**: http://localhost:3001  
 - **PostgreSQL**: localhost:5432
 - **Redis**: localhost:6379
-- **Client**: http://localhost:5173 (запускается отдельно)
 
-### Запуск клиента
+### Остановка проекта
 ```bash
-cd diploma-project/client
-npm install
-npm run dev
-```
-
-### Запуск для продакшена
-```bash
-docker-compose -f docker-compose.prod.yml up --build -d
+docker-compose down
 ```
 
 ## 📁 Структура проекта

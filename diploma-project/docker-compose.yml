@@ -45,7 +45,7 @@ services:
   server:
     build:
       context: ./server
-      dockerfile: Dockerfile.dev  # Используем специальный Dockerfile для разработки
+      dockerfile: Dockerfile.dev
     container_name: ecosteps_server
     restart: unless-stopped
     depends_on:
@@ -63,16 +63,34 @@ services:
       DB_PASSWORD: ecosteps_password
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      # REDIS_PASSWORD: ecosteps_redis_password # Отключен для разработки
-      JWT_SECRET: ecosteps-dev-secret-key # Только для разработки
+      JWT_SECRET: ecosteps-dev-secret-key
     ports:
       - "3001:3001"
     volumes:
-      - ./server:/app           # Монтируем исходный код для hot reload
-      - /app/node_modules       # Отдельный volume для node_modules
+      - ./server:/app
+      - /app/node_modules
     networks:
       - ecosteps_network
     command: npm run dev
+
+  # React клиент (разработка)
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: ecosteps_client
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    networks:
+      - ecosteps_network
+    environment:
+      - VITE_API_URL=http://localhost:3001
 
 networks:
   ecosteps_network:
