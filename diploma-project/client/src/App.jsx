@@ -22,6 +22,7 @@ import ReviewsPage from './pages/ReviewsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
+import TestSettingsPage from './pages/TestSettingsPage'
 import { translations, getSavedLanguage, saveLanguage } from './utils/translations'
 
 function App() {
@@ -107,6 +108,7 @@ function App() {
         />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/test-settings" element={<TestSettingsPage />} />
         <Route 
           path="/about" 
           element={

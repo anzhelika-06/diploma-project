@@ -168,6 +168,7 @@ const rankingsRoutes = require('./routes/rankings');
 const teamsRoutes = require('./routes/teams');
 const achievementsRoutes = require('./routes/achievements');
 const leaderboardRoutes = require('./routes/leaderboard');
+// const ecoTipsRoutes = require('./routes/eco-tips');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/stories', storiesRoutes);
@@ -175,6 +176,44 @@ app.use('/api/rankings', rankingsRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/achievements', achievementsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+// app.use('/api/eco-tips', ecoTipsRoutes);
+
+// Временный роут для эко-советов
+app.get('/api/eco-tips/daily', (req, res) => {
+  const testTip = {
+    id: 1,
+    title: 'Замените лампочки на LED',
+    content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.',
+    category: 'Энергия',
+    difficulty: 'easy',
+    co2_impact: 40000,
+    day_of_year: 1
+  };
+  res.json(testTip);
+});
+
+app.get('/api/eco-tips/random', (req, res) => {
+  const testTips = [
+    {
+      id: 1,
+      title: 'Замените лампочки на LED',
+      content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных.',
+      category: 'Энергия',
+      difficulty: 'easy',
+      co2_impact: 40000
+    },
+    {
+      id: 2,
+      title: 'Используйте многоразовые пакеты',
+      content: 'Один многоразовый пакет заменяет до 1000 пластиковых за свою жизнь.',
+      category: 'Отходы',
+      difficulty: 'easy',
+      co2_impact: 5000
+    }
+  ];
+  const randomTip = testTips[Math.floor(Math.random() * testTips.length)];
+  res.json(randomTip);
+});
 
 // API для статистики
 app.get('/api/stats', async (req, res) => {

@@ -1,13 +1,13 @@
 # Dockerfile для React клиента
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
 # Копируем package.json и package-lock.json
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm ci --only=production
+# Устанавливаем все зависимости (включая dev)
+RUN npm ci
 
 # Копируем исходный код
 COPY . .

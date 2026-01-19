@@ -212,7 +212,7 @@ const RegisterPage = ({ translations, currentLanguage }) => {
     if (step === 1) {
       // Валидация логина (email)
       if (!formData.login.trim()) {
-        newErrors.login = translations.loginRequired
+        newErrors.login = translations.registerLoginRequired
       } else {
         // Строгая валидация email - только латинские символы, цифры и разрешенные символы
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -431,7 +431,7 @@ const RegisterPage = ({ translations, currentLanguage }) => {
                 name="login"
                 value={formData.login}
                 onChange={handleInputChange}
-                placeholder={translations.loginPlaceholder}
+                placeholder={translations.registerLoginPlaceholder}
                 className={`auth-input ${errors.login ? 'error' : ''}`}
                 disabled={isLoading}
               />

@@ -1,8 +1,9 @@
 .dashboard-layout {
   min-height: 100vh;
-  background: #fafafa;
+  background: var(--bg-primary, #fafafa);
   display: flex;
   flex-direction: column;
+  transition: background-color 0.2s ease;
 }
 
 .dashboard-main {
@@ -10,6 +11,15 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* Темная тема */
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+}
+
+[data-theme="dark"] .dashboard-layout {
+  background: var(--bg-primary, #0f172a);
 }
 
 /* Десктоп */
