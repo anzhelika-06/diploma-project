@@ -1,23 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
 
+/* Theme variables for terms page */
+:root {
+  --terms-bg: #535E51;
+  --terms-container-bg: white;
+  --terms-text: #222222;
+  --terms-heading: #535E51;
+  --terms-content-text: #444444;
+  --terms-link: #535E51;
+}
+
+[data-theme="dark"] {
+  --terms-bg: #1e1e1e;
+  --terms-container-bg: #2d2d2d;
+  --terms-text: #ffffff;
+  --terms-heading: #7cb342;
+  --terms-content-text: #ffffff;
+  --terms-link: #7cb342;
+}
+
 .terms-page {
   min-height: 100vh;
-  background-color: #535E51;
+  background-color: var(--terms-bg, #535E51);
   padding: 40px 20px;
   font-family: 'Libre Caslon Text', serif;
+  transition: background-color 0.3s ease;
 }
 
 .terms-container {
   max-width: 800px;
   margin: 0 auto;
-  background: white;
+  background: var(--terms-container-bg, white);
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease;
 }
 
 .back-link {
-  color: #535E51;
+  color: var(--terms-link, #535E51);
   text-decoration: none;
   font-size: 16px;
   margin-bottom: 30px;
@@ -35,7 +56,7 @@
 }
 
 .terms-container h1 {
-  color: #222222;
+  color: var(--terms-text, #222222);
   font-size: 32px;
   font-weight: 600;
   margin-bottom: 30px;
@@ -43,21 +64,21 @@
 }
 
 .terms-content h2 {
-  color: #535E51;
+  color: var(--terms-heading, #535E51);
   font-size: 20px;
   font-weight: 600;
   margin: 25px 0 15px 0;
 }
 
 .terms-content p {
-  color: #444444;
+  color: var(--terms-content-text, #444444);
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 15px;
 }
 
 .terms-content ul {
-  color: #444444;
+  color: var(--terms-content-text, #444444);
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 15px;

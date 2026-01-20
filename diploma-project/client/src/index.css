@@ -6,17 +6,39 @@
   box-sizing: border-box;
 }
 
+html {
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
 body {
   font-family: 'Libre Caslon Text', serif;
-  background-color: #535E51;
+  background-color: #535E51 !important;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background-color 0.3s ease;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Убираем все возможные белые элементы, НО НЕ В МОДАЛЬНЫХ ОКНАХ */
+body::before,
+body::after {
+  display: none !important;
+}
+
+/* Убираем белые полоски от возможных элементов */
+body > *:not(#root) {
+  display: none !important;
 }
 
 /* Глобальные стили для ссылок */
 a {
   color: #535E51;
-  text-decoration: none;
+  text-decoration: underline;
   transition: color 0.3s ease;
 }
 
@@ -32,7 +54,129 @@ a:active {
   color: #689f38;
 }
 
+/* Темная тема - переопределяем глобальные стили ссылок */
+[data-theme="dark"] a {
+  color: var(--link-color);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--link-color-hover);
+}
+
+[data-theme="dark"] a:visited {
+  color: var(--link-color-visited);
+}
+
+[data-theme="dark"] a:active {
+  color: var(--link-color-active);
+}
+
+/* Убираем подчеркивания только у кнопок-ссылок */
+a.btn {
+  text-decoration: none;
+}
+
+/* Убираем возможные белые полоски от ссылок */
+a::after,
+a::before {
+  display: none !important;
+}
+
 #root {
   width: 100%;
   min-height: 100vh;
+  background: transparent !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Убираем все возможные белые элементы */
+#root::before,
+#root::after {
+  display: none !important;
+}
+/* Темная тема для body */
+body[data-theme="dark"] {
+  background-color: #1e1e1e !important;
+}
+
+/* Убираем белые полоски от возможных элементов */
+body > *:not(#root) {
+  display: none !important;
+}
+/* Максимально агрессивные глобальные правила для автозаполнения в темной теме */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] input:-webkit-autofill:active,
+[data-theme="dark"] input:-webkit-autofill:not(:focus),
+[data-theme="dark"] input:-webkit-autofill:not(:hover),
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] textarea:-webkit-autofill:hover,
+[data-theme="dark"] textarea:-webkit-autofill:focus,
+[data-theme="dark"] textarea:-webkit-autofill:active,
+[data-theme="dark"] textarea:-webkit-autofill:not(:focus),
+[data-theme="dark"] textarea:-webkit-autofill:not(:hover),
+[data-theme="dark"] select:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill:hover,
+[data-theme="dark"] select:-webkit-autofill:focus,
+[data-theme="dark"] select:-webkit-autofill:active,
+[data-theme="dark"] select:-webkit-autofill:not(:focus),
+[data-theme="dark"] select:-webkit-autofill:not(:hover) {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2a inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #2a2a2a !important;
+  background-image: none !important;
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+  border-color: #444444 !important;
+}
+
+/* Дополнительные правила для принудительного переопределения */
+[data-theme="dark"] *:-webkit-autofill,
+[data-theme="dark"] *:-webkit-autofill:hover,
+[data-theme="dark"] *:-webkit-autofill:focus,
+[data-theme="dark"] *:-webkit-autofill:active,
+[data-theme="dark"] *:-webkit-autofill:not(:focus),
+[data-theme="dark"] *:-webkit-autofill:not(:hover) {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2a inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+  border-color: #444444 !important;
+}
+
+/* Постоянная анимация для глобального переопределения */
+@keyframes autofill-global-dark-persistent {
+  0%, 100% {
+    background: #2a2a2a !important;
+    background-color: #2a2a2a !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border-color: #444444 !important;
+  }
+}
+
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill {
+  animation: autofill-global-dark-persistent 0.001s infinite !important;
+  animation-fill-mode: both !important;
+}
+
+/* Дополнительные правила для всех возможных атрибутов автозаполнения */
+[data-theme="dark"] input[autocomplete]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="email"]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="username"]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="current-password"]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="new-password"]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="name"]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="given-name"]:-webkit-autofill,
+[data-theme="dark"] input[autocomplete="family-name"]:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2a inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background: #2a2a2a !important;
+  color: #ffffff !important;
+  border-color: #444444 !important;
 }

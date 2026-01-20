@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import '../styles/components/DemoCalculator.css'
 import { translateServerMessage, translateRecommendation, formatCarbonFootprint } from '../utils/translations'
+import { getSavedTheme } from '../utils/themeManager'
 
 const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage, onShake }) => {
   const [selectedNutrition, setSelectedNutrition] = useState('')
@@ -13,6 +14,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
   const [showError, setShowError] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [calculationResult, setCalculationResult] = useState(null)
+  const [currentTheme, setCurrentTheme] = useState('light')
   const modalRef = useRef(null)
 
   // Функция для перевода рекомендаций
@@ -48,6 +50,10 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
       setTransportDropdownOpen(false)
       setShowError(false)
       setShowSuccess(false)
+      
+      // Получаем текущую тему
+      const savedTheme = getSavedTheme()
+      setCurrentTheme(savedTheme)
     }
   }, [isOpen])
 
@@ -173,6 +179,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
     <>
       <div 
         className="modal-overlay"
+        data-theme={currentTheme}
         onClick={(e) => {
           // Если кликнули по overlay (не по калькулятору), дергаем калькулятор
           if (e.target === e.currentTarget) {
@@ -348,21 +355,21 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
               </button>
             </div>
             {calculationResult ? (
-              <div style={{ padding: '15px 25px' }}>
-                <p style={{ margin: '0 0 10px 0', fontWeight: '600', color: '#333' }}>
+              <div className="calculation-result">
+                <p className="result-main-message">
                   {translateServerMessage(calculationResult.total.message, currentLanguage)}
                 </p>
-                <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>
+                <p className="result-total-footprint">
                   {translations.totalFootprint}: <strong>{formatCarbonFootprint(calculationResult.total.carbon, currentLanguage)}/год</strong>
                 </p>
-                <div style={{ fontSize: '12px', color: '#888' }}>
+                <div className="result-breakdown">
                   <div>{translations.nutrition}: {formatCarbonFootprint(calculationResult.nutrition.carbon, currentLanguage)}/год</div>
                   <div>{translations.transport}: {formatCarbonFootprint(calculationResult.transport.carbon, currentLanguage)}/год</div>
                 </div>
                 {calculationResult.recommendations && calculationResult.recommendations.length > 0 && (
-                  <div style={{ marginTop: '10px', fontSize: '12px', color: '#7cb342' }}>
+                  <div className="result-recommendations">
                     <strong>{translations.recommendations}:</strong>
-                    <ul style={{ margin: '5px 0 0 15px', padding: 0 }}>
+                    <ul>
                       {calculationResult.recommendations.map((rec, index) => {
                         const translatedRec = translateRecommendation(rec, currentLanguage);
                         return (
@@ -376,7 +383,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                   </div>
                 )}
                 {calculationResult.comparison && (
-                  <div style={{ marginTop: '10px', fontSize: '11px', color: '#666' }}>
+                  <div className="result-comparison">
                     <div><strong>{translations.comparison}:</strong></div>
                     <div>{translations.worldAverage}: {calculationResult.comparison.worldAverage.value} {translations.units.kgCO2Year} 
                       ({calculationResult.comparison.worldAverage.percentage > 0 ? '+' : ''}{calculationResult.comparison.worldAverage.percentage}%)

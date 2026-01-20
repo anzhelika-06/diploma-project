@@ -18,12 +18,20 @@ router.get('/users', async (req, res) => {
         u.id as user_id,
         u.nickname as username,
         u.nickname,
+        CASE 
+          WHEN u.carbon_saved >= 5000 THEN 'star'
+          WHEN u.carbon_saved >= 4000 THEN 'leaf'
+          WHEN u.carbon_saved >= 3000 THEN 'tree'
+          WHEN u.carbon_saved >= 2000 THEN 'sprout'
+          WHEN u.carbon_saved >= 1000 THEN 'seedling'
+          ELSE 'plant'
+        END as avatar_emoji,
         COALESCE(SUM(s.carbon_saved), 0) as total_co2_saved,
         COUNT(DISTINCT ua.achievement_id) as achievements_count
       FROM users u
       LEFT JOIN success_stories s ON u.id = s.user_id
       LEFT JOIN user_achievements ua ON u.id = ua.user_id
-      GROUP BY u.id, u.nickname
+      GROUP BY u.id, u.nickname, u.carbon_saved
       ORDER BY total_co2_saved DESC
       LIMIT 100
     `);

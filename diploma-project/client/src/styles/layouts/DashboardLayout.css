@@ -15,11 +15,35 @@
 
 /* Темная тема */
 [data-theme="dark"] {
-  --bg-primary: #0f172a;
+  --bg-primary: #1e1e1e;
 }
 
 [data-theme="dark"] .dashboard-layout {
-  background: var(--bg-primary, #0f172a);
+  background: var(--bg-primary, #1e1e1e);
+}
+
+/* Footer theme support */
+.footer[data-theme="dark"] {
+  background-color: var(--footer-bg, #1e1e1e);
+  color: var(--footer-text, #ffffff);
+  border-top: 1px solid var(--footer-border, #404040);
+}
+
+.footer[data-theme="light"] {
+  background-color: var(--footer-bg, #f8f9fa);
+  color: var(--footer-text, #666666);
+  border-top: 1px solid var(--footer-border, #e0e0e0);
+}
+
+/* Footer icons theme support */
+.footer[data-theme="dark"] .footer-icon,
+.footer[data-theme="dark"] .material-icons {
+  color: var(--footer-text, #ffffff);
+}
+
+.footer[data-theme="light"] .footer-icon,
+.footer[data-theme="light"] .material-icons {
+  color: var(--footer-text, #666666);
 }
 
 /* Десктоп */

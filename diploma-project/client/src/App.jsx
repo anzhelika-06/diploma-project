@@ -23,7 +23,9 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import TestSettingsPage from './pages/TestSettingsPage'
-import { translations, getSavedLanguage, saveLanguage } from './utils/translations'
+import { translations, getSavedLanguage, saveLanguageEverywhere, loadLanguageFromDatabase } from './utils/translations'
+import { initializeTheme, syncTheme } from './utils/themeManager'
+import './styles/variables.css'
 
 function App() {
   const [currentLanguage, setCurrentLanguage] = useState(getSavedLanguage())
@@ -31,25 +33,48 @@ function App() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Проверяем авторизацию при загрузке приложения
-    const user = localStorage.getItem('user')
-    if (user) {
+    // Инициализируем тему при загрузке приложения
+    const initApp = async () => {
       try {
-        const userData = JSON.parse(user)
-        if (userData && userData.id) {
-          setIsAuthenticated(true)
+        // Сначала инициализируем тему
+        await initializeTheme()
+        
+        // Проверяем авторизацию
+        const user = localStorage.getItem('user')
+        if (user) {
+          try {
+            const userData = JSON.parse(user)
+            if (userData && userData.id) {
+              setIsAuthenticated(true)
+              // Если пользователь авторизован, синхронизируем тему с БД
+              await syncTheme()
+              
+              // Загружаем язык из БД
+              const dbLanguage = await loadLanguageFromDatabase()
+              if (dbLanguage && dbLanguage !== currentLanguage) {
+                setCurrentLanguage(dbLanguage)
+                // Обновляем localStorage
+                localStorage.setItem('selectedLanguage', dbLanguage)
+              }
+            }
+          } catch (error) {
+            console.error('Ошибка парсинга данных пользователя:', error)
+            localStorage.removeItem('user')
+          }
         }
       } catch (error) {
-        console.error('Ошибка парсинга данных пользователя:', error)
-        localStorage.removeItem('user')
+        console.error('Ошибка инициализации приложения:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
-    setIsLoading(false)
+    
+    initApp()
   }, [])
 
-  const handleLanguageChange = (newLanguage) => {
+  const handleLanguageChange = async (newLanguage) => {
     setCurrentLanguage(newLanguage)
-    saveLanguage(newLanguage)
+    await saveLanguageEverywhere(newLanguage)
   }
 
   const currentTranslations = translations[currentLanguage] || translations.RU
@@ -69,8 +94,9 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
+    <div className="page-container">
+      <Router>
+        <Routes>
         {/* Главная страница - редирект в зависимости от авторизации */}
         <Route 
           path="/" 
@@ -140,6 +166,7 @@ function App() {
         </Route>
       </Routes>
     </Router>
+  </div>
   )
 }
 

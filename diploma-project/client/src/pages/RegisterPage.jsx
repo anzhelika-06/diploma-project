@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import '../styles/pages/RegisterPage.css'
 import homeIcon from '../assets/images/home.png'
+import homeIconWhite from '../assets/images/home-white.png'
 import treeStage1 from '../assets/images/tree-growth-stage1.png'
 import treeStage2 from '../assets/images/tree growth stage2.png'
 import treeStage3 from '../assets/images/tree growth stage3.png'
 import { getRegistrationPhrase } from '../utils/randomPhrases'
+import { applyTheme, getSavedTheme } from '../utils/themeManager'
 
 const RegisterPage = ({ translations, currentLanguage }) => {
   const navigate = useNavigate()
@@ -30,9 +32,15 @@ const RegisterPage = ({ translations, currentLanguage }) => {
   const [isDayOpen, setIsDayOpen] = useState(false)
   const [isMonthOpen, setIsMonthOpen] = useState(false)
   const [isYearOpen, setIsYearOpen] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState('light')
 
   const totalSteps = 3
   const treeImages = [treeStage1, treeStage2, treeStage3]
+
+  // Получить правильную иконку домика в зависимости от темы
+  const getHomeIcon = () => {
+    return currentTheme === 'dark' ? homeIconWhite : homeIcon
+  }
 
   const handleInputChange = (e) => {
     setFormData({
@@ -180,11 +188,14 @@ const RegisterPage = ({ translations, currentLanguage }) => {
 
   // Установка случайной фразы регистрации при смене языка
   useEffect(() => {
+    // Применяем сохраненную тему при загрузке страницы
+    const savedTheme = getSavedTheme()
+    applyTheme(savedTheme)
+    setCurrentTheme(savedTheme)
+    
     const phrase = getRegistrationPhrase(currentLanguage)
     setRegistrationPhrase(phrase)
   }, [currentLanguage])
-
-  // Закрытие выпадающего списка при клике вне его
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.custom-gender-dropdown')) {
@@ -691,12 +702,20 @@ const RegisterPage = ({ translations, currentLanguage }) => {
     )
   }
 
+  const renderAuthLink = () => {
+    return (
+      <div className="auth-register-link">
+        {translations.hasAccountText} <Link to="/auth" className="register-link">{translations.loginLink}</Link>
+      </div>
+    )
+  }
+
   return (
-    <div className="auth-page">
+    <div className="auth-page" data-theme={currentTheme}>
       <div className="auth-white-block">
         <div className="home-link">
           <Link to="/" className="home-link-content">
-            <img src={homeIcon} alt={translations.homeAlt} className="home-icon" />
+            <img src={getHomeIcon()} alt={translations.homeAlt} className="home-icon" />
             <span className="home-text">{translations.homeText}</span>
           </Link>
         </div>
@@ -711,10 +730,7 @@ const RegisterPage = ({ translations, currentLanguage }) => {
               </div>
               
               {renderButtons()}
-              
-              <div className="auth-register-link">
-                {translations.hasAccountText} <Link to="/auth" className="register-link">{translations.loginLink}</Link>
-              </div>
+              {renderAuthLink()}
             </form>
           </div>
 
@@ -743,9 +759,9 @@ const RegisterPage = ({ translations, currentLanguage }) => {
         {/* Условия использования в низу белого блока */}
         <div className="terms-section-bottom">
           <p className="terms-text-bottom">
-            {translations.termsText} <a href="/terms" className="terms-link-bottom">{translations.termsOfService}</a>
+            {translations.termsText} <Link to="/terms" state={{ from: '/register' }} className="terms-link-bottom">{translations.termsOfService}</Link>
             <br />
-            <a href="/privacy" className="terms-link-bottom">{translations.privacyPolicy}</a>.
+            <Link to="/privacy" state={{ from: '/register' }} className="terms-link-bottom">{translations.privacyPolicy}</Link>.
           </p>
         </div>
       </div>

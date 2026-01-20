@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import EcoTipCard from '../components/EcoTipCard'
+import { applyTheme, getSavedTheme, THEMES, getThemeDisplayName } from '../utils/themeManager'
 import '../styles/pages/SettingsPage.css'
 
 const SettingsPage = () => {
   const [activeTab, setActiveTab] = useState('appearance')
   const [user, setUser] = useState(null)
   const [settings, setSettings] = useState({
-    theme: 'light',
-    language: 'ru',
+    theme: getSavedTheme(),
+    language: 'RU',
     notifications: true,
     ecoTips: true,
     emailNotifications: true,
-    pushNotifications: false
+    pushNotifications: false,
+    privacyLevel: 1
   })
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -21,6 +23,7 @@ const SettingsPage = () => {
   const [showFaqModal, setShowFaqModal] = useState(false)
   const [currentTip, setCurrentTip] = useState(null)
   const [loadingTip, setLoadingTip] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [feedbackForm, setFeedbackForm] = useState({
     type: 'suggestion',
     subject: '',
@@ -28,41 +31,117 @@ const SettingsPage = () => {
   })
 
   useEffect(() => {
-    // Загружаем данные пользователя
+    loadUserData()
+    loadUserSettings()
+    loadDailyTip()
+  }, [])
+
+  const loadUserData = () => {
     const userData = localStorage.getItem('user')
     if (userData) {
       setUser(JSON.parse(userData))
     }
+  }
 
-    // Загружаем настройки из localStorage
-    const savedSettings = localStorage.getItem('appSettings')
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings))
+  const loadUserSettings = async () => {
+    try {
+      setIsLoading(true)
+      const userData = localStorage.getItem('user')
+      if (!userData) {
+        // Если пользователь не авторизован, используем настройки из localStorage
+        const savedSettings = localStorage.getItem('appSettings')
+        if (savedSettings) {
+          const localSettings = JSON.parse(savedSettings)
+          setSettings({
+            theme: localSettings.theme || getSavedTheme(),
+            language: localSettings.language || 'RU',
+            notifications: localSettings.notifications !== undefined ? localSettings.notifications : true,
+            ecoTips: localSettings.ecoTips !== undefined ? localSettings.ecoTips : true,
+            emailNotifications: localSettings.emailNotifications !== undefined ? localSettings.emailNotifications : true,
+            pushNotifications: localSettings.pushNotifications !== undefined ? localSettings.pushNotifications : false,
+            privacyLevel: localSettings.privacyLevel || 1
+          })
+        }
+        setIsLoading(false)
+        return
+      }
+
+      const user = JSON.parse(userData)
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:3001/api/user-settings', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.settings) {
+          setSettings(data.settings)
+          // Применяем тему через новую систему
+          applyTheme(data.settings.theme)
+        }
+      } else {
+        console.error('Ошибка загрузки настроек:', response.status)
+        // Fallback к localStorage
+        const savedSettings = localStorage.getItem('appSettings')
+        if (savedSettings) {
+          const localSettings = JSON.parse(savedSettings)
+          setSettings(prev => ({ ...prev, ...localSettings }))
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки настроек:', error)
+      // Fallback к localStorage
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const localSettings = JSON.parse(savedSettings)
+        setSettings(prev => ({ ...prev, ...localSettings }))
+      }
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    // Применяем тему при загрузке
-    const theme = savedSettings ? JSON.parse(savedSettings).theme : 'light'
-    document.documentElement.setAttribute('data-theme', theme)
+  const saveSettings = async (newSettings) => {
+    try {
+      const userData = localStorage.getItem('user')
+      
+      // Всегда сохраняем в localStorage для быстрого доступа
+      localStorage.setItem('appSettings', JSON.stringify(newSettings))
+      setSettings(newSettings)
 
-    // Загружаем совет дня
-    loadDailyTip()
-  }, [])
+      // Если пользователь авторизован, сохраняем в БД
+      if (userData) {
+        const user = JSON.parse(userData)
+        const response = await fetch('/api/user-settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-Id': user.id.toString()
+          },
+          body: JSON.stringify(newSettings)
+        })
 
-  const saveSettings = (newSettings) => {
-    setSettings(newSettings)
-    localStorage.setItem('appSettings', JSON.stringify(newSettings))
+        if (!response.ok) {
+          console.error('Ошибка сохранения настроек в БД:', response.status)
+          // Настройки уже сохранены в localStorage, продолжаем работу
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения настроек:', error)
+      // Настройки уже сохранены в localStorage, продолжаем работу
+    }
   }
 
   const handleThemeChange = (theme) => {
     const newSettings = { ...settings, theme }
+    setSettings(newSettings)
     saveSettings(newSettings)
-    document.documentElement.setAttribute('data-theme', theme)
     
-    // Update sidebar theme
-    const sidebar = document.querySelector('.sidebar')
-    if (sidebar) {
-      sidebar.setAttribute('data-theme', theme)
-    }
+    // Используем новую систему управления темами
+    applyTheme(theme)
   }
 
   const handleLanguageChange = (language) => {
@@ -79,8 +158,8 @@ const SettingsPage = () => {
   const handleLogout = () => {
     localStorage.removeItem('user')
     localStorage.removeItem('token')
-    localStorage.removeItem('appSettings')
-    window.location.href = '/auth'
+    // Оставляем настройки в localStorage для следующего входа
+    window.location.href = '/'
   }
 
   const handleDeleteAccount = async () => {
@@ -200,9 +279,9 @@ const SettingsPage = () => {
   ]
 
   const languages = [
-    { code: 'ru', name: 'Русский' },
-    { code: 'be', name: 'Беларуская' },
-    { code: 'en', name: 'English' }
+    { code: 'RU', name: 'Русский' },
+    { code: 'BY', name: 'Беларуская' },
+    { code: 'EN', name: 'English' }
   ]
 
   const faqItems = [
@@ -260,19 +339,19 @@ const SettingsPage = () => {
                 <p className="setting-description">Выберите светлую или темную тему интерфейса</p>
                 <div className="theme-options">
                   <button
-                    className={`theme-btn ${settings.theme === 'light' ? 'active' : ''}`}
-                    onClick={() => handleThemeChange('light')}
+                    className={`theme-btn ${settings.theme === THEMES.LIGHT ? 'active' : ''}`}
+                    onClick={() => handleThemeChange(THEMES.LIGHT)}
                   >
                     <span className="material-icons theme-icon">light_mode</span>
-                    <span className="theme-name">Светлая</span>
+                    <span className="theme-name">{getThemeDisplayName(THEMES.LIGHT, 'RU')}</span>
                     <span className="theme-description">Классический светлый интерфейс</span>
                   </button>
                   <button
-                    className={`theme-btn ${settings.theme === 'dark' ? 'active' : ''}`}
-                    onClick={() => handleThemeChange('dark')}
+                    className={`theme-btn ${settings.theme === THEMES.DARK ? 'active' : ''}`}
+                    onClick={() => handleThemeChange(THEMES.DARK)}
                   >
                     <span className="material-icons theme-icon">dark_mode</span>
-                    <span className="theme-name">Темная</span>
+                    <span className="theme-name">{getThemeDisplayName(THEMES.DARK, 'RU')}</span>
                     <span className="theme-description">Темный режим для комфорта глаз</span>
                   </button>
                 </div>

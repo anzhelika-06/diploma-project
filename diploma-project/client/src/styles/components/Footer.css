@@ -1,8 +1,9 @@
 .dashboard-footer {
-  background: #fff;
-  border-top: 1px solid #e0e0e0;
+  background: var(--footer-bg, #fff);
+  border-top: 1px solid var(--footer-border, #e0e0e0);
   margin-top: auto;
   padding: 20px;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .footer-content {
@@ -22,7 +23,7 @@
 
 .footer-section a {
   font-size: 14px;
-  color: #666;
+  color: var(--footer-text, #666);
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -33,7 +34,7 @@
 
 .footer-copyright {
   font-size: 13px;
-  color: #999;
+  color: var(--footer-text, #999);
 }
 
 .feedback-btn {

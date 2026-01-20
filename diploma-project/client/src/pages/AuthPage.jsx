@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import '../styles/pages/AuthPage.css'
 import homeIcon from '../assets/images/home.png'
+import homeIconWhite from '../assets/images/home-white.png'
 import listikVideo from '../assets/videos/listik.webm'
 import { getRandomPhrase } from '../utils/randomPhrases'
 import listikRu from '../assets/audio/listik-ru.mp3'
 import listikEn from '../assets/audio/listik-en.mp3'
 import listikBy from '../assets/audio/listik-by.mp3'
 import listikImage from '../assets/images/listik.png'
+import { applyTheme, getSavedTheme } from '../utils/themeManager'
 
 const AuthPage = ({ translations, currentLanguage }) => {
   const navigate = useNavigate()
@@ -26,9 +28,15 @@ const AuthPage = ({ translations, currentLanguage }) => {
   const [showSoundButton, setShowSoundButton] = useState(true)
   const [leafText, setLeafText] = useState('')
   const [showLeafText, setShowLeafText] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState('light')
 
   // Устанавливаем рандомную фразу над листиком и статичную под ним
   useEffect(() => {
+    // Применяем сохраненную тему при загрузке страницы
+    const savedTheme = getSavedTheme()
+    applyTheme(savedTheme)
+    setCurrentTheme(savedTheme)
+    
     const randomBubblePhrase = getRandomPhrase(currentLanguage)
     const staticBottomPhrase = translations.leafStaticPhrase || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
     
@@ -37,6 +45,11 @@ const AuthPage = ({ translations, currentLanguage }) => {
     setLeafText(randomBubblePhrase)
     setShowLeafText(true)
   }, [currentLanguage, translations])
+
+  // Получить правильную иконку домика в зависимости от темы
+  const getHomeIcon = () => {
+    return currentTheme === 'dark' ? homeIconWhite : homeIcon
+  }
 
   // Инициализация аудио без автоматического воспроизведения
   useEffect(() => {
@@ -182,11 +195,11 @@ const AuthPage = ({ translations, currentLanguage }) => {
   }
 
   return (
-    <div className="auth-page">
+    <div className="auth-page" data-theme={currentTheme}>
       <div className="auth-white-block">
         <div className="home-link">
           <Link to="/" className="home-link-content">
-            <img src={homeIcon} alt={translations.homeAlt} className="home-icon" />
+            <img src={getHomeIcon()} alt={translations.homeAlt} className="home-icon" />
             <span className="home-text">{translations.homeText}</span>
           </Link>
         </div>

@@ -1,12 +1,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+@import '../variables.css';
 
 .main-container {
-  width: 100vw;
-  height: 100vh;
-  background-color: #535E51;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: #3d4a3b !important;
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: background-color 0.3s ease;
+  border: none !important;
+  outline: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Убираем возможные белые элементы */
+.main-container::before,
+.main-container::after {
+  display: none !important;
+}
+
+/* Убираем возможные границы у всех дочерних элементов кроме нужных */
+.main-container > *:not(.main-card) {
+  border: none !important;
+  background: transparent !important;
 }
 
 .main-card {
@@ -23,6 +44,83 @@
   flex-direction: column;
   padding: 3% 5%;
   box-sizing: border-box;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Убираем возможные белые элементы внутри main-card */
+.main-card::before,
+.main-card::after {
+  display: none !important;
+}
+
+/* Темная тема для main-container */
+.main-container[data-theme="dark"] {
+  background-color: var(--bg-main) !important;
+}
+
+/* Темная тема для главной карточки */
+.main-container[data-theme="dark"] .main-card {
+  background-image: url('../../assets/images/leaves-dark.png');
+  background-size: cover;
+  background-position: center;
+}
+
+/* Темная тема - весь текст белый */
+.main-container[data-theme="dark"] .logo-text,
+.main-container[data-theme="dark"] .main-title,
+.main-container[data-theme="dark"] .main-subtitle,
+.main-container[data-theme="dark"] .selected-language,
+.main-container[data-theme="dark"] .dropdown-option,
+.main-container[data-theme="dark"] .dropdown-arrow path {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+}
+
+/* Селектор языка в темной теме */
+.main-container[data-theme="dark"] .custom-select {
+  border-color: #7cb342;
+  color: #ffffff;
+  background: transparent;
+}
+
+.main-container[data-theme="dark"] .custom-select:hover {
+  border-color: #689f38;
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.3);
+}
+
+.main-container[data-theme="dark"] .dropdown-options {
+  border-color: #7cb342;
+  background: transparent;
+}
+
+.main-container[data-theme="dark"] .dropdown-option:hover::before {
+  background: #7cb342;
+}
+
+/* Кнопка "Войти" в темной теме - зеленый текст как у демо-калькулятора */
+.main-container[data-theme="dark"] .secondary-btn {
+  color: #7cb342 !important;
+  border-color: #7cb342 !important;
+}
+
+.main-container[data-theme="dark"] .secondary-btn:hover {
+  color: #689f38 !important;
+  border-color: #689f38 !important;
+}
+
+/* В темной теме все ссылки серые с подчеркиванием - очень специфичный селектор */
+.main-container[data-theme="dark"] .footer-link[href="#about"],
+.main-container[data-theme="dark"] .footer-link[href="#register"] {
+  color: var(--link-color) !important;
+  text-decoration: underline !important;
+  opacity: 1;
+}
+
+.main-container[data-theme="dark"] .footer-link[href="#about"]:hover,
+.main-container[data-theme="dark"] .footer-link[href="#register"]:hover {
+  color: var(--link-color-hover) !important;
+  opacity: 1;
 }
 
 
@@ -76,7 +174,7 @@
   position: relative;
   background: transparent;
   border: 2px solid #7cb342;
-  border-radius: 15px; /* вернул оригинальное закругление */
+  border-radius: 15px;
   padding: 0.4vh 1vw;
   font-size: clamp(10px, 0.8vw, 12px);
   font-family: 'Libre Caslon Text', serif;
@@ -91,7 +189,8 @@
 }
 
 .custom-select:hover {
-  border-color: #7cb342 ;
+  border-color: #689f38;
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.3);
 }
 
 .selected-language {
@@ -114,17 +213,16 @@
 .dropdown-options {
   position: absolute;
   top: calc(100% - 9px);
-  left: -1.9px; /* сдвинул внутрь на 1px */
-  right: -1.9px; /* сдвинул внутрь на 1px */
-  background-color: transparent;
-  background: none;
+  left: -1.9px;
+  right: -1.9px;
+  background: transparent;
   border: 2px solid #7cb342;
   border-radius: 0 0 15px 15px;
   border-top: none;
   z-index: 100;
   overflow: hidden;
   box-shadow: none;
-  padding-top: 1vh; /* добавил отступ сверху для первого элемента */
+  padding-top: 1vh;
 }
 
 .dropdown-option {
@@ -163,8 +261,8 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background: #7cb342;
-  width: 100%; /* сделал на всю ширину выпадающего списка */
-  height: calc(1em + 1px); /* увеличил высоту на 1 пиксель */
+  width: 100%;
+  height: calc(1em + 1px);
   border-radius: 0;
   z-index: -1;
 }
@@ -243,27 +341,29 @@
 
 .secondary-btn {
   background: transparent;
-  color: #000000;
+  color: #7cb342;
   border: 2px solid #7cb342;
 }
 
 .secondary-btn:hover {
   border-color: #689f38;
-  color: #000000;
-  transform: translateY(-0.2vh); /* добавил такую же анимацию как у primary-btn */
+  color: #689f38;
+  transform: translateY(-0.2vh);
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.3);
 }
 
-.secondary-btn:hover {
-  border-color: #689f38;
-  color: #000000; /* остается черным при наведении */
+/* Кнопка "Войти" в темной теме - зеленый текст как у демо-калькулятора */
+.main-container[data-theme="dark"] .secondary-btn {
+  color: #7cb342 !important;
+  border-color: #7cb342 !important;
 }
 
-.secondary-btn:hover {
-  border-color: #689f38;
-  color: #7cb342;
+.main-container[data-theme="dark"] .secondary-btn:hover {
+  color: #689f38 !important;
+  border-color: #689f38 !important;
 }
 
-/* Стили для ссылки-кнопки */
+/* Убираем подчеркивания у кнопок-ссылок */
 a.btn {
   text-decoration: none;
   display: inline-flex;
@@ -281,20 +381,47 @@ a.btn {
   margin-top: auto;
   padding-bottom: 0.1vh; /* опустил ссылки еще капельку ниже */
   padding-left: 6vw;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .footer-links {
   display: flex;
   gap: 3vw;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Убираем возможные белые полоски от ссылок */
+.footer-links::before,
+.footer-links::after,
+.footer::before,
+.footer::after {
+  display: none !important;
 }
 
 .footer-link {
-  text-decoration: underline;
-  font-size: clamp(14px, 1vw, 18px); /* уменьшил размер ссылок */
+  text-decoration: underline !important;
+  font-size: clamp(14px, 1vw, 18px);
   transition: opacity 0.3s ease;
   white-space: nowrap;
   font-weight: 400;
-  font-family: 'Libre Caslon Text', serif; /* добавил шрифт */
+  font-family: 'Libre Caslon Text', serif;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-color);
+}
+
+/* Убираем возможные белые полоски от ссылок */
+.footer-link::before,
+.footer-link::after {
+  display: none !important;
 }
 
 .footer-link:hover {
@@ -302,11 +429,27 @@ a.btn {
 }
 
 .footer-link[href="#about"] {
-  color: #5C5A5A;
+  color: var(--text-color-secondary);
+  text-decoration: underline !important;
 }
 
 .footer-link[href="#register"] {
-  color: #272727;
+  color: var(--text-color);
+  text-decoration: underline !important;
+}
+
+/* В темной теме все ссылки серые с подчеркиванием - очень специфичный селектор */
+.main-container[data-theme="dark"] .footer-link[href="#about"],
+.main-container[data-theme="dark"] .footer-link[href="#register"] {
+  color: var(--link-color) !important;
+  text-decoration: underline !important;
+  opacity: 1;
+}
+
+.main-container[data-theme="dark"] .footer-link[href="#about"]:hover,
+.main-container[data-theme="dark"] .footer-link[href="#register"]:hover {
+  color: var(--link-color-hover) !important;
+  opacity: 1;
 }
 
 /* Адаптивность для различных устройств */

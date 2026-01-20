@@ -1,0 +1,327 @@
+/* ========================================
+   ЦЕНТРАЛИЗОВАННЫЕ CSS ПЕРЕМЕННЫЕ
+   Только базовые цвета и темная тема
+   ======================================== */
+
+:root {
+  /* ========================================
+     ОСНОВНАЯ ЦВЕТОВАЯ ПАЛИТРА
+     ======================================== */
+  
+  /* Зеленые цвета (основные) */
+  --primary-green: #4caf50;
+  --primary-green-dark: #2e7d32;
+  --primary-green-light: #81c784;
+  --secondary-green: #7cb342;
+  --secondary-green-dark: #689f38;
+  --accent-green: #8bc34a;
+  --light-green: rgba(124, 179, 66, 0.3);
+  --light-green-hover: rgba(124, 179, 66, 0.5);
+  --form-green: rgba(158, 194, 104, 0.75);
+  --gradient-green-start: #f1f8f4;
+  --gradient-green-end: #e8f5e9;
+  
+  /* Серые цвета */
+  --dark-gray: #535E51;
+  --medium-gray: #454f43;
+  --light-gray: #BBB5B5;
+  --text-gray: #5C5A5A;
+  --static-text: #2e2c2c;
+  --border-gray: #e0e0e0;
+  --disabled-gray: #9ca3af;
+  --hover-gray: #f5f5f5;
+  --background-gray: #f8f9fa;
+  --card-gray: #fafafa;
+  
+  /* Основные цвета */
+  --white: #ffffff;
+  --black: #000000;
+  --text-primary: #222222;
+  --text-secondary: #666666;
+  --text-muted: #888888;
+  
+  /* Цвета состояний */
+  --success-color: #4caf50;
+  --error-color: #e74c3c;
+  --error-color-dark: #ff6b6b;
+  --warning-color: #ff9800;
+  --info-color: #2196f3;
+
+  /* ========================================
+     СВЕТЛАЯ ТЕМА - ПЕРЕМЕННЫЕ
+     ======================================== */
+  
+  /* Авторизация и регистрация */
+  --auth-bg: var(--dark-gray);
+  --auth-container-bg: var(--white);
+  --auth-form-bg: var(--form-green);
+  --auth-text: var(--text-primary);
+  --auth-input-bg: var(--white);
+  --auth-input-text: var(--text-primary);
+  --auth-input-placeholder: var(--light-gray);
+  --auth-button-bg: var(--dark-gray);
+  --auth-button-hover: var(--medium-gray);
+  --auth-back-button-bg: rgba(124, 179, 66, 0.5);
+  --auth-back-button-hover: rgba(124, 179, 66, 0.7);
+  --auth-link-text: var(--text-gray);
+  --auth-home-link: var(--text-primary);
+  --auth-static-text: var(--static-text);
+  --auth-border-color: var(--border-gray);
+  --auth-focus-color: var(--light-green);
+  --auth-error-color: var(--error-color);
+  --auth-disabled-color: var(--disabled-gray);
+  
+  /* О нас - светлая тема */
+  --about-container-bg: var(--white);
+  --about-tab-bg: #f5f5f5;
+  --about-tab-active: var(--primary-green);
+  --about-feature-bg: var(--white);
+  --about-story-bg: var(--white);
+  --about-filter-bg: #f5f5f5;
+  --about-filter-active: var(--secondary-green);
+  --about-rating-bg: var(--white);
+  --about-user-bg: #f8f9fa;
+  --about-like-hover: rgba(124, 179, 66, 0.1);
+  --about-like-active: rgba(231, 76, 60, 0.1);
+  --about-text: var(--text-primary);
+}
+
+/* ========================================
+   ТЕМНАЯ ТЕМА
+   ======================================== */
+[data-theme="dark"] {
+  /* Основные цвета для темной темы */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3d3d3d;
+  --bg-main: #252d25;
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+  
+  /* Текст */
+  --text-color: var(--white);
+  --text-color-secondary: #cccccc;
+  --text-color-muted: #aaaaaa;
+  --text-color-inverse: var(--black);
+  
+  /* Ссылки */
+  --link-color: #aaaaaa;
+  --link-color-hover: #888888;
+  --link-color-visited: #aaaaaa;
+  --link-color-active: #888888;
+  
+  /* Границы */
+  --border-color: #444444;
+  --border-color-hover: var(--primary-green);
+  --border-color-focus: var(--secondary-green);
+  
+  /* Кнопки */
+  --button-primary-bg: var(--primary-green);
+  --button-primary-hover: var(--primary-green-dark);
+  --button-primary-text: var(--white);
+  --button-secondary-bg: #2d2d2d;
+  --button-secondary-hover: #3d3d3d;
+  --button-secondary-text: var(--white);
+  --button-back-bg: rgba(124, 179, 66, 0.3);
+  --button-back-hover: rgba(124, 179, 66, 0.5);
+  --button-disabled-bg: #666666;
+  
+  /* Авторизация и регистрация */
+  --auth-bg: #1e1e1e;
+  --auth-container-bg: #323031;
+  --auth-form-bg: rgba(80, 80, 80, 0.3);
+  --auth-text: var(--white);
+  --auth-input-bg: #2a2a2a;
+  --auth-input-text: var(--white);
+  --auth-input-placeholder: #cccccc;
+  --auth-button-bg: var(--primary-green);
+  --auth-button-hover: var(--primary-green-dark);
+  --auth-back-button-bg: rgba(124, 179, 66, 0.5);
+  --auth-back-button-hover: rgba(124, 179, 66, 0.7);
+  --auth-link-text: #7cb342;
+  --auth-home-link: var(--white);
+  --auth-static-text: var(--white);
+  --auth-border-color: #444444;
+  --auth-focus-color: rgba(76, 175, 80, 0.3);
+  --auth-error-color: var(--error-color-dark);
+  --auth-disabled-color: #666666;
+  
+  /* Настройки */
+  --settings-bg: #1e1e1e;
+  --settings-tab-bg: #2d2d2d;
+  --settings-tab-active: var(--primary-green);
+  --settings-tab-text: var(--white);
+  --settings-tab-text-active: var(--white);
+  --settings-input-bg: #2d2d2d;
+  --settings-input-border: #444444;
+  --settings-button-primary: var(--primary-green);
+  --settings-button-secondary: #2d2d2d;
+  --settings-danger-bg: #2d1f1f;
+  --settings-danger-border: #f44336;
+  --settings-success-bg: #1f2d1f;
+  
+  /* О нас - темная тема */
+  --about-container-bg: #323031;
+  --about-tab-bg: #2d2d2d;
+  --about-tab-active: var(--primary-green);
+  --about-feature-bg: #2d2d2d;
+  --about-story-bg: #2d2d2d;
+  --about-filter-bg: #2d2d2d;
+  --about-filter-active: var(--secondary-green);
+  --about-rating-bg: #2d2d2d;
+  --about-user-bg: #2d2d2d;
+  --about-like-hover: rgba(124, 179, 66, 0.2);
+  --about-like-active: rgba(231, 76, 60, 0.2);
+  --about-text: var(--white);
+  
+  /* Команды */
+  --teams-bg: #1e1e1e;
+  --teams-card-bg: linear-gradient(135deg, #2d2d2d 0%, #1f2d1f 100%);
+  --teams-card-border: #3d4d3d;
+  --teams-goal-bg: #1f2d1f;
+  --teams-progress-bg: #2d2d2d;
+  --teams-progress-fill: var(--primary-green);
+  --teams-member-bg: #1f2d1f;
+  --teams-admin-badge: linear-gradient(135deg, #b8860b, #daa520);
+  
+  /* Статистика */
+  --stats-bg: #1e1e1e;
+  --stats-calculator-bg: #1e1e1e;
+  --stats-tab-bg: #2d2d2d;
+  --stats-tab-hover: #1f2d1f;
+  --stats-result-bg: #1f2d1f;
+  --stats-chart-bg: #1e1e1e;
+  --stats-bar-bg: #2d2d2d;
+  --stats-bar-fill: var(--primary-green);
+  
+  /* Питомец */
+  --pet-bg: #1e1e1e;
+  --pet-action-bg: #2d2d2d;
+  --pet-action-hover: #3d2d2d;
+  --pet-happiness-fill: linear-gradient(90deg, #ff8a50, #ff7043);
+  --pet-health-fill: var(--primary-green);
+  --pet-energy-fill: var(--info-color);
+  
+  /* Сообщения */
+  --messages-bg: #1e1e1e;
+  --messages-tab-hover: #2d2d2d;
+  --messages-chat-hover: #2d2d2d;
+  --messages-header-bg: #2d2d2d;
+  --messages-bubble-bg: #2d2d2d;
+  --messages-input-bg: #2d2d2d;
+  --messages-send-bg: var(--primary-green);
+  --messages-send-hover: var(--primary-green-dark);
+  
+  /* Контент */
+  --content-bg: #1e1e1e;
+  --content-card-bg: #2d2d2d;
+  --content-hover-bg: #3d3d3d;
+  --content-border: #444444;
+  --content-text: var(--white);
+  --content-text-secondary: #cccccc;
+  
+  /* Лидерборд */
+  --leaderboard-bg: #1e1e1e;
+  --leaderboard-item-bg: #2d2d2d;
+  --leaderboard-item-hover: #3d3d3d;
+  --leaderboard-rank-bg: var(--primary-green);
+  --leaderboard-rank-text: var(--white);
+  
+  /* Условия и конфиденциальность */
+  --terms-bg: #1e1e1e;
+  --terms-container-bg: #2d2d2d;
+  --terms-text: var(--white);
+  --terms-heading: var(--primary-green);
+  --terms-content-text: var(--white);
+  --terms-link: var(--primary-green);
+  
+  /* Общие компоненты */
+  --modal-bg: #2d2d2d;
+  --modal-overlay: rgba(0, 0, 0, 0.8);
+  --modal-border: #444444;
+  --modal-close-hover: #3d3d3d;
+  
+  --card-bg: #2d2d2d;
+  --card-border: #444444;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --card-hover-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  
+  --input-bg: #2d2d2d;
+  --input-border: #444444;
+  --input-focus: var(--primary-green);
+  --input-error: var(--error-color-dark);
+  --input-text: var(--white);
+  --input-placeholder: #cccccc;
+  
+  --scrollbar-track: #2d2d2d;
+  --scrollbar-thumb: #444444;
+  --scrollbar-thumb-hover: #555555;
+  
+  /* Сайдбар и навигация */
+  --sidebar-bg: #1e1e1e;
+  --sidebar-text: var(--white);
+  --sidebar-icon: #cccccc;
+  --sidebar-hover-bg: #2d2d2d;
+  --sidebar-active-bg: var(--primary-green);
+  --sidebar-active-text: var(--white);
+  --sidebar-border: #444444;
+  
+  /* Футер */
+  --footer-bg: #1e1e1e;
+  --footer-text: #cccccc;
+  --footer-link: var(--primary-green);
+  --footer-border: #444444;
+}
+
+/* ========================================
+   ДОПОЛНИТЕЛЬНЫЕ УТИЛИТЫ
+   ======================================== */
+
+/* Переходы */
+:root {
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  --transition-color: color var(--transition-normal);
+  --transition-bg: background-color var(--transition-normal);
+  --transition-border: border-color var(--transition-normal);
+  --transition-transform: transform var(--transition-normal);
+  --transition-all: all var(--transition-normal);
+}
+
+/* Тени */
+:root {
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  
+  --shadow-green: 0 4px 12px rgba(76, 175, 80, 0.2);
+  --shadow-green-lg: 0 8px 24px rgba(76, 175, 80, 0.3);
+}
+
+/* Радиусы скругления */
+:root {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 50%;
+  
+  --radius-button: 25px;
+  --radius-card: var(--radius-xl);
+  --radius-modal: var(--radius-2xl);
+}
+
+/* Размеры */
+:root {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+}

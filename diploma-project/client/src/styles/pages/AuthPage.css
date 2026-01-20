@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+@import '../variables.css';
 
 /* Текст листика */
 .leaf-text-bubble {
@@ -10,11 +11,11 @@
 
 .leaf-text {
   background: rgba(255, 255, 255, 0.95);
-  border: 2px solid #7cb342;
+  border: 2px solid var(--secondary-green);
   border-radius: 20px;
   padding: 15px 20px;
   font-size: clamp(14px, 1.2vw, 16px);
-  color: #535E51;
+  color: var(--dark-gray);
   font-family: 'Libre Caslon Text', serif;
   text-align: center;
   max-width: clamp(250px, 30vw, 350px);
@@ -34,7 +35,7 @@
   height: 0;
   border-left: 10px solid transparent;
   border-right: 10px solid transparent;
-  border-top: 10px solid #7cb342;
+  border-top: 10px solid var(--secondary-green);
 }
 
 @keyframes fadeInBounce {
@@ -54,7 +55,7 @@
 
 .auth-page {
   min-height: 100vh;
-  background-color: #535E51;
+  background-color: var(--auth-bg);
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -62,6 +63,12 @@
   position: relative;
   padding: 20px;
   padding-top: 40px;
+  transition: background-color 0.3s ease;
+}
+
+/* В темной теме фон как у главной страницы */
+[data-theme="dark"] .auth-page {
+  background-color: var(--bg-main);
 }
 
 /* Ссылка "Главная" внутри белого блока - на уровне с иконкой */
@@ -76,8 +83,8 @@
   display: flex;
   align-items: center;
   gap: clamp(6px, 0.8vw, 8px);
-  text-decoration: none;
-  color: #222222;
+  text-decoration: none !important;
+  color: var(--auth-home-link);
   font-size: clamp(14px, 1.3vw, 18px);
   font-weight: 400;
   transition: opacity 0.3s ease;
@@ -96,7 +103,7 @@
 }
 
 .home-text {
-  border-bottom: 2px solid #222222;
+  border-bottom: 2px solid currentColor;
   padding-bottom: 1px;
   line-height: 1;
   white-space: nowrap;
@@ -105,7 +112,7 @@
 
 /* Белый блок как в MainLayout */
 .auth-white-block {
-  background: white;
+  background: var(--auth-container-bg);
   border-radius: 20px;
   padding: 40px;
   width: min(95vw, 1400px);
@@ -130,7 +137,7 @@
 
 /* Левый блок с формой авторизации - контейнер для абсолютного позиционирования */
 .auth-form-block {
-  background-color: rgba(158, 194, 104, 0.75);
+  background: var(--auth-form-bg);
   padding: clamp(40px, 5vw, 60px) clamp(30px, 4vw, 50px);
   border-radius: 25px;
   width: clamp(400px, 40vw, 500px);
@@ -138,8 +145,18 @@
   display: block;
   margin-right: clamp(20px, 8vw, 100px);
   position: relative;
-  overflow: visible; /* Разрешаем показ ошибок */
+  overflow: visible;
+  border: none;
+  box-shadow: none;
+  transition: all 0.3s ease;
 }
+
+/* В темной теме добавляем обводку как у кнопки */
+[data-theme="dark"] .auth-form-block {
+  border: 2px solid #7cb342;
+}
+
+/* Убираем светящиеся эффекты - оставляем простой зеленый блок */
 
 
 .auth-title {
@@ -149,7 +166,7 @@
   transform: translateX(-50%);
   font-size: clamp(24px, 3vw, 32px);
   font-weight: 600;
-  color: #222222;
+  color: var(--auth-text);
   text-align: center;
   font-family: 'Libre Caslon Text', serif;
   width: 100%;
@@ -182,28 +199,102 @@
 .auth-input {
   width: 100%;
   padding: clamp(12px, 1.5vw, 15px) clamp(16px, 2vw, 20px);
-  border: none;
+  border: 1px solid var(--auth-border-color);
   border-radius: 25px;
   font-size: clamp(14px, 1.2vw, 16px);
   font-family: 'Libre Caslon Text', serif;
-  background-color: white;
-  color: #222222;
+  background-color: var(--auth-input-bg);
+  color: var(--auth-input-text);
   box-sizing: border-box;
   outline: none;
-  transition: box-shadow 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+/* В темной теме текстбоксы остаются темными */
+[data-theme="dark"] .auth-input {
+  background-color: #2a2a2a;
+  color: var(--white);
+  border-color: #444444;
+}
+
+/* При наведении в темной теме */
+[data-theme="dark"] .auth-input:hover {
+  border-color: #7cb342;
+}
+
+/* При фокусе */
+.auth-input:focus {
+  border-color: var(--primary-green);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+[data-theme="dark"] .auth-input:focus {
+  border-color: #7cb342;
+  box-shadow: 0 0 0 2px rgba(124, 179, 66, 0.3);
+}
+
+/* Самый мощный трюк для автозаполнения - transition блокировка */
+[data-theme="dark"] .auth-input:-webkit-autofill,
+[data-theme="dark"] .auth-input:-webkit-autofill:hover,
+[data-theme="dark"] .auth-input:-webkit-autofill:focus,
+[data-theme="dark"] .auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2a inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: #2a2a2a !important;
+  color: #ffffff !important;
+  border: 1px solid #444444 !important;
+  border-radius: 25px !important;
+  /* Блокируем изменение цвета на 50000 секунд */
+  transition: background-color 50000s ease-in-out 0s, color 50000s ease-in-out 0s, border-color 0.3s ease !important;
+}
+
+/* При наведении на автозаполненное поле в темной теме */
+[data-theme="dark"] .auth-input:-webkit-autofill:hover {
+  border-color: #7cb342 !important;
+}
+
+/* При фокусе на автозаполненное поле в темной теме */
+[data-theme="dark"] .auth-input:-webkit-autofill:focus {
+  border-color: #7cb342 !important;
+  box-shadow: 0 0 0 2px rgba(124, 179, 66, 0.3) !important;
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2a inset, 0 0 0 2px rgba(124, 179, 66, 0.3) !important;
+}
+
+/* Автозаполнение в светлой теме */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus,
+.auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--auth-input-bg) inset !important;
+  -webkit-text-fill-color: var(--auth-input-text) !important;
+  background-color: var(--auth-input-bg) !important;
+  color: var(--auth-input-text) !important;
+  border: 1px solid var(--auth-border-color) !important;
+  border-radius: 25px !important;
+  transition: background-color 50000s ease-in-out 0s, color 50000s ease-in-out 0s, border-color 0.3s ease !important;
+}
+
+.auth-input:-webkit-autofill:hover {
+  border-color: var(--primary-green) !important;
+}
+
+.auth-input:-webkit-autofill:focus {
+  border-color: var(--primary-green) !important;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--auth-input-bg) inset, 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
 }
 
 .auth-input::placeholder {
-  color: #BBB5B5;
+  color: var(--auth-input-placeholder);
   font-family: 'Libre Caslon Text', serif;
 }
 
 .auth-input:focus {
-  box-shadow: 0 0 0 2px rgba(83, 94, 81, 0.3);
+  outline: none;
 }
 
 .auth-input.error {
-  border: 1px solid #e74c3c;
+  border: 1px solid var(--auth-error-color);
   box-shadow: 0 0 0 1px rgba(231, 76, 60, 0.2);
 }
 
@@ -211,7 +302,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  color: #e74c3c;
+  color: var(--auth-error-color);
   font-size: clamp(11px, 1vw, 12px);
   margin-top: clamp(1px, 0.3vw, 3px);
   font-family: 'Libre Caslon Text', serif;
@@ -221,7 +312,7 @@
 
 
 .auth-submit-button {
-  background-color: #535E51;
+  background: var(--dark-gray);
   color: white;
   border: none;
   border-radius: 25px;
@@ -229,11 +320,35 @@
   font-size: clamp(16px, 1.4vw, 18px);
   font-weight: 400;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
   font-family: 'Libre Caslon Text', serif;
   align-self: flex-end;
   min-width: clamp(130px, 12vw, 160px);
   margin-top: clamp(-25px, 0vw, -15px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* В темной теме кнопка с обводкой как на главной */
+[data-theme="dark"] .auth-submit-button {
+  background: transparent;
+  color: #7cb342;
+  border: 2px solid #7cb342;
+}
+
+.auth-submit-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.auth-submit-button:hover::before {
+  left: 100%;
 }
 
 /* Кнопки */
@@ -241,7 +356,7 @@
   display: flex;
   gap: 15px;
   justify-content: space-between;
-  margin-top: clamp(-15px, 0.2vw, -8px);
+  margin-top: clamp(10px, 1.5vw, 20px);
 }
 
 .button-group .auth-submit-button:only-child {
@@ -249,8 +364,17 @@
 }
 
 .auth-submit-button:hover {
-  background-color: #454f43;
+  background: var(--medium-gray);
   transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(83, 94, 81, 0.3);
+}
+
+/* В темной теме hover с обводкой */
+[data-theme="dark"] .auth-submit-button:hover {
+  border-color: #689f38;
+  color: #689f38;
+  background: transparent;
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.3);
 }
 
 .auth-submit-button:active {
@@ -258,33 +382,39 @@
 }
 
 .auth-submit-button:disabled {
-  background-color: #9ca3af;
+  background-color: var(--light-gray);
   cursor: not-allowed;
   transform: none;
 }
 
 .auth-submit-button:disabled:hover {
-  background-color: #9ca3af;
+  background-color: var(--light-gray);
   transform: none;
 }
 
 /* Текст "Еще нет аккаунта?" - позиция как в регистрации */
 .auth-register-link {
   position: absolute;
-  bottom: -70px;
+  bottom: -60px;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
   font-size: 14px;
-  color: #5C5A5A;
+  color: var(--auth-link-text);
   font-family: 'Libre Caslon Text', serif;
   width: 100%;
+}
+
+/* В темной теме текст белый */
+[data-theme="dark"] .auth-register-link {
+  color: var(--white);
 }
 
 .register-link {
   text-decoration: underline;
   cursor: pointer;
   transition: opacity 0.3s ease;
+  color: var(--auth-link-text) !important;
 }
 
 .register-link:hover {
@@ -397,7 +527,7 @@
 .static-phrase {
   text-align: center;
   font-size: clamp(14px, 1.2vw, 16px);
-  color: #2e2c2c;
+  color: var(--auth-static-text, #2e2c2c);
   font-weight: 400;
   max-width: clamp(250px, 30vw, 400px);
   line-height: 1.4;
@@ -436,7 +566,7 @@
   }
   
   .auth-form {
-    top: clamp(70px, 10vw, 100px);
+    top: clamp(40px, 6vw, 60px);
     width: 85%;
   }
   
@@ -514,7 +644,7 @@
   }
   
   .auth-form {
-    top: clamp(60px, 8vw, 90px);
+    top: clamp(35px, 5vw, 50px);
     width: 90%;
   }
   
@@ -559,13 +689,13 @@
   .random-phrase {
     font-size: clamp(13px, 1vw, 15px);
     max-width: clamp(200px, 45vw, 300px);
-    color: #888888;
+    color: var(--auth-static-text);
   }
   
   .static-phrase {
     font-size: clamp(13px, 1vw, 15px);
     max-width: clamp(200px, 45vw, 300px);
-    color: #888888;
+    color: var(--auth-static-text);
   }
 }
 
@@ -611,7 +741,7 @@
   }
   
   .auth-form {
-    top: clamp(50px, 7vw, 80px);
+    top: clamp(40px, 5vw, 65px);
     width: 95%;
   }
   
@@ -656,12 +786,12 @@
   .random-phrase {
     font-size: clamp(12px, 0.9vw, 14px);
     max-width: clamp(150px, 40vw, 250px);
-    color: #888888;
+    color: var(--auth-static-text);
   }
   
   .static-phrase {
     font-size: clamp(12px, 0.9vw, 14px);
     max-width: clamp(150px, 40vw, 250px);
-    color: #888888;
+    color: var(--auth-static-text);
   }
 }

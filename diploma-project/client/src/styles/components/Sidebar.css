@@ -21,13 +21,13 @@
 
 /* Theme Support */
 .sidebar[data-theme="dark"] {
-  --sidebar-bg: #1e293b;
-  --sidebar-border: #475569;
-  --sidebar-text: #f8fafc;
-  --sidebar-text-secondary: #cbd5e1;
-  --sidebar-hover: #334155;
-  --sidebar-active: #0f766e;
-  --sidebar-active-bg: #134e4a;
+  --sidebar-bg: #1e1e1e;
+  --sidebar-border: #404040;
+  --sidebar-text: #ffffff;
+  --sidebar-text-secondary: #ffffff;
+  --sidebar-hover: #333333;
+  --sidebar-active: #4caf50;
+  --sidebar-active-bg: #2d4a2e;
 }
 
 .sidebar[data-theme="light"] {
@@ -134,7 +134,7 @@
 
 .sidebar-icon-svg path,
 .sidebar-icon-svg circle {
-  stroke: var(--sidebar-text-secondary, #718096);
+  stroke: var(--sidebar-text-secondary, #666666);
   transition: stroke 0.2s ease;
 }
 

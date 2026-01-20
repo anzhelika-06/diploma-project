@@ -553,6 +553,81 @@ export const saveLanguage = (language) => {
   }
 }
 
+// Функция для сохранения языка в базу данных
+export const saveLanguageToDatabase = async (language) => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.warn('Пользователь не авторизован, язык не сохранен в БД')
+      return false
+    }
+
+    const response = await fetch('http://localhost:3001/api/user-settings', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        language: language
+      })
+    })
+
+    if (response.ok) {
+      console.log('Язык сохранен в базу данных:', language)
+      return true
+    } else {
+      console.warn('Не удалось сохранить язык в БД:', response.statusText)
+      return false
+    }
+  } catch (error) {
+    console.warn('Ошибка при сохранении языка в БД:', error)
+    return false
+  }
+}
+
+// Функция для загрузки языка из базы данных
+export const loadLanguageFromDatabase = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      return null
+    }
+
+    const response = await fetch('http://localhost:3001/api/user-settings', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.settings && data.settings.language) {
+        console.log('Язык загружен из базы данных:', data.settings.language)
+        return data.settings.language
+      }
+    }
+    return null
+  } catch (error) {
+    console.warn('Ошибка при загрузке языка из БД:', error)
+    return null
+  }
+}
+
+// Функция для сохранения языка и в localStorage и в БД
+export const saveLanguageEverywhere = async (language) => {
+  // Сохраняем в localStorage
+  saveLanguage(language)
+  
+  // Сохраняем в БД (асинхронно, не блокируем UI)
+  try {
+    await saveLanguageToDatabase(language)
+  } catch (error) {
+    console.warn('Не удалось сохранить язык в БД:', error)
+  }
+}
+
 // Функция для перевода категорий с автоопределением языка
 export const translateCategory = (category, targetLanguage) => {
   if (!category) return category
@@ -597,6 +672,14 @@ export const translateCategory = (category, targetLanguage) => {
       en: 'Consumption',
       by: 'Спажыванне'
     },
+    'Быт': {
+      en: 'Household',
+      by: 'Быт'
+    },
+    'Природа': {
+      en: 'Nature',
+      by: 'Прырода'
+    },
     // Английские варианты
     'Transport': {
       ru: 'Транспорт',
@@ -626,6 +709,14 @@ export const translateCategory = (category, targetLanguage) => {
       ru: 'Потребление',
       by: 'Спажыванне'
     },
+    'Household': {
+      ru: 'Быт',
+      by: 'Быт'
+    },
+    'Nature': {
+      ru: 'Природа',
+      by: 'Прырода'
+    },
     // Белорусские варианты
     'Транспарт': {
       ru: 'Транспорт',
@@ -654,6 +745,14 @@ export const translateCategory = (category, targetLanguage) => {
     'Спажыванне': {
       ru: 'Потребление',
       en: 'Consumption'
+    },
+    'Быт': {
+      ru: 'Быт',
+      en: 'Household'
+    },
+    'Прырода': {
+      ru: 'Природа',
+      en: 'Nature'
     }
   }
   

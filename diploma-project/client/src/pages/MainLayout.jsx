@@ -8,6 +8,7 @@ import {
   getSavedLanguage, 
   saveLanguage 
 } from '../utils/translations'
+import { applyTheme, getSavedTheme } from '../utils/themeManager'
 import DemoCalculator from '../components/DemoCalculator'
 
 const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguageChange }) => {
@@ -16,6 +17,7 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
   const [shakeCalculator, setShakeCalculator] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState('light')
   
   // Обновляем локальное состояние при изменении пропсов
   useEffect(() => {
@@ -23,6 +25,13 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
       setSelectedLanguage(currentLanguage)
     }
   }, [currentLanguage])
+
+  // Применяем тему при загрузке
+  useEffect(() => {
+    const savedTheme = getSavedTheme()
+    applyTheme(savedTheme)
+    setCurrentTheme(savedTheme)
+  }, [])
   
   // Фильтруем доступные языки, исключая текущий выбранный
   const languageOptions = availableLanguages.filter(lang => lang !== selectedLanguage)
@@ -82,9 +91,9 @@ const MainLayout = ({ translations: propTranslations, currentLanguage, onLanguag
   const t = propTranslations || translations[selectedLanguage]
 
   return (
-    <div className="main-container">
+    <div className="main-container" data-theme={currentTheme}>
       {/* Основная карточка с фиксированным размером */}
-      <div className="main-card">
+      <div className="main-card" data-theme={currentTheme}>
         {/* Хедер с логотипом и навигацией */}
         <header className="header">
           <div className="logo-section">

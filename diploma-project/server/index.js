@@ -168,6 +168,7 @@ const rankingsRoutes = require('./routes/rankings');
 const teamsRoutes = require('./routes/teams');
 const achievementsRoutes = require('./routes/achievements');
 const leaderboardRoutes = require('./routes/leaderboard');
+const userSettingsRoutes = require('./routes/user-settings');
 // const ecoTipsRoutes = require('./routes/eco-tips');
 
 app.use('/api/auth', authRoutes);
@@ -176,6 +177,7 @@ app.use('/api/rankings', rankingsRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/achievements', achievementsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/user-settings', userSettingsRoutes);
 // app.use('/api/eco-tips', ecoTipsRoutes);
 
 // Временный роут для эко-советов

@@ -25,6 +25,22 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============ НАСТРОЙКИ ПОЛЬЗОВАТЕЛЕЙ ============
+CREATE TABLE IF NOT EXISTS user_settings (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    theme VARCHAR(20) DEFAULT 'light' CHECK (theme IN ('light', 'dark', 'auto')),
+    language VARCHAR(5) DEFAULT 'RU' CHECK (language IN ('RU', 'EN', 'BY')),
+    notifications_enabled BOOLEAN DEFAULT TRUE,
+    eco_tips_enabled BOOLEAN DEFAULT TRUE,
+    email_notifications BOOLEAN DEFAULT TRUE,
+    push_notifications BOOLEAN DEFAULT FALSE,
+    privacy_level INTEGER DEFAULT 1 CHECK (privacy_level BETWEEN 1 AND 3), -- 1-публичный, 2-друзья, 3-приватный
+    timezone VARCHAR(50) DEFAULT 'Europe/Minsk',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============ КОДЫ ПОДТВЕРЖДЕНИЯ EMAIL ============
 CREATE TABLE IF NOT EXISTS email_verification_codes (
     id SERIAL PRIMARY KEY,
@@ -101,6 +117,9 @@ CREATE INDEX idx_users_nickname ON users(nickname);
 CREATE INDEX idx_users_gender ON users(gender_id);
 CREATE INDEX idx_users_birthdate ON users(date_of_birth);
 CREATE INDEX idx_users_carbon_saved ON users(carbon_saved);
+CREATE INDEX idx_user_settings_user ON user_settings(user_id);
+CREATE INDEX idx_user_settings_theme ON user_settings(theme);
+CREATE INDEX idx_user_settings_language ON user_settings(language);
 CREATE INDEX idx_teams_carbon_saved ON teams(carbon_saved);
 CREATE INDEX idx_stories_user ON success_stories(user_id);
 CREATE INDEX idx_stories_created ON success_stories(created_at);
@@ -155,159 +174,104 @@ INSERT INTO genders (code) VALUES
     ('female')
 ON CONFLICT (code) DO NOTHING;
 
--- ============ ТЕСТОВЫЕ ПОЛЬЗОВАТЕЛИ ============
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'alex.eco@example.com',
-    'АлексЭко',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1995-05-15',
-    g.id,
-    5200,
-    'Эко-герой'
-FROM genders g WHERE g.code = 'male'
-ON CONFLICT (email) DO NOTHING;
+-- ============ УДАЛЯЕМ СТАРЫХ ПОЛЬЗОВАТЕЛЕЙ ============
+DELETE FROM users;
+ALTER SEQUENCE users_id_seq RESTART WITH 1;
 
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'maria.green@example.com',
-    'МарияЗеленая',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1998-08-22',
-    g.id,
-    4800,
-    'Эко-мастер'
-FROM genders g WHERE g.code = 'female'
-ON CONFLICT (email) DO NOTHING;
+-- ============ СОЗДАЕМ 35 ПОЛЬЗОВАТЕЛЕЙ С АНГЛИЙСКИМИ НИКНЕЙМАМИ ============
+-- Пароли: admin123, user123, test123 (все содержат буквы и цифры, минимум 6 символов)
 
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
+-- Администратор
+INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, is_admin, email_verified) 
 SELECT 
-    'test.user@example.com',
-    'ЭкоТестер',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1990-12-31',
-    g.id,
-    4200,
-    'Эко-активист'
-FROM genders g WHERE g.code = 'male'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'dmitry.s@example.com',
-    'ДмитрийС',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1992-03-10',
-    g.id,
-    3900,
-    'Эко-энтузиаст'
-FROM genders g WHERE g.code = 'male'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'olga.m@example.com',
-    'ОльгаМ',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1996-07-25',
-    g.id,
-    3600,
-    'Эко-энтузиаст'
-FROM genders g WHERE g.code = 'female'
-ON CONFLICT (email) DO NOTHING;
-
--- Добавляем больше пользователей для команд
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'anna.k@example.com',
-    'АннаК',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1999-01-12',
-    g.id,
-    3200,
-    'Эко-стартер'
-FROM genders g WHERE g.code = 'female'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'pavel.v@example.com',
-    'ПавелВ',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1994-09-08',
-    g.id,
-    2800,
-    'Эко-стартер'
-FROM genders g WHERE g.code = 'male'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'elena.p@example.com',
-    'ЕленаП',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1997-04-20',
+    'admin@test.com',
+    'admin',
+    '$2b$10$k0JXEfGibK4fDU3mCM/adeZ4kYpilG8OgHf9YyMwb/E40i8UxFCi6',
+    '1985-01-15',
     g.id,
     2500,
-    'Эко-новичок'
-FROM genders g WHERE g.code = 'female'
-ON CONFLICT (email) DO NOTHING;
-
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'sergey.l@example.com',
-    'СергейЛ',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1993-11-15',
-    g.id,
-    2200,
-    'Эко-новичок'
+    'Эко-эксперт',
+    '👑',
+    TRUE,
+    TRUE
 FROM genders g WHERE g.code = 'male'
 ON CONFLICT (email) DO NOTHING;
 
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
+-- Основные тестовые пользователи
+INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, email_verified) 
 SELECT 
-    'natasha.r@example.com',
-    'НаташаР',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '2000-06-03',
+    'user@test.com',
+    'user',
+    '$2b$10$RVRUmEU7PcnJ..sWwJq9ButuYMyWRwgSowvT98lnmgPj4NhCBYyKm',
+    '1990-05-20',
     g.id,
-    1900,
-    'Эко-новичок'
+    1800,
+    'Эко-активист',
+    '🌱',
+    TRUE
 FROM genders g WHERE g.code = 'female'
 ON CONFLICT (email) DO NOTHING;
 
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
+INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, email_verified) 
 SELECT 
-    'ivan.t@example.com',
-    'ИванТ',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1991-12-28',
+    'test@test.com',
+    'test',
+    '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i',
+    '1992-08-10',
     g.id,
-    1600,
-    'Эко-новичок'
+    2100,
+    'Эко-активист',
+    '🌿',
+    TRUE
 FROM genders g WHERE g.code = 'male'
 ON CONFLICT (email) DO NOTHING;
 
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level) 
-SELECT 
-    'victoria.s@example.com',
-    'ВикторияС',
-    '$2b$10$Op7dI2UdtcvZakYmhKwpWuEEx/BOX1eY48wx9fe9h/TFdrdDeATfm',
-    '1998-02-14',
-    g.id,
-    1400,
-    'Эко-новичок'
-FROM genders g WHERE g.code = 'female'
+-- Дополнительные пользователи (32 человека) - все с паролем test123
+INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, email_verified) VALUES 
+('alex.green@test.com', 'alex_green', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1988-03-15', 1, 2300, 'Эко-активист', '🌲', TRUE),
+('sarah.eco@test.com', 'sarah_eco', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1995-07-22', 2, 1950, 'Эко-энтузиаст', '🌸', TRUE),
+('mike.nature@test.com', 'mike_nature', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1987-11-08', 1, 2650, 'Эко-мастер', '🦋', TRUE),
+('emma.clean@test.com', 'emma_clean', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1993-04-12', 2, 1750, 'Эко-энтузиаст', '♻️', TRUE),
+('david.solar@test.com', 'david_solar', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1989-09-25', 1, 2850, 'Эко-мастер', '☀️', TRUE),
+('lisa.bike@test.com', 'lisa_bike', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1991-12-03', 2, 2200, 'Эко-активист', '🚴', TRUE),
+('john.water@test.com', 'john_water', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1986-06-18', 1, 1650, 'Эко-энтузиаст', '💧', TRUE),
+('anna.forest@test.com', 'anna_forest', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1994-02-28', 2, 1850, 'Эко-энтузиаст', '🌳', TRUE),
+('tom.ocean@test.com', 'tom_ocean', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1990-10-14', 1, 2400, 'Эко-активист', '🌊', TRUE),
+('kate.wind@test.com', 'kate_wind', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1988-05-07', 2, 1950, 'Эко-энтузиаст', '💨', TRUE),
+('peter.recycle@test.com', 'peter_recycle', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1992-08-19', 1, 1750, 'Эко-энтузиаст', '🔄', TRUE),
+('maria.garden@test.com', 'maria_garden', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1987-01-11', 2, 1600, 'Эко-энтузиаст', '🌺', TRUE),
+('james.energy@test.com', 'james_energy', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1985-07-04', 1, 2750, 'Эко-мастер', '⚡', TRUE),
+('nina.earth@test.com', 'nina_earth', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1996-11-26', 2, 1450, 'Эко-стартер', '🌍', TRUE),
+('ryan.transport@test.com', 'ryan_transport', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1989-04-16', 1, 2100, 'Эко-активист', '🚌', TRUE),
+('sophie.waste@test.com', 'sophie_waste', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1993-09-02', 2, 1800, 'Эко-энтузиаст', '🗑️', TRUE),
+('lucas.food@test.com', 'lucas_food', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1991-12-21', 1, 1900, 'Эко-энтузиаст', '🥗', TRUE),
+('olivia.home@test.com', 'olivia_home', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1988-06-13', 2, 2050, 'Эко-активист', '🏠', TRUE),
+('daniel.tech@test.com', 'daniel_tech', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1986-03-29', 1, 1700, 'Эко-энтузиаст', '💻', TRUE),
+('chloe.plant@test.com', 'chloe_plant', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1995-10-05', 2, 1550, 'Эко-стартер', '🌿', TRUE),
+('ethan.save@test.com', 'ethan_save', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1990-01-17', 1, 2250, 'Эко-активист', '💚', TRUE),
+('grace.pure@test.com', 'grace_pure', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1992-05-23', 2, 1650, 'Эко-энтузиаст', '✨', TRUE),
+('noah.green@test.com', 'noah_green', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1987-08-09', 1, 2350, 'Эко-активист', '🌱', TRUE),
+('zoe.life@test.com', 'zoe_life', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1994-12-15', 2, 1750, 'Эко-энтузиаст', '🌟', TRUE),
+('mason.air@test.com', 'mason_air', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1989-07-01', 1, 1950, 'Эко-энтузиаст', '🌬️', TRUE),
+('lily.hope@test.com', 'lily_hope', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1991-03-27', 2, 1850, 'Эко-энтузиаст', '🌷', TRUE),
+('owen.future@test.com', 'owen_future', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1988-11-12', 1, 2150, 'Эко-активист', '🔮', TRUE),
+('mia.change@test.com', 'mia_change', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1993-06-08', 2, 1650, 'Эко-энтузиаст', '🔄', TRUE),
+('liam.planet@test.com', 'liam_planet', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1986-02-24', 1, 2450, 'Эко-активист', '🪐', TRUE),
+('ava.bright@test.com', 'ava_bright', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1995-09-30', 2, 1550, 'Эко-стартер', '💡', TRUE),
+('jack.smart@test.com', 'jack_smart', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1990-04-06', 1, 1900, 'Эко-энтузиаст', '🧠', TRUE),
+('ella.kind@test.com', 'ella_kind', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1992-10-18', 2, 1750, 'Эко-энтузиаст', '💝', TRUE)
 ON CONFLICT (email) DO NOTHING;
 
--- ============ ТЕСТОВЫЕ КОМАНДЫ ============
-INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count) VALUES
-    ('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000, 23400, 23400, 8),
-    ('Эко-студенты МГКЦТ', 'Студенты за экологию', '🎓', 'Перейти на велосипеды и общественный транспорт', 25000, 18900, 18900, 6),
-    ('Велосипедисты Гомеля', 'Велосипед вместо автомобиля', '🚴', 'Проехать 5000 км на велосипедах', 20000, 15600, 15600, 4),
-    ('Солнечная энергия', 'Возобновляемые источники энергии', '☀️', 'Установить солнечные панели в 10 домах', 15000, 12300, 12300, 3),
-    ('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000, 11800, 11800, 4)
+-- ============ КОМАНДЫ ============
+DELETE FROM teams;
+ALTER SEQUENCE teams_id_seq RESTART WITH 1;
+
+INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count) VALUES 
+('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000, 23400, 23400, 8),
+('Эко-студенты МГКЦТ', 'Студенты за экологию', '🎓', 'Перейти на велосипеды и общественный транспорт', 25000, 18900, 18900, 6),
+('Велосипедисты Гомеля', 'Велосипед вместо автомобиля', '🚴', 'Проехать 5000 км на велосипедах', 20000, 15600, 15600, 4),
+('Солнечная энергия', 'Возобновляемые источники энергии', '☀️', 'Установить солнечные панели в 10 домах', 15000, 12300, 12300, 3),
+('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000, 11800, 11800, 4)
 ON CONFLICT (name) DO NOTHING;
 
 -- ============ ДОСТИЖЕНИЯ ============
@@ -386,62 +350,76 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('night_owl', 'Сова', 'Войти в систему после 23:00', 'general', '🦉', 'count', 1, 10, 'common')
 ON CONFLICT (code) DO NOTHING;
 
--- ============ ТЕСТОВЫЕ ИСТОРИИ УСПЕХА ============
+-- ============ ИСТОРИИ УСПЕХА ============
+DELETE FROM success_stories;
+ALTER SEQUENCE success_stories_id_seq RESTART WITH 1;
+
 INSERT INTO success_stories (user_id, title, content, category, carbon_saved, likes_count) VALUES
-    (1, 'Мой путь к экологичности', 'Начала с отказа от пластиковых пакетов, теперь экономлю 2 тонны CO₂ в год!', 'Общее', 2000, 45),
-    (2, 'Переход на велосипед', 'Продала машину и купила велосипед. За год сэкономила 3.5 тонны углерода.', 'Транспорт', 3500, 67),
-    (3, 'Солнечные панели дома', 'Установили солнечные панели. Теперь дом полностью на возобновляемой энергии!', 'Энергия', 5200, 89),
-    (4, 'Раздельный сбор мусора', 'Организовал раздельный сбор в своем районе. Участвуют уже 50 семей!', 'Отходы', 1800, 34),
-    (5, 'Органическое питание', 'Перешла на органические продукты и локальных производителей.', 'Питание', 1200, 28),
-    (6, 'Экономия воды дома', 'Установила счетчики воды и экономные смесители. Расход воды снизился на 40%!', 'Вода', 800, 22),
-    (7, 'Отказ от одноразовой посуды', 'В нашем офисе полностью отказались от одноразовой посуды. Теперь используем многоразовую!', 'Отходы', 600, 18),
-    (8, 'Компостирование дома', 'Начала компостировать органические отходы. Теперь у меня отличное удобрение для сада!', 'Отходы', 400, 15),
-    (9, 'Энергосберегающие лампы', 'Заменил все лампы в доме на LED. Счет за электричество уменьшился в 2 раза!', 'Энергия', 350, 12),
-    (10, 'Покупки без упаковки', 'Хожу в магазин с многоразовыми контейнерами. Мусора стало в 3 раза меньше!', 'Потребление', 300, 9),
-    (11, 'Ремонт вместо покупки', 'Научился ремонтировать технику вместо покупки новой. Экономлю деньги и природу!', 'Потребление', 250, 7),
-    (12, 'Экологичная косметика', 'Перешла на натуральную косметику без химии. Кожа стала лучше, а природа чище!', 'Потребление', 200, 5),
-    -- Английские истории для тестирования перевода
-    (1, 'My Green Journey', 'Started with small steps like using reusable bags. Now I save 2.5 tons of CO₂ annually!', 'Общее', 2500, 52),
-    (3, 'Solar Power Success', 'Installed solar panels on my roof. My house is now 100% renewable energy powered!', 'Энергия', 4800, 78),
-    (5, 'Eco-Friendly Lifestyle', 'Switched to sustainable products and reduced my environmental impact by 80% this year!', 'Потребление', 1500, 41)
+    (1, 'Администрирование экологии', 'Как администратор EcoSteps, я помогаю тысячам людей начать свой путь к экологичной жизни. Вместе мы уже сэкономили тонны CO₂!', 'Общее', 2500, 45),
+    (2, 'Мой первый год в экологии', 'Начала с малого - отказалась от пластиковых пакетов. Теперь веду полностью экологичный образ жизни и экономлю 1800 кг CO₂ в год!', 'Общее', 1800, 32),
+    (3, 'Тестирование зеленых решений', 'Тестирую различные экологичные решения и делюсь опытом с сообществом. Каждое решение приносит пользу планете!', 'Общее', 2100, 28),
+    (4, 'Зеленый дом alex_green', 'Превратил свой дом в экологичное пространство: солнечные панели, дождевая вода, органический сад. Экономлю 2300 кг CO₂ в год!', 'Энергия', 2300, 56),
+    (5, 'Эко-блогер sarah_eco', 'Веду блог об экологии и вдохновляю людей на изменения. Мои подписчики уже сэкономили более 10 тонн CO₂!', 'Общее', 1950, 78),
+    (6, 'mike_nature и дикая природа', 'Участвую в программах защиты дикой природы и восстановления лесов. Посадил 100 деревьев в этом году!', 'Природа', 2650, 43),
+    (7, 'emma_clean за чистоту', 'Организовала программу раздельного сбора мусора в нашем районе. Теперь 90% отходов идет на переработку!', 'Отходы', 1750, 39),
+    (8, 'Солнечная энергия david_solar', 'Установил солнечные панели и перешел на электромобиль. Мой дом производит больше энергии, чем потребляет!', 'Энергия', 2850, 67),
+    (9, 'lisa_bike на велосипеде', 'Продала машину и перешла на велосипед. Проезжаю 50 км в день и чувствую себя здоровее чем когда-либо!', 'Транспорт', 2200, 51),
+    (10, 'john_water экономит воду', 'Установил систему сбора дождевой воды и экономные смесители. Сократил потребление воды на 60%!', 'Вода', 1650, 34),
+    (11, 'anna_forest и городской лес', 'Создала инициативу по озеленению города. Мы посадили 500 деревьев и создали 10 парков!', 'Природа', 1850, 62),
+    (12, 'tom_ocean защищает океаны', 'Участвую в очистке береговой линии и защите морской жизни. Очистили 5 км пляжей от пластика!', 'Отходы', 2400, 48),
+    (13, 'kate_wind и ветровая энергия', 'Установила небольшую ветровую турбину дома. Генерирую чистую энергию даже в безветренные дни!', 'Энергия', 1950, 35),
+    (14, 'peter_recycle перерабатывает все', 'Довел переработку отходов до 95%. Создал систему компостирования и обмена вещами в районе.', 'Отходы', 1750, 41),
+    (15, 'maria_garden выращивает еду', 'Создала органический сад на крыше. Выращиваю 80% овощей для семьи без химикатов!', 'Питание', 1600, 37),
+    (16, 'james_energy и умный дом', 'Создал энергоэффективный умный дом с автоматическим управлением освещением и отоплением.', 'Энергия', 2750, 59),
+    (17, 'nina_earth начинает с малого', 'Только начала свой эко-путь, но уже вижу результаты! Отказалась от пластика и начала компостировать.', 'Общее', 1450, 23),
+    (18, 'ryan_transport и общественный транспорт', 'Отказался от личного авто в пользу общественного транспорта и велосипеда. Экономлю 2100 кг CO₂ в год!', 'Транспорт', 2100, 44),
+    (19, 'sophie_waste против отходов', 'Перешла на философию "ноль отходов". За год сократила мусор на 90% и вдохновила 50 семей!', 'Отходы', 1800, 53),
+    (20, 'lucas_food и растительное питание', 'Перешел на растительное питание и начал выращивать микрозелень дома. Здоровье улучшилось, планета благодарна!', 'Питание', 1900, 46),
+    (21, 'olivia_home и экодом', 'Построила дом из экологичных материалов с системой рекуперации тепла и дождевой воды.', 'Быт', 2050, 58),
+    (22, 'daniel_tech и зеленые технологии', 'Разрабатываю приложения для экологии и создаю IoT-решения для умного дома.', 'Общее', 1700, 31),
+    (23, 'chloe_plant сажает растения', 'Превратила балкон в мини-джунгли и создала сеть обмена растениями в городе.', 'Природа', 1550, 29),
+    (24, 'ethan_save экономит энергию', 'Провел энергоаудит дома и сократил потребление на 40% простыми изменениями.', 'Энергия', 2250, 42),
+    (25, 'grace_pure за чистоту', 'Создала линейку натуральной косметики и моющих средств из растительных компонентов.', 'Быт', 1650, 36)
 ON CONFLICT DO NOTHING;
 
 -- ============ УЧАСТНИКИ КОМАНД ============
--- Команда 1: Зеленые Минска (id=1) - 8 участников
-INSERT INTO team_members (team_id, user_id, role) VALUES
-    (1, 1, 'admin'),   -- АлексЭко
-    (1, 2, 'member'),  -- МарияЗеленая
-    (1, 3, 'member'),  -- ЭкоТестер
-    (1, 6, 'member'),  -- АннаК
-    (1, 7, 'member'),  -- ПавелВ
-    (1, 8, 'member'),  -- ЕленаП
-    (1, 9, 'member'),  -- СергейЛ
-    (1, 10, 'member'), -- НаташаР
+DELETE FROM team_members;
 
--- Команда 2: Эко-студенты МГКЦТ (id=2) - 6 участников
-    (2, 4, 'admin'),   -- ДмитрийС
-    (2, 5, 'member'),  -- ОльгаМ
-    (2, 11, 'member'), -- ИванТ
-    (2, 12, 'member'), -- ВикторияС
-    (2, 6, 'member'),  -- АннаК (может быть в нескольких командах)
-    (2, 8, 'member'),  -- ЕленаП
+INSERT INTO team_members (team_id, user_id, role) VALUES 
+-- Зеленые Минска (команда 1) - 8 участников
+(1, 1, 'admin'),   -- admin
+(1, 2, 'member'),  -- user
+(1, 3, 'member'),  -- test
+(1, 4, 'member'),  -- alex_green
+(1, 5, 'member'),  -- sarah_eco
+(1, 6, 'member'),  -- mike_nature
+(1, 7, 'member'),  -- emma_clean
+(1, 8, 'member'),  -- david_solar
 
--- Команда 3: Велосипедисты Гомеля (id=3) - 4 участника
-    (3, 1, 'member'),  -- АлексЭко
-    (3, 7, 'admin'),   -- ПавелВ
-    (3, 9, 'member'),  -- СергейЛ
-    (3, 11, 'member'), -- ИванТ
+-- Эко-студенты МГКЦТ (команда 2) - 6 участников
+(2, 9, 'admin'),   -- lisa_bike
+(2, 10, 'member'), -- john_water
+(2, 11, 'member'), -- anna_forest
+(2, 12, 'member'), -- tom_ocean
+(2, 13, 'member'), -- kate_wind
+(2, 14, 'member'), -- peter_recycle
 
--- Команда 4: Солнечная энергия (id=4) - 3 участника
-    (4, 2, 'admin'),   -- МарияЗеленая
-    (4, 3, 'member'),  -- ЭкоТестер
-    (4, 12, 'member'), -- ВикторияС
+-- Велосипедисты Гомеля (команда 3) - 4 участника
+(3, 15, 'admin'),  -- maria_garden
+(3, 16, 'member'), -- james_energy
+(3, 17, 'member'), -- nina_earth
+(3, 18, 'member'), -- ryan_transport
 
--- Команда 5: Ноль отходов (id=5) - 4 участника
-    (5, 5, 'admin'),   -- ОльгаМ
-    (5, 10, 'member'), -- НаташаР
-    (5, 4, 'member'),  -- ДмитрийС
-    (5, 8, 'member')   -- ЕленаП
+-- Солнечная энергия (команда 4) - 3 участника
+(4, 8, 'admin'),   -- david_solar
+(4, 16, 'member'), -- james_energy
+(4, 19, 'member'), -- sophie_waste
+
+-- Ноль отходов (команда 5) - 4 участника
+(5, 7, 'admin'),   -- emma_clean
+(5, 14, 'member'), -- peter_recycle
+(5, 19, 'member'), -- sophie_waste
+(5, 20, 'member')  -- lucas_food
 ON CONFLICT (team_id, user_id) DO NOTHING;
 
 -- ============ ПРЕДСТАВЛЕНИЯ ДЛЯ УДОБСТВА ============
@@ -525,6 +503,24 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Функция для автоматического создания настроек пользователя
+CREATE OR REPLACE FUNCTION create_user_settings()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_settings (user_id) VALUES (NEW.id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция обновления updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Триггеры для автоматического обновления количества участников
 DROP TRIGGER IF EXISTS trigger_update_team_member_count_insert ON team_members;
 CREATE TRIGGER trigger_update_team_member_count_insert
@@ -536,6 +532,18 @@ CREATE TRIGGER trigger_update_team_member_count_delete
     AFTER DELETE ON team_members
     FOR EACH ROW EXECUTE FUNCTION update_team_member_count();
 
+-- Триггер для создания настроек при регистрации нового пользователя
+DROP TRIGGER IF EXISTS trigger_create_user_settings ON users;
+CREATE TRIGGER trigger_create_user_settings
+    AFTER INSERT ON users
+    FOR EACH ROW EXECUTE FUNCTION create_user_settings();
+
+-- Триггер для обновления updated_at в user_settings
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
+CREATE TRIGGER update_user_settings_updated_at 
+    BEFORE UPDATE ON user_settings 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================
 -- ЗАПОЛНЕНИЕ ДАННЫМИ
 -- ============================================
@@ -546,102 +554,32 @@ INSERT INTO genders (code) VALUES
 ('female')
 ON CONFLICT (code) DO NOTHING;
 
--- ============ ПОЛЬЗОВАТЕЛИ ============
--- Пароли: admin123, user123, test123 (все содержат буквы и цифры)
+-- ============ ПОЛЬЗОВАТЕЛИ УЖЕ СОЗДАНЫ ============
+-- Все пользователи созданы выше с правильными английскими никнеймами
 
--- Администратор системы
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, is_admin, email_verified) VALUES 
-('admin@ecosteps.com', 'admin_eco', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1990-01-15', 2, 2500, 'Эко-эксперт', '👑', TRUE, TRUE)
-ON CONFLICT (email) DO NOTHING;
+-- ============ КОМАНДЫ ОБНОВЛЕНЫ ============
+-- Команды уже созданы выше с правильными данными
 
--- Обычные пользователи
-INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, email_verified) VALUES 
-('anna.green@gmail.com', 'anna_green', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1995-03-22', 2, 1850, 'Эко-активист', '🌸', TRUE),
-('mike.eco@outlook.com', 'mike_eco', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1988-07-10', 1, 2100, 'Эко-активист', '🌲', TRUE),
-('sarah.nature@yahoo.com', 'sarah_nature', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1992-11-05', 2, 1650, 'Эко-энтузиаст', '🦋', TRUE),
-('alex.planet@mail.ru', 'alex_planet', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1985-09-18', 1, 2300, 'Эко-активист', '🌍', TRUE),
-('elena.earth@gmail.com', 'elena_earth', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1993-04-12', 2, 1420, 'Эко-энтузиаст', '🌺', TRUE),
-('david.clean@hotmail.com', 'david_clean', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1987-12-03', 1, 1980, 'Эко-активист', '♻️', TRUE),
-('maria.solar@yandex.ru', 'maria_solar', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1991-06-28', 2, 1750, 'Эко-энтузиаст', '☀️', TRUE),
-('john.recycle@gmail.com', 'john_recycle', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1989-02-14', 1, 1600, 'Эко-энтузиаст', '🔄', TRUE),
-('lisa.wind@outlook.com', 'lisa_wind', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1994-08-07', 2, 1380, 'Эко-энтузиаст', '💨', TRUE),
-('tom.forest@yahoo.com', 'tom_forest', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1986-10-25', 1, 2050, 'Эко-активист', '🌳', TRUE),
-('kate.ocean@mail.ru', 'kate_ocean', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1990-05-16', 2, 1720, 'Эко-энтузиаст', '🌊', TRUE),
-('peter.bike@gmail.com', 'peter_bike', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1988-01-09', 1, 1890, 'Эко-энтузиаст', '🚴', TRUE),
-('nina.garden@hotmail.com', 'nina_garden', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1992-09-21', 2, 1540, 'Эко-энтузиаст', '🌻', TRUE),
-('mark.solar@yandex.ru', 'mark_solar', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1987-03-30', 1, 1670, 'Эко-энтузиаст', '🔆', TRUE),
-('olga.water@gmail.com', 'olga_water', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1993-11-11', 2, 1450, 'Эко-энтузиаст', '💧', TRUE),
-('ivan.green@outlook.com', 'ivan_green', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1985-07-04', 1, 1920, 'Эко-активист', '🍃', TRUE),
-('vera.eco@yahoo.com', 'vera_eco', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1991-12-19', 2, 1610, 'Эко-энтузиаст', '🌿', TRUE),
-('roman.clean@mail.ru', 'roman_clean', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1989-04-26', 1, 1780, 'Эко-энтузиаст', '🧹', TRUE),
-('anya.nature@gmail.com', 'anya_nature', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1994-02-08', 2, 1320, 'Эко-новичок', '🌱', TRUE),
-('sergey.planet@hotmail.com', 'sergey_planet', '$2b$10$rQJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8LfWJQYnM.HuKJ8YnM.Hf8L', '1986-08-13', 1, 2150, 'Эко-активист', '🌎', TRUE)
-ON CONFLICT (email) DO NOTHING;
+-- ============ УЧАСТНИКИ КОМАНД ОБНОВЛЕНЫ ============
+-- Участники команд уже созданы выше с правильными ID пользователей
 
--- ============ КОМАНДЫ ============
-INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count) VALUES 
-('Зеленые Герои', 'Команда активистов за чистую планету', '🌿', 'Сэкономить 5000 кг CO₂ за год', 5000, 3200, 3200, 8),
-('Эко Воины', 'Борцы за экологию в городе', '⚔️', 'Посадить 100 деревьев и сэкономить 3000 кг CO₂', 3000, 2100, 2100, 6),
-('Солнечная Энергия', 'Поклонники возобновляемых источников энергии', '☀️', 'Перевести 50 домов на солнечную энергию', 4000, 1800, 1800, 5),
-('Чистый Воздух', 'За качество воздуха в нашем городе', '💨', 'Сократить выбросы CO₂ на 2500 кг', 2500, 1650, 1650, 7),
-('Океанские Защитники', 'Защитники морей и океанов', '🌊', 'Очистить 10 км береговой линии', 3500, 2300, 2300, 9),
-('Лесные Хранители', 'Защитники лесов и дикой природы', '🌲', 'Восстановить 20 гектаров леса', 6000, 4100, 4100, 12),
-('Велосипедисты', 'Популяризация экологичного транспорта', '🚴', 'Проехать 10000 км на велосипедах', 2000, 1200, 1200, 4),
-('Садоводы', 'Городское озеленение и органическое земледелие', '🌻', 'Создать 30 городских садов', 2800, 1900, 1900, 8)
-ON CONFLICT (name) DO NOTHING;
-
--- ============ УЧАСТНИКИ КОМАНД ============
-INSERT INTO team_members (team_id, user_id, role) VALUES 
--- Зеленые Герои (команда 1)
-(1, 2, 'admin'), (1, 3, 'member'), (1, 4, 'member'), (1, 5, 'member'), 
-(1, 6, 'member'), (1, 7, 'member'), (1, 8, 'member'), (1, 9, 'member'),
--- Эко Воины (команда 2)
-(2, 10, 'admin'), (2, 11, 'member'), (2, 12, 'member'), (2, 13, 'member'), 
-(2, 14, 'member'), (2, 15, 'member'),
--- Солнечная Энергия (команда 3)
-(3, 16, 'admin'), (3, 17, 'member'), (3, 18, 'member'), (3, 19, 'member'), (3, 20, 'member'),
--- Чистый Воздух (команда 4)
-(4, 21, 'admin'), (4, 2, 'member'), (4, 4, 'member'), (4, 6, 'member'), 
-(4, 8, 'member'), (4, 10, 'member'), (4, 12, 'member'),
--- Океанские Защитники (команда 5)
-(5, 3, 'admin'), (5, 5, 'member'), (5, 7, 'member'), (5, 9, 'member'), 
-(5, 11, 'member'), (5, 13, 'member'), (5, 15, 'member'), (5, 17, 'member'), (5, 19, 'member'),
--- Лесные Хранители (команда 6)
-(6, 4, 'admin'), (6, 6, 'member'), (6, 8, 'member'), (6, 10, 'member'), 
-(6, 12, 'member'), (6, 14, 'member'), (6, 16, 'member'), (6, 18, 'member'), 
-(6, 20, 'member'), (6, 21, 'member'), (6, 2, 'member'), (6, 3, 'member'),
--- Велосипедисты (команда 7)
-(7, 5, 'admin'), (7, 9, 'member'), (7, 13, 'member'), (7, 17, 'member'),
--- Садоводы (команда 8)
-(8, 7, 'admin'), (8, 11, 'member'), (8, 15, 'member'), (8, 19, 'member'), 
-(8, 21, 'member'), (8, 2, 'member'), (8, 4, 'member'), (8, 6, 'member')
-ON CONFLICT (team_id, user_id) DO NOTHING;
-
--- ============ ИСТОРИИ УСПЕХА ============
-INSERT INTO success_stories (user_id, title, content, category, carbon_saved, likes_count) VALUES 
-(2, 'Переход на солнечные батареи', 'Установил солнечные панели на крыше дома. За год сэкономил 800 кг CO₂ и значительно снизил счета за электричество!', 'Энергия', 800, 15),
-(3, 'Отказ от автомобиля', 'Продал машину и перешел на велосипед и общественный транспорт. Экономлю 1200 кг CO₂ в год и чувствую себя здоровее!', 'Транспорт', 1200, 23),
-(4, 'Органический сад', 'Создала органический сад на заднем дворе. Выращиваю овощи без химикатов и компостирую отходы.', 'Питание', 300, 18),
-(5, 'Раздельный сбор мусора', 'Организовал раздельный сбор в нашем доме. Теперь 80% отходов идет на переработку!', 'Отходы', 450, 12),
-(6, 'Энергосберегающий дом', 'Утеплил дом и заменил все лампы на LED. Потребление энергии снизилось на 40%!', 'Энергия', 600, 20),
-(7, 'Вегетарианство', 'Перешла на растительное питание год назад. Это не только полезно для здоровья, но и для планеты!', 'Питание', 900, 25),
-(8, 'Дождевая вода', 'Установил систему сбора дождевой воды для полива сада. Экономлю 200 литров воды в день!', 'Вода', 200, 14),
-(9, 'Экологичная косметика', 'Перешла на натуральную косметику без химии. Делаю маски и кремы сама из природных ингредиентов.', 'Быт', 150, 16),
-(10, 'Велосипедные поездки', 'Езжу на работу на велосипеде каждый день. 20 км в день - это 2400 кг CO₂ экономии в год!', 'Транспорт', 2400, 30),
-(11, 'Минимализм в гардеробе', 'Отказалась от быстрой моды. Покупаю качественную одежду и ношу ее годами.', 'Потребление', 350, 19),
-(12, 'Компостирование', 'Начал компостировать органические отходы. Получаю отличное удобрение и сокращаю мусор!', 'Отходы', 280, 13),
-(13, 'Электромобиль', 'Купила электромобиль. Никаких выбросов и очень экономично в эксплуатации!', 'Транспорт', 1800, 28),
-(14, 'Экодом', 'Построил дом из экологичных материалов с системой рекуперации тепла.', 'Жилье', 1500, 22),
-(15, 'Пчеловодство', 'Завела пчел на даче. Помогаю опылению растений и получаю натуральный мед!', 'Природа', 100, 17),
-(16, 'Ремонт вместо покупки', 'Научился ремонтировать технику вместо покупки новой. Экономлю деньги и ресурсы планеты.', 'Потребление', 400, 15)
-ON CONFLICT DO NOTHING;
+-- ============ ИСТОРИИ УСПЕХА ОБНОВЛЕНЫ ============
+-- Истории успеха уже созданы выше с правильными ID пользователей
 
 -- ============ ЛАЙКИ ИСТОРИЙ ============
+DELETE FROM story_likes;
+
+-- Создаем лайки для историй (распределяем лайки между пользователями)
 INSERT INTO story_likes (story_id, user_id) VALUES 
--- Лайки для первой истории
-(1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17),
--- Лайки для второй истории  
-(2, 2), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8), (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 16), (2, 17), (2, 18), (2, 19), (2, 20), (2, 21), (2, 1), (2, 1), (2, 1), (2, 1)
+-- Лайки для истории администратора (story_id=1, 45 лайков)
+(1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20), (1, 21), (1, 22), (1, 23), (1, 24), (1, 25), (1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31), (1, 32), (1, 33), (1, 34), (1, 35), (1, 4), (1, 6), (1, 8), (1, 10), (1, 12), (1, 14), (1, 16), (1, 18), (1, 20), (1, 22), (1, 24),
+
+-- Лайки для популярной истории Сары (story_id=5, 78 лайков)
+(5, 1), (5, 3), (5, 4), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 12), (5, 13), (5, 14), (5, 15), (5, 16), (5, 17), (5, 18), (5, 19), (5, 20), (5, 21), (5, 22), (5, 23), (5, 24), (5, 25), (5, 26), (5, 27), (5, 28), (5, 29), (5, 30), (5, 31), (5, 32), (5, 33), (5, 34), (5, 35), (5, 2), (5, 4), (5, 6), (5, 8), (5, 10), (5, 12), (5, 14), (5, 16), (5, 18), (5, 20), (5, 22), (5, 24), (5, 26), (5, 28), (5, 30), (5, 32), (5, 34), (5, 1), (5, 3), (5, 7), (5, 9), (5, 11), (5, 13), (5, 15), (5, 17), (5, 19), (5, 21), (5, 23), (5, 25), (5, 27), (5, 29), (5, 31), (5, 33), (5, 35), (5, 2), (5, 4), (5, 6), (5, 8), (5, 10), (5, 12), (5, 14), (5, 16), (5, 18), (5, 20), (5, 22),
+
+-- Лайки для истории Дэвида (story_id=8, 67 лайков)
+(8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 9), (8, 10), (8, 11), (8, 12), (8, 13), (8, 14), (8, 15), (8, 16), (8, 17), (8, 18), (8, 19), (8, 20), (8, 21), (8, 22), (8, 23), (8, 24), (8, 25), (8, 26), (8, 27), (8, 28), (8, 29), (8, 30), (8, 31), (8, 32), (8, 33), (8, 34), (8, 35), (8, 1), (8, 3), (8, 5), (8, 7), (8, 9), (8, 11), (8, 13), (8, 15), (8, 17), (8, 19), (8, 21), (8, 23), (8, 25), (8, 27), (8, 29), (8, 31), (8, 33), (8, 35), (8, 2), (8, 4), (8, 6), (8, 10), (8, 12), (8, 14), (8, 16), (8, 18), (8, 20), (8, 22), (8, 24), (8, 26), (8, 28)
+
 ON CONFLICT (story_id, user_id) DO NOTHING;
 
 -- Обновляем счетчики участников команд
@@ -664,7 +602,7 @@ BEGIN
     RAISE NOTICE 'Создано пользователей: %', (SELECT COUNT(*) FROM users);
     RAISE NOTICE 'Создано команд: %', (SELECT COUNT(*) FROM teams);
     RAISE NOTICE 'Создано историй: %', (SELECT COUNT(*) FROM success_stories);
-    RAISE NOTICE 'Администратор: admin@ecosteps.com / admin_eco (пароль: admin123)';
+    RAISE NOTICE 'Администратор: admin@test.com / admin (пароль: admin123)';
 END $$;
 
 -- ============ ЕЖЕДНЕВНЫЕ ЭКО-СОВЕТЫ ============
@@ -777,4 +715,18 @@ DO $$
 BEGIN
     RAISE NOTICE 'Создано эко-советов: %', (SELECT COUNT(*) FROM eco_tips);
     RAISE NOTICE 'Советы на каждый день года готовы!';
+END $$;
+
+-- ============ СОЗДАНИЕ НАСТРОЕК ДЛЯ СУЩЕСТВУЮЩИХ ПОЛЬЗОВАТЕЛЕЙ ============
+DO $$
+BEGIN
+    -- Создаем настройки для всех существующих пользователей
+    INSERT INTO user_settings (user_id)
+    SELECT id FROM users 
+    WHERE id NOT IN (SELECT user_id FROM user_settings WHERE user_id IS NOT NULL)
+    ON CONFLICT (user_id) DO NOTHING;
+    
+    RAISE NOTICE '=== НАСТРОЙКИ ПОЛЬЗОВАТЕЛЕЙ ===';
+    RAISE NOTICE 'Создано настроек пользователей: %', (SELECT COUNT(*) FROM user_settings);
+    RAISE NOTICE 'Настройки будут автоматически создаваться для новых пользователей';
 END $$;

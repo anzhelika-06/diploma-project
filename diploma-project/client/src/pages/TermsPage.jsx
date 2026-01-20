@@ -1,23 +1,40 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { translations, getSavedLanguage } from '../utils/translations'
+import { applyTheme, getSavedTheme } from '../utils/themeManager'
 import '../styles/pages/TermsPage.css'
 
 const TermsPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const currentLanguage = getSavedLanguage()
   const t = translations[currentLanguage]
   const [returnPath, setReturnPath] = useState('/')
+  const [currentTheme, setCurrentTheme] = useState('light')
 
   useEffect(() => {
-    // Проверяем, залогинен ли пользователь
-    const user = localStorage.getItem('user')
-    if (user) {
-      setReturnPath('/feed')
+    // Применяем сохраненную тему при загрузке страницы
+    const savedTheme = getSavedTheme()
+    applyTheme(savedTheme)
+    setCurrentTheme(savedTheme)
+    
+    // Определяем путь возврата на основе referrer или state
+    const from = location.state?.from || document.referrer
+    
+    if (from && (from.includes('/register') || from.includes('register'))) {
+      setReturnPath('/register')
+    } else if (from && (from.includes('/auth') || from.includes('auth'))) {
+      setReturnPath('/auth')
     } else {
-      setReturnPath('/')
+      // Проверяем, залогинен ли пользователь
+      const user = localStorage.getItem('user')
+      if (user) {
+        setReturnPath('/feed')
+      } else {
+        setReturnPath('/')
+      }
     }
-  }, [])
+  }, [location])
 
   const getTermsContent = () => {
     switch (currentLanguage) {
@@ -120,7 +137,7 @@ const TermsPage = () => {
   }
 
   return (
-    <div className="terms-page">
+    <div className="terms-page" data-theme={currentTheme}>
       <div className="terms-container">
         <button onClick={() => navigate(returnPath)} className="back-link">← Назад</button>
         

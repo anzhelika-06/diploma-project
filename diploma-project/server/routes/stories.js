@@ -100,20 +100,26 @@ router.get('/', async (req, res) => {
       query += ' WHERE ' + whereConditions.join(' AND ');
     }
     
-    // Сортировка с использованием индексов
-    let orderBy = 'ORDER BY s.created_at DESC';
-    if (filter === 'best') {
-      orderBy = 'ORDER BY s.likes_count DESC, s.created_at DESC';
-    } else if (filter === 'recent') {
-      orderBy = 'ORDER BY s.created_at DESC';
-    } else {
-      orderBy = 'ORDER BY s.carbon_saved DESC, s.created_at DESC';
+    // Сортировка
+    let orderBy;
+    switch (filter) {
+      case 'best':
+        orderBy = 'ORDER BY s.likes_count DESC, s.created_at DESC';
+        break;
+      case 'recent':
+        orderBy = 'ORDER BY s.created_at DESC';
+        break;
+      default: // 'all'
+        orderBy = 'ORDER BY s.created_at DESC';
+        break;
     }
     
     query += ` ${orderBy} LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}`;
     queryParams.push(pagination.limit, pagination.offset);
     
     // Выполняем запрос с логированием
+    console.log('🔍 SQL Query:', query);
+    console.log('🔍 Query Params:', queryParams);
     const result = await executeQueryWithLogging(pool, query, queryParams);
     
     // Получаем общее количество для пагинации
@@ -123,18 +129,9 @@ router.get('/', async (req, res) => {
     `;
     
     let countParams = [];
-    if (whereConditions.length > 0) {
-      // Убираем параметры пользователя из условий для подсчета
-      const countConditions = whereConditions.filter(condition => 
-        !condition.includes('sl.user_id')
-      );
-      
-      if (countConditions.length > 0) {
-        countQuery += ' WHERE ' + countConditions.join(' AND ');
-        if (category !== 'all') {
-          countParams.push(category);
-        }
-      }
+    if (category !== 'all') {
+      countQuery += ' WHERE s.category = $1';
+      countParams.push(category);
     }
     
     const countResult = await executeQueryWithLogging(pool, countQuery, countParams);

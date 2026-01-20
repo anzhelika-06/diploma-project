@@ -18,7 +18,7 @@ const generalLimiter = rateLimit({
 // Строгий лимит для авторизации/регистрации
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
-  max: 5, // Максимум 5 попыток за окно
+  max: 50, // Максимум 50 попыток за окно (увеличено для разработки)
   message: {
     success: false,
     error: 'TOO_MANY_AUTH_ATTEMPTS',

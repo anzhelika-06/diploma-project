@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { io } from 'socket.io-client'
 import '../styles/pages/AboutPage.css'
 import homeIcon from '../assets/images/home.png'
+import homeIconWhite from '../assets/images/home-white.png'
 import { getEmojiByCode, getEmojiByCarbon } from '../utils/emojiMapper'
 import { 
   translateCategory, 
@@ -10,6 +11,7 @@ import {
   translateStoryContent,
   formatCarbonFootprint
 } from '../utils/translations'
+import { applyTheme, getSavedTheme } from '../utils/themeManager'
 
 const AboutPage = ({ translations, currentLanguage }) => {
   const [activeTab, setActiveTab] = useState('about') // about, stories, ratings
@@ -18,6 +20,7 @@ const AboutPage = ({ translations, currentLanguage }) => {
   const [ratingsTab, setRatingsTab] = useState('users') // users, teams
   const [stories, setStories] = useState([])
   const [translatedStories, setTranslatedStories] = useState([]) // Переведенные истории
+  const [currentTheme, setCurrentTheme] = useState('light')
   const [categories, setCategories] = useState([])
   const [userRatings, setUserRatings] = useState([])
   const [teamRatings, setTeamRatings] = useState([])
@@ -32,6 +35,11 @@ const AboutPage = ({ translations, currentLanguage }) => {
     ecoTeams: 0,
     successStories: 0
   })
+
+  // Получить правильную иконку домика в зависимости от темы
+  const getHomeIcon = () => {
+    return currentTheme === 'dark' ? homeIconWhite : homeIcon
+  }
 
   // Подключение к WebSocket
   useEffect(() => {
@@ -107,8 +115,24 @@ const AboutPage = ({ translations, currentLanguage }) => {
     try {
       setLoading(true)
       // Для демонстрации используем ID первого пользователя
-      const response = await fetch(`http://localhost:3001/api/stories?filter=${filter}&userId=1&category=${category}&page=${page}&limit=10`)
+      const url = `http://localhost:3001/api/stories?filter=${filter}&userId=1&category=${category}&page=${page}&limit=10`
+      console.log('🔄 Загружаем истории:', { filter, category, page, url })
+      
+      const response = await fetch(url, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const data = await response.json()
+      
+      console.log('📊 Получены истории:', {
+        success: data.success,
+        count: data.stories?.length,
+        firstStory: data.stories?.[0]?.title,
+        firstStoryLikes: data.stories?.[0]?.likes_count,
+        firstStoryAvatar: data.stories?.[0]?.user_avatar
+      })
       
       if (data.success) {
         if (page === 1) {
@@ -151,8 +175,22 @@ const AboutPage = ({ translations, currentLanguage }) => {
   // Загрузка рейтингов пользователей
   const loadUserRatings = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/rankings/users')
+      console.log('🔄 Загружаем рейтинг пользователей...')
+      const response = await fetch(`http://localhost:3001/api/rankings/users`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const data = await response.json()
+      
+      console.log('📊 Получен рейтинг пользователей:', {
+        success: data.success,
+        count: data.users?.length,
+        firstUser: data.users?.[0]?.nickname,
+        firstUserCarbon: data.users?.[0]?.carbon_saved,
+        firstUserAvatar: data.users?.[0]?.avatar_emoji
+      })
       
       if (data.success) {
         setUserRatings(data.users)
@@ -453,16 +491,21 @@ const AboutPage = ({ translations, currentLanguage }) => {
 
   // Загрузка статистики при монтировании компонента
   useEffect(() => {
+    // Применяем сохраненную тему при загрузке страницы
+    const savedTheme = getSavedTheme()
+    applyTheme(savedTheme)
+    setCurrentTheme(savedTheme)
+    
     loadStats()
   }, [])
 
   return (
-    <div className="about-page">
+    <div className="about-page" data-theme={currentTheme}>
       <div className="about-white-block">
         {/* Ссылка "Главная" */}
         <div className="home-link">
           <Link to="/" className="home-link-content">
-            <img src={homeIcon} alt={translations.homeAlt} className="home-icon" />
+            <img src={getHomeIcon()} alt={translations.homeAlt} className="home-icon" />
             <span className="home-text">{translations.homeText}</span>
           </Link>
         </div>
@@ -623,7 +666,7 @@ const AboutPage = ({ translations, currentLanguage }) => {
                 </div>
               ) : (
                 <div className="stories-grid">
-                  {translatedStories.map(story => (
+                  {translatedStories.map((story) => (
                     <div key={story.id} className="story-card">
                       <div className="story-header">
                         <div className="story-user">{getEmojiByCode(story.user_avatar)} {story.user_nickname}</div>
@@ -678,7 +721,9 @@ const AboutPage = ({ translations, currentLanguage }) => {
                   {userRatings.map((user, index) => (
                     <div key={user.id} className="rating-item">
                       <div className="rating-position">#{index + 1}</div>
-                      <div className="rating-avatar">{getEmojiByCarbon(user.carbon_saved)}</div>
+                      <div className="rating-avatar">
+                        {getEmojiByCarbon(user.carbon_saved)}
+                      </div>
                       <div className="rating-info">
                         <div className="rating-name">{user.nickname}</div>
                         <div className="rating-level">{translateEcoLevel(user.eco_level, currentLanguage)}</div>

@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import '../styles/components/Sidebar.css'
 import petIcon from '../assets/icons/pet.svg'
 import teamIcon from '../assets/icons/team.svg'
@@ -18,6 +19,35 @@ import logoIcon from '../assets/images/logo-icon.png'
 
 const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const location = useLocation()
+  const [currentTheme, setCurrentTheme] = useState('light')
+
+  useEffect(() => {
+    // Получаем текущую тему из localStorage
+    const savedSettings = localStorage.getItem('appSettings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      setCurrentTheme(settings.theme || 'light')
+    }
+
+    // Слушаем изменения темы
+    const handleStorageChange = () => {
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings)
+        setCurrentTheme(settings.theme || 'light')
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Проверяем изменения каждую секунду
+    const interval = setInterval(handleStorageChange, 1000)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [])
 
   const menuItems = [
     { id: 'pet', label: 'Питомец', path: '/pet', icon: petIcon },
@@ -37,6 +67,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   return (
     <aside 
       className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
+      data-theme={currentTheme}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
