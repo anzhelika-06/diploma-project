@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import EcoTipCard from '../components/EcoTipCard'
 import { applyTheme, getSavedTheme, THEMES, getThemeDisplayName } from '../utils/themeManager'
+import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/pages/SettingsPage.css'
 
 const SettingsPage = () => {
+  const { currentLanguage, changeLanguage, t } = useLanguage()
   const [activeTab, setActiveTab] = useState('appearance')
   const [user, setUser] = useState(null)
   const [settings, setSettings] = useState({
     theme: getSavedTheme(),
-    language: 'RU',
+    language: currentLanguage,
     notifications: true,
     ecoTips: true,
     emailNotifications: true,
@@ -21,19 +22,17 @@ const SettingsPage = () => {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showFaqModal, setShowFaqModal] = useState(false)
-  const [currentTip, setCurrentTip] = useState(null)
-  const [loadingTip, setLoadingTip] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [showClearCacheModal, setShowClearCacheModal] = useState(false)
   const [feedbackForm, setFeedbackForm] = useState({
-    type: 'suggestion',
+    type: 'Природа',
     subject: '',
-    message: ''
+    message: '',
+    co2Saved: ''
   })
 
   useEffect(() => {
     loadUserData()
     loadUserSettings()
-    loadDailyTip()
   }, [])
 
   const loadUserData = () => {
@@ -45,7 +44,6 @@ const SettingsPage = () => {
 
   const loadUserSettings = async () => {
     try {
-      setIsLoading(true)
       const userData = localStorage.getItem('user')
       if (!userData) {
         // Если пользователь не авторизован, используем настройки из localStorage
@@ -62,7 +60,6 @@ const SettingsPage = () => {
             privacyLevel: localSettings.privacyLevel || 1
           })
         }
-        setIsLoading(false)
         return
       }
 
@@ -99,8 +96,6 @@ const SettingsPage = () => {
         const localSettings = JSON.parse(savedSettings)
         setSettings(prev => ({ ...prev, ...localSettings }))
       }
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -144,10 +139,12 @@ const SettingsPage = () => {
     applyTheme(theme)
   }
 
-  const handleLanguageChange = (language) => {
+  const handleLanguageChange = async (language) => {
     const newSettings = { ...settings, language }
+    setSettings(newSettings)
     saveSettings(newSettings)
-    // Здесь можно добавить логику смены языка интерфейса
+    // Используем новую систему смены языка
+    await changeLanguage(language)
   }
 
   const handleNotificationToggle = (type) => {
@@ -185,8 +182,21 @@ const SettingsPage = () => {
   }
 
   const handleClearCache = () => {
-    localStorage.removeItem('appCache')
+    // Очищаем localStorage (кроме важных данных пользователя)
+    const userData = localStorage.getItem('user')
+    const token = localStorage.getItem('token')
+    const appSettings = localStorage.getItem('appSettings')
+    
+    localStorage.clear()
+    
+    // Восстанавливаем важные данные
+    if (userData) localStorage.setItem('user', userData)
+    if (token) localStorage.setItem('token', token)
+    if (appSettings) localStorage.setItem('appSettings', appSettings)
+    
+    // Очищаем sessionStorage
     sessionStorage.clear()
+    
     // Очищаем кэш браузера если возможно
     if ('caches' in window) {
       caches.keys().then(names => {
@@ -195,6 +205,8 @@ const SettingsPage = () => {
         })
       })
     }
+    
+    setShowClearCacheModal(false)
     alert('Кэш успешно очищен!')
   }
 
@@ -204,7 +216,7 @@ const SettingsPage = () => {
       // Здесь будет API запрос отправки обратной связи
       console.log('Отправка обратной связи:', feedbackForm)
       alert('Спасибо за обратную связь! Мы рассмотрим ваше сообщение.')
-      setFeedbackForm({ type: 'suggestion', subject: '', message: '' })
+      setFeedbackForm({ type: 'Природа', subject: '', message: '', co2Saved: '' })
       setShowFeedbackModal(false)
     } catch (error) {
       console.error('Ошибка отправки обратной связи:', error)
@@ -212,76 +224,18 @@ const SettingsPage = () => {
     }
   }
 
-  const loadDailyTip = async () => {
-    try {
-      console.log('Загружаем совет дня...')
-      const response = await fetch('/api/eco-tips/daily')
-      console.log('Ответ сервера:', response.status)
-      
-      if (response.ok) {
-        const tip = await response.json()
-        console.log('Получен совет:', tip)
-        setCurrentTip(tip)
-      } else {
-        console.error('Ошибка ответа сервера:', response.status)
-        // Устанавливаем тестовый совет если API не работает
-        setCurrentTip({
-          id: 1,
-          title: 'Замените лампочки на LED',
-          content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.',
-          category: 'Энергия',
-          difficulty: 'easy',
-          co2_impact: 40000,
-          day_of_year: 1
-        })
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки совета дня:', error)
-      // Устанавливаем тестовый совет при ошибке
-      setCurrentTip({
-        id: 1,
-        title: 'Замените лампочки на LED',
-        content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.',
-        category: 'Энергия',
-        difficulty: 'easy',
-        co2_impact: 40000,
-        day_of_year: 1
-      })
-    }
-  }
-
-  const loadRandomTip = async () => {
-    try {
-      setLoadingTip(true)
-      console.log('Загружаем случайный совет...')
-      const response = await fetch('/api/eco-tips/random')
-      
-      if (response.ok) {
-        const tip = await response.json()
-        console.log('Получен случайный совет:', tip)
-        setCurrentTip(tip)
-      } else {
-        console.error('Ошибка загрузки случайного совета:', response.status)
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки случайного совета:', error)
-    } finally {
-      setLoadingTip(false)
-    }
-  }
-
   const tabs = [
-    { id: 'appearance', label: 'Внешний вид', icon: 'palette' },
-    { id: 'notifications', label: 'Уведомления', icon: 'notifications' },
-    { id: 'privacy', label: 'Конфиденциальность', icon: 'security' },
-    { id: 'account', label: 'Аккаунт', icon: 'account_circle' },
-    { id: 'support', label: 'Поддержка', icon: 'help' }
+    { id: 'appearance', label: t('settingsAppearance') || 'Внешний вид', icon: 'palette' },
+    { id: 'notifications', label: t('settingsNotifications') || 'Уведомления', icon: 'notifications' },
+    { id: 'privacy', label: t('settingsPrivacy') || 'Конфиденциальность', icon: 'security' },
+    { id: 'account', label: t('settingsAccount') || 'Аккаунт', icon: 'account_circle' },
+    { id: 'support', label: t('settingsSupport') || 'Поддержка', icon: 'help' }
   ]
 
   const languages = [
-    { code: 'RU', name: 'Русский' },
-    { code: 'BY', name: 'Беларуская' },
-    { code: 'EN', name: 'English' }
+    { code: 'RU', name: t('languageRussian') || 'Русский' },
+    { code: 'BY', name: t('languageBelarusian') || 'Беларуская' },
+    { code: 'EN', name: t('languageEnglish') || 'English' }
   ]
 
   const faqItems = [
@@ -310,7 +264,7 @@ const SettingsPage = () => {
   return (
     <div className="settings-page">
       <div className="settings-container">
-        <h1 className="settings-title">Настройки</h1>
+        <h1 className="settings-title">{t('settingsTitle')}</h1>
         
         {/* Вкладки сверху */}
         <div className="settings-tabs">
@@ -332,34 +286,34 @@ const SettingsPage = () => {
           {/* Внешний вид */}
           {activeTab === 'appearance' && (
             <div className="settings-section">
-              <h2>Внешний вид и интерфейс</h2>
+              <h2>{t('appearanceTitle')}</h2>
               
               <div className="setting-group">
-                <h3>Тема оформления</h3>
-                <p className="setting-description">Выберите светлую или темную тему интерфейса</p>
+                <h3>{t('themeSelectionTitle')}</h3>
+                <p className="setting-description">{t('themeSelectionDescription')}</p>
                 <div className="theme-options">
                   <button
-                    className={`theme-btn ${settings.theme === THEMES.LIGHT ? 'active' : ''}`}
+                    className={`theme-card ${settings.theme === THEMES.LIGHT ? 'active' : ''}`}
                     onClick={() => handleThemeChange(THEMES.LIGHT)}
                   >
-                    <span className="material-icons theme-icon">light_mode</span>
-                    <span className="theme-name">{getThemeDisplayName(THEMES.LIGHT, 'RU')}</span>
-                    <span className="theme-description">Классический светлый интерфейс</span>
+                    <span className="material-icons theme-icon light-theme-icon">light_mode</span>
+                    <span className="theme-name">{getThemeDisplayName(THEMES.LIGHT, currentLanguage)}</span>
+                    <span className="theme-description">{t('lightThemeDescription')}</span>
                   </button>
                   <button
-                    className={`theme-btn ${settings.theme === THEMES.DARK ? 'active' : ''}`}
+                    className={`theme-card ${settings.theme === THEMES.DARK ? 'active' : ''}`}
                     onClick={() => handleThemeChange(THEMES.DARK)}
                   >
-                    <span className="material-icons theme-icon">dark_mode</span>
-                    <span className="theme-name">{getThemeDisplayName(THEMES.DARK, 'RU')}</span>
-                    <span className="theme-description">Темный режим для комфорта глаз</span>
+                    <span className="material-icons theme-icon dark-theme-icon">dark_mode</span>
+                    <span className="theme-name">{getThemeDisplayName(THEMES.DARK, currentLanguage)}</span>
+                    <span className="theme-description">{t('darkThemeDescription')}</span>
                   </button>
                 </div>
               </div>
 
               <div className="setting-group">
-                <h3>Язык интерфейса</h3>
-                <p className="setting-description">Выберите предпочитаемый язык приложения</p>
+                <h3>{t('languageSelectionTitle')}</h3>
+                <p className="setting-description">{t('languageSelectionDescription')}</p>
                 <div className="language-options">
                   {languages.map(lang => (
                     <button
@@ -378,13 +332,13 @@ const SettingsPage = () => {
           {/* Уведомления */}
           {activeTab === 'notifications' && (
             <div className="settings-section">
-              <h2>Уведомления и рассылки</h2>
+              <h2>{t('notificationsTitle')}</h2>
               
               <div className="setting-group">
                 <div className="setting-item">
                   <div className="setting-info">
-                    <h3>Общие уведомления</h3>
-                    <p>Получать уведомления о новых функциях, обновлениях и важных событиях</p>
+                    <h3>{t('generalNotifications')}</h3>
+                    <p>{t('generalNotificationsDesc')}</p>
                   </div>
                   <label className="toggle-switch">
                     <input
@@ -398,8 +352,8 @@ const SettingsPage = () => {
 
                 <div className="setting-item">
                   <div className="setting-info">
-                    <h3>Ежедневные эко-советы</h3>
-                    <p>Получать полезные советы по экологии каждый день. Более 365 уникальных советов!</p>
+                    <h3>{t('dailyEcoTips')}</h3>
+                    <p>{t('dailyEcoTipsDesc')}</p>
                   </div>
                   <label className="toggle-switch">
                     <input
@@ -413,8 +367,8 @@ const SettingsPage = () => {
 
                 <div className="setting-item">
                   <div className="setting-info">
-                    <h3>Email уведомления</h3>
-                    <p>Получать важные уведомления на электронную почту</p>
+                    <h3>{t('emailNotifications')}</h3>
+                    <p>{t('emailNotificationsDesc')}</p>
                   </div>
                   <label className="toggle-switch">
                     <input
@@ -428,8 +382,8 @@ const SettingsPage = () => {
 
                 <div className="setting-item">
                   <div className="setting-info">
-                    <h3>Push уведомления</h3>
-                    <p>Получать мгновенные уведомления в браузере</p>
+                    <h3>{t('pushNotifications')}</h3>
+                    <p>{t('pushNotificationsDesc')}</p>
                   </div>
                   <label className="toggle-switch">
                     <input
@@ -441,44 +395,13 @@ const SettingsPage = () => {
                   </label>
                 </div>
               </div>
-
-              {/* Превью эко-совета */}
-              {settings.ecoTips && (
-                <div className="notification-preview">
-                  <div className="preview-header">
-                    <h3>Пример эко-совета дня:</h3>
-                    <button 
-                      className="refresh-tip-btn"
-                      onClick={loadRandomTip}
-                      disabled={loadingTip}
-                    >
-                      <span className="material-icons">{loadingTip ? 'hourglass_empty' : 'refresh'}</span>
-                      Другой совет
-                    </button>
-                  </div>
-                  
-                  {currentTip ? (
-                    <EcoTipCard tip={currentTip} showActions={true} isPreview={true} />
-                  ) : (
-                    <div className="tip-placeholder">
-                      <div className="placeholder-icon">
-                        <span className="material-icons">eco</span>
-                      </div>
-                      <p>Загружаем совет дня...</p>
-                      <button onClick={loadDailyTip} className="retry-btn">
-                        Попробовать снова
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           )}
 
           {/* Конфиденциальность */}
           {activeTab === 'privacy' && (
             <div className="settings-section">
-              <h2>Конфиденциальность и безопасность</h2>
+              <h2>{t('privacyTitle')}</h2>
               
               <div className="setting-group">
                 <div className="privacy-item">
@@ -486,14 +409,14 @@ const SettingsPage = () => {
                     <span className="material-icons">vpn_key</span>
                   </div>
                   <div className="privacy-content">
-                    <h3>Сброс пароля</h3>
-                    <p>Изменить пароль для входа в систему. Ссылка будет отправлена на ваш email.</p>
+                    <h3>{t('resetPassword')}</h3>
+                    <p>{t('resetPasswordDesc')}</p>
                     <button 
                       className="action-btn secondary"
                       onClick={() => setShowResetPasswordModal(true)}
                     >
                       <span className="material-icons">vpn_key</span>
-                      Сбросить пароль
+                      {t('resetPassword')}
                     </button>
                   </div>
                 </div>
@@ -503,11 +426,11 @@ const SettingsPage = () => {
                     <span className="material-icons">description</span>
                   </div>
                   <div className="privacy-content">
-                    <h3>Политика конфиденциальности</h3>
-                    <p>Ознакомьтесь с тем, как мы собираем, используем и защищаем ваши данные</p>
-                    <Link to="/privacy" className="action-btn secondary">
+                    <h3>{t('privacyPolicyTitle')}</h3>
+                    <p>{t('privacyPolicyDesc')}</p>
+                    <Link to="/privacy" state={{ from: '/settings' }} className="action-btn secondary">
                       <span className="material-icons">description</span>
-                      Читать политику
+                      {t('readPolicy')}
                     </Link>
                   </div>
                 </div>
@@ -517,11 +440,11 @@ const SettingsPage = () => {
                     <span className="material-icons">assignment</span>
                   </div>
                   <div className="privacy-content">
-                    <h3>Условия использования</h3>
-                    <p>Правила и условия использования приложения EcoSteps</p>
-                    <Link to="/terms" className="action-btn secondary">
+                    <h3>{t('termsOfUseTitle')}</h3>
+                    <p>{t('termsOfUseDesc')}</p>
+                    <Link to="/terms" state={{ from: '/settings' }} className="action-btn secondary">
                       <span className="material-icons">assignment</span>
-                      Читать условия
+                      {t('readTerms')}
                     </Link>
                   </div>
                 </div>
@@ -531,16 +454,16 @@ const SettingsPage = () => {
                     <span className="material-icons">shield</span>
                   </div>
                   <div className="privacy-content">
-                    <h3>Безопасность данных</h3>
-                    <p>Ваши данные защищены современными методами шифрования и не передаются третьим лицам</p>
+                    <h3>{t('dataSecurity')}</h3>
+                    <p>{t('dataSecurityDesc')}</p>
                     <div className="security-badges">
                       <span className="security-badge">
                         <span className="material-icons">lock</span>
-                        SSL шифрование
+                        {t('sslEncryption')}
                       </span>
                       <span className="security-badge">
                         <span className="material-icons">shield</span>
-                        GDPR совместимость
+                        {t('gdprCompliance')}
                       </span>
                     </div>
                   </div>
@@ -552,7 +475,7 @@ const SettingsPage = () => {
           {/* Аккаунт */}
           {activeTab === 'account' && (
             <div className="settings-section">
-              <h2>Управление аккаунтом</h2>
+              <h2>{t('accountManagement')}</h2>
               
               <div className="setting-group">
                 <div className="account-item">
@@ -560,11 +483,14 @@ const SettingsPage = () => {
                     <span className="material-icons">cleaning_services</span>
                   </div>
                   <div className="account-content">
-                    <h3>Очистка кэша</h3>
-                    <p>Очистить временные файлы, данные приложения и кэш браузера для улучшения производительности</p>
-                    <button className="action-btn secondary" onClick={handleClearCache}>
+                    <h3>{t('clearCache')}</h3>
+                    <p>{t('clearCacheDesc')}</p>
+                    <button 
+                      className="action-btn secondary" 
+                      onClick={() => setShowClearCacheModal(true)}
+                    >
                       <span className="material-icons">cleaning_services</span>
-                      Очистить кэш
+                      {t('clearCache')}
                     </button>
                   </div>
                 </div>
@@ -574,11 +500,11 @@ const SettingsPage = () => {
                     <span className="material-icons">download</span>
                   </div>
                   <div className="account-content">
-                    <h3>Экспорт данных</h3>
-                    <p>Скачать все ваши данные в формате JSON</p>
+                    <h3>{t('exportData')}</h3>
+                    <p>{t('exportDataDesc')}</p>
                     <button className="action-btn secondary">
                       <span className="material-icons">download</span>
-                      Экспортировать данные
+                      {t('exportData')}
                     </button>
                   </div>
                 </div>
@@ -588,14 +514,14 @@ const SettingsPage = () => {
                     <span className="material-icons">logout</span>
                   </div>
                   <div className="account-content">
-                    <h3>Выход из системы</h3>
-                    <p>Завершить текущую сессию и выйти из аккаунта</p>
+                    <h3>{t('logout')}</h3>
+                    <p>{t('logoutDesc')}</p>
                     <button 
                       className="action-btn secondary"
                       onClick={() => setShowLogoutModal(true)}
                     >
                       <span className="material-icons">logout</span>
-                      Выйти из системы
+                      {t('logout')}
                     </button>
                   </div>
                 </div>
@@ -605,14 +531,14 @@ const SettingsPage = () => {
                     <span className="material-icons">delete_forever</span>
                   </div>
                   <div className="account-content">
-                    <h3>Удаление аккаунта</h3>
-                    <p>Безвозвратно удалить аккаунт и все связанные данные. Это действие нельзя отменить!</p>
+                    <h3>{t('deleteAccount')}</h3>
+                    <p>{t('deleteAccountDesc')}</p>
                     <button 
                       className="action-btn danger"
                       onClick={() => setShowDeleteModal(true)}
                     >
                       <span className="material-icons">delete_forever</span>
-                      Удалить аккаунт
+                      {t('deleteAccount')}
                     </button>
                   </div>
                 </div>
@@ -623,7 +549,7 @@ const SettingsPage = () => {
           {/* Поддержка */}
           {activeTab === 'support' && (
             <div className="settings-section">
-              <h2>Поддержка и помощь</h2>
+              <h2>{t('supportTitle')}</h2>
               
               <div className="setting-group">
                 <div className="support-item">
@@ -631,14 +557,14 @@ const SettingsPage = () => {
                     <span className="material-icons">help</span>
                   </div>
                   <div className="support-content">
-                    <h3>FAQ / Часто задаваемые вопросы</h3>
-                    <p>Ответы на популярные вопросы пользователей о работе с приложением</p>
+                    <h3>{t('faqTitle')}</h3>
+                    <p>{t('faqDesc')}</p>
                     <button 
                       className="action-btn secondary"
                       onClick={() => setShowFaqModal(true)}
                     >
                       <span className="material-icons">help</span>
-                      Открыть FAQ
+                      {t('openFAQ')}
                     </button>
                   </div>
                 </div>
@@ -648,14 +574,14 @@ const SettingsPage = () => {
                     <span className="material-icons">contact_support</span>
                   </div>
                   <div className="support-content">
-                    <h3>Связаться с поддержкой</h3>
-                    <p>Отправить сообщение команде поддержки или сообщить о проблеме</p>
+                    <h3>{t('contactSupport')}</h3>
+                    <p>{t('contactSupportDesc')}</p>
                     <button 
                       className="action-btn secondary"
                       onClick={() => setShowFeedbackModal(true)}
                     >
                       <span className="material-icons">contact_support</span>
-                      Написать в поддержку
+                      {t('writeToSupport')}
                     </button>
                   </div>
                 </div>
@@ -665,45 +591,31 @@ const SettingsPage = () => {
                     <span className="material-icons">info</span>
                   </div>
                   <div className="support-content">
-                    <h3>О приложении</h3>
-                    <p>Информация о версии, разработчиках и миссии EcoSteps</p>
+                    <h3>{t('aboutApp')}</h3>
+                    <p>{t('aboutAppDesc')}</p>
                     <Link to="/about" className="action-btn secondary">
                       <span className="material-icons">info</span>
-                      О приложении
+                      {t('aboutApp')}
                     </Link>
                   </div>
                 </div>
 
                 <div className="support-item">
                   <div className="support-icon">
-                    <span className="material-icons">feedback</span>
+                    <span className="material-icons">auto_stories</span>
                   </div>
                   <div className="support-content">
-                    <h3>Обратная связь</h3>
-                    <p>Поделитесь своим мнением о приложении, предложите улучшения</p>
+                    <h3>{t('shareStory')}</h3>
+                    <p>{t('shareStoryDesc')}</p>
                     <button 
                       className="action-btn secondary"
                       onClick={() => {
-                        setFeedbackForm({...feedbackForm, type: 'feedback'})
+                        setFeedbackForm({...feedbackForm, type: 'Природа'})
                         setShowFeedbackModal(true)
                       }}
                     >
-                      <span className="material-icons">feedback</span>
-                      Оставить отзыв
-                    </button>
-                  </div>
-                </div>
-
-                <div className="support-item">
-                  <div className="support-icon">
-                    <span className="material-icons">star_rate</span>
-                  </div>
-                  <div className="support-content">
-                    <h3>Оценить приложение</h3>
-                    <p>Помогите нам стать лучше - оставьте оценку в магазине приложений</p>
-                    <button className="action-btn secondary">
-                      <span className="material-icons">star_rate</span>
-                      Оценить приложение
+                      <span className="material-icons">auto_stories</span>
+                      {t('tellStory')}
                     </button>
                   </div>
                 </div>
@@ -719,7 +631,7 @@ const SettingsPage = () => {
           <div className="modal-overlay" onClick={() => setShowLogoutModal(false)} />
           <div className="modal">
             <div className="modal-header">
-              <h3>Выход из системы</h3>
+              <h3>{t('logoutModalTitle')}</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowLogoutModal(false)}
@@ -728,21 +640,21 @@ const SettingsPage = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p>Вы уверены, что хотите выйти из системы?</p>
-              <p>Все несохраненные данные будут потеряны.</p>
+              <p>{t('logoutConfirm')}</p>
+              <p>{t('logoutWarning')}</p>
             </div>
             <div className="modal-footer">
               <button 
                 className="btn-secondary"
                 onClick={() => setShowLogoutModal(false)}
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button 
                 className="btn-danger"
                 onClick={handleLogout}
               >
-                Выйти
+                {t('logout')}
               </button>
             </div>
           </div>
@@ -755,7 +667,7 @@ const SettingsPage = () => {
           <div className="modal-overlay" onClick={() => setShowDeleteModal(false)} />
           <div className="modal">
             <div className="modal-header">
-              <h3>Удаление аккаунта</h3>
+              <h3>{t('deleteAccountModalTitle')}</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowDeleteModal(false)}
@@ -764,29 +676,29 @@ const SettingsPage = () => {
               </button>
             </div>
             <div className="modal-body">
-              <p><strong>Внимание!</strong> Это действие нельзя отменить.</p>
-              <p>Будут безвозвратно удалены:</p>
+              <p><strong>{t('deleteWarning')}</strong></p>
+              <p>{t('deleteWillRemove')}</p>
               <ul>
-                <li>Ваш профиль и все личные данные</li>
-                <li>История активности и статистика</li>
-                <li>Участие в командах</li>
-                <li>Все ваши истории успеха</li>
-                <li>Достижения и прогресс</li>
+                <li>{t('deleteProfile')}</li>
+                <li>{t('deleteHistory')}</li>
+                <li>{t('deleteTeams')}</li>
+                <li>{t('deleteStories')}</li>
+                <li>{t('deleteAchievements')}</li>
               </ul>
-              <p><strong>Вы действительно хотите удалить аккаунт навсегда?</strong></p>
+              <p><strong>{t('deleteConfirm')}</strong></p>
             </div>
             <div className="modal-footer">
               <button 
                 className="btn-secondary"
                 onClick={() => setShowDeleteModal(false)}
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button 
                 className="btn-danger"
                 onClick={handleDeleteAccount}
               >
-                Удалить навсегда
+                {t('deleteForever')}
               </button>
             </div>
           </div>
@@ -823,7 +735,7 @@ const SettingsPage = () => {
                 className="btn-primary"
                 onClick={handleResetPassword}
               >
-                Отправить ссылку
+                {t('sendLink')}
               </button>
             </div>
           </div>
@@ -881,7 +793,7 @@ const SettingsPage = () => {
           <div className="modal-overlay" onClick={() => setShowFeedbackModal(false)} />
           <div className="modal large">
             <div className="modal-header">
-              <h3>Обратная связь</h3>
+              <h3>{t('addStoryTitle')}</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowFeedbackModal(false)}
@@ -892,38 +804,55 @@ const SettingsPage = () => {
             <form onSubmit={handleFeedbackSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Тип сообщения:</label>
+                  <label>{t('storyCategory')}</label>
                   <select 
                     value={feedbackForm.type}
                     onChange={(e) => setFeedbackForm({...feedbackForm, type: e.target.value})}
                     className="form-select"
                   >
-                    <option value="suggestion">Предложение</option>
-                    <option value="bug">Сообщить об ошибке</option>
-                    <option value="feedback">Отзыв</option>
-                    <option value="question">Вопрос</option>
-                    <option value="other">Другое</option>
+                    <option value="Энергия">⚡ {t('categoryEnergy')}</option>
+                    <option value="Вода">💧 {t('categoryWater')}</option>
+                    <option value="Отходы">♻️ {t('categoryWaste')}</option>
+                    <option value="Транспорт">🚲 {t('categoryTransport')}</option>
+                    <option value="Питание">🍽️ {t('categoryFood')}</option>
+                    <option value="Природа">🌿 {t('categoryNature')}</option>
+                    <option value="Быт">🏠 {t('categoryHousehold')}</option>
+                    <option value="Потребление">🛒 {t('categoryConsumption')}</option>
+                    <option value="Планирование">📋 {t('categoryPlanning')}</option>
                   </select>
                 </div>
                 
                 <div className="form-group">
-                  <label>Тема сообщения:</label>
+                  <label>{t('storyTitle')}</label>
                   <input 
                     type="text"
                     value={feedbackForm.subject}
                     onChange={(e) => setFeedbackForm({...feedbackForm, subject: e.target.value})}
-                    placeholder="Кратко опишите суть сообщения"
+                    placeholder={t('storyTitlePlaceholder')}
                     className="form-input"
                     required
                   />
                 </div>
+
+                <div className="form-group">
+                  <label>{t('co2Saved')}</label>
+                  <input 
+                    type="number"
+                    value={feedbackForm.co2Saved || ''}
+                    onChange={(e) => setFeedbackForm({...feedbackForm, co2Saved: e.target.value})}
+                    placeholder={t('co2SavedPlaceholder')}
+                    className="form-input"
+                    min="0"
+                    step="0.1"
+                  />
+                </div>
                 
                 <div className="form-group">
-                  <label>Сообщение:</label>
+                  <label>{t('storyContent')}</label>
                   <textarea 
                     value={feedbackForm.message}
                     onChange={(e) => setFeedbackForm({...feedbackForm, message: e.target.value})}
-                    placeholder="Подробно опишите ваше сообщение, предложение или проблему"
+                    placeholder={t('storyContentPlaceholder')}
                     className="form-textarea"
                     rows="6"
                     required
@@ -936,16 +865,59 @@ const SettingsPage = () => {
                   className="btn-secondary"
                   onClick={() => setShowFeedbackModal(false)}
                 >
-                  Отмена
+                  {t('cancel')}
                 </button>
                 <button 
                   type="submit"
                   className="btn-primary"
                 >
-                  Отправить
+                  {t('addToStories')}
                 </button>
               </div>
             </form>
+          </div>
+        </>
+      )}
+
+      {/* Модальное окно очистки кэша */}
+      {showClearCacheModal && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowClearCacheModal(false)} />
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Очистка кэша</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowClearCacheModal(false)}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p><strong>Вы уверены, что хотите очистить кэш?</strong></p>
+              <p>Будут удалены:</p>
+              <ul>
+                <li>Временные файлы приложения</li>
+                <li>Кэшированные данные</li>
+                <li>Данные сессии</li>
+                <li>Кэш браузера</li>
+              </ul>
+              <p><strong>Ваши настройки и данные аккаунта сохранятся.</strong></p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowClearCacheModal(false)}
+              >
+                Отмена
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleClearCache}
+              >
+                Очистить кэш
+              </button>
+            </div>
           </div>
         </>
       )}

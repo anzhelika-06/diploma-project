@@ -23,12 +23,11 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import TestSettingsPage from './pages/TestSettingsPage'
-import { translations, getSavedLanguage, saveLanguageEverywhere, loadLanguageFromDatabase } from './utils/translations'
+import { LanguageProvider } from './contexts/LanguageContext'
 import { initializeTheme, syncTheme } from './utils/themeManager'
 import './styles/variables.css'
 
 function App() {
-  const [currentLanguage, setCurrentLanguage] = useState(getSavedLanguage())
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -48,14 +47,6 @@ function App() {
               setIsAuthenticated(true)
               // Если пользователь авторизован, синхронизируем тему с БД
               await syncTheme()
-              
-              // Загружаем язык из БД
-              const dbLanguage = await loadLanguageFromDatabase()
-              if (dbLanguage && dbLanguage !== currentLanguage) {
-                setCurrentLanguage(dbLanguage)
-                // Обновляем localStorage
-                localStorage.setItem('selectedLanguage', dbLanguage)
-              }
             }
           } catch (error) {
             console.error('Ошибка парсинга данных пользователя:', error)
@@ -72,13 +63,6 @@ function App() {
     initApp()
   }, [])
 
-  const handleLanguageChange = async (newLanguage) => {
-    setCurrentLanguage(newLanguage)
-    await saveLanguageEverywhere(newLanguage)
-  }
-
-  const currentTranslations = translations[currentLanguage] || translations.RU
-
   if (isLoading) {
     return (
       <div style={{ 
@@ -94,79 +78,50 @@ function App() {
   }
 
   return (
-    <div className="page-container">
-      <Router>
-        <Routes>
-        {/* Главная страница - редирект в зависимости от авторизации */}
-        <Route 
-          path="/" 
-          element={
-            isAuthenticated ? (
-              <Navigate to="/feed" replace />
-            ) : (
-              <MainLayout 
-                translations={currentTranslations}
-                currentLanguage={currentLanguage}
-                onLanguageChange={handleLanguageChange}
-              />
-            )
-          } 
-        />
-        <Route 
-          path="/auth" 
-          element={
-            <AuthPage 
-              translations={currentTranslations}
-              currentLanguage={currentLanguage}
-              onLanguageChange={handleLanguageChange}
-            />
-          } 
-        />
-        <Route 
-          path="/register" 
-          element={
-            <RegisterPage 
-              translations={currentTranslations}
-              currentLanguage={currentLanguage}
-              onLanguageChange={handleLanguageChange}
-            />
-          } 
-        />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
-        <Route path="/test-settings" element={<TestSettingsPage />} />
-        <Route 
-          path="/about" 
-          element={
-            <AboutPage 
-              translations={currentTranslations}
-              currentLanguage={currentLanguage}
-              onLanguageChange={handleLanguageChange}
-            />
-          } 
-        />
+    <LanguageProvider>
+      <div className="page-container">
+        <Router>
+          <Routes>
+          {/* Главная страница - редирект в зависимости от авторизации */}
+          <Route 
+            path="/" 
+            element={
+              isAuthenticated ? (
+                <Navigate to="/feed" replace />
+              ) : (
+                <MainLayout />
+              )
+            } 
+          />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/test-settings" element={<TestSettingsPage />} />
+          <Route path="/about" element={<AboutPage />} />
 
-        {/* Защищенные страницы с Dashboard Layout */}
-        <Route element={<DashboardLayout />}>
-          <Route path="/feed" element={<FeedPage />} />
-          <Route path="/pet" element={<PetPage />} />
-          <Route path="/teams" element={<TeamsPage />} />
-          <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/friends" element={<FriendsPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/create" element={<CreatePostPage />} />
-          <Route path="/achievements" element={<AchievementsPage />} />
-          <Route path="/statistics" element={<StatisticsPage />} />
-          <Route path="/leaderboard" element={<LeaderboardPage />} />
-          <Route path="/contribution" element={<ContributionPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/search" element={<SearchPage />} />
-        </Route>
-      </Routes>
-    </Router>
-  </div>
+          {/* Защищенные страницы с Dashboard Layout */}
+          <Route element={<DashboardLayout />}>
+            <Route path="/feed" element={<FeedPage />} />
+            <Route path="/pet" element={<PetPage />} />
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/create" element={<CreatePostPage />} />
+            <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/statistics" element={<StatisticsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/contribution" element={<ContributionPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/search" element={<SearchPage />} />
+          </Route>
+        </Routes>
+      </Router>
+    </div>
+    </LanguageProvider>
   )
 }
 

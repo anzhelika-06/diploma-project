@@ -12,8 +12,10 @@ import {
   formatCarbonFootprint
 } from '../utils/translations'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
+import { useLanguage } from '../contexts/LanguageContext'
 
-const AboutPage = ({ translations, currentLanguage }) => {
+const AboutPage = () => {
+  const { currentLanguage, t } = useLanguage()
   const [activeTab, setActiveTab] = useState('about') // about, stories, ratings
   const [storiesFilter, setStoriesFilter] = useState('all') // all, best, recent
   const [selectedCategory, setSelectedCategory] = useState('all') // all, или конкретная категория

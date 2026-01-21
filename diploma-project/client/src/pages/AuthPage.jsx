@@ -10,9 +10,11 @@ import listikEn from '../assets/audio/listik-en.mp3'
 import listikBy from '../assets/audio/listik-by.mp3'
 import listikImage from '../assets/images/listik.png'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
+import { useLanguage } from '../contexts/LanguageContext'
 
-const AuthPage = ({ translations, currentLanguage }) => {
+const AuthPage = () => {
   const navigate = useNavigate()
+  const { currentLanguage, t } = useLanguage()
   const [formData, setFormData] = useState({
     login: '',
     password: ''
@@ -38,13 +40,13 @@ const AuthPage = ({ translations, currentLanguage }) => {
     setCurrentTheme(savedTheme)
     
     const randomBubblePhrase = getRandomPhrase(currentLanguage)
-    const staticBottomPhrase = translations.leafStaticPhrase || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
+    const staticBottomPhrase = t('leafStaticPhrase') || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
     
     setRandomPhrase(randomBubblePhrase)
     setStaticPhrase(staticBottomPhrase)
     setLeafText(randomBubblePhrase)
     setShowLeafText(true)
-  }, [currentLanguage, translations])
+  }, [currentLanguage, t])
 
   // Получить правильную иконку домика в зависимости от темы
   const getHomeIcon = () => {
@@ -131,11 +133,11 @@ const AuthPage = ({ translations, currentLanguage }) => {
     const newErrors = {}
     
     if (!formData.login.trim()) {
-      newErrors.login = translations.loginRequired
+      newErrors.login = t('loginRequired')
     }
     
     if (!formData.password.trim()) {
-      newErrors.password = translations.passwordRequired
+      newErrors.password = t('passwordRequired')
     }
     
     if (Object.keys(newErrors).length > 0) {
@@ -168,27 +170,27 @@ const AuthPage = ({ translations, currentLanguage }) => {
         // Редирект на страницу ленты
         navigate('/feed')
       } else {
-        let errorMessage = translations.serverError
+        let errorMessage = t('serverError')
         
         switch (data.error) {
           case 'USER_NOT_FOUND':
-            errorMessage = translations.userNotFound
+            errorMessage = t('userNotFound')
             break
           case 'INVALID_CREDENTIALS':
-            errorMessage = translations.invalidCredentials
+            errorMessage = t('invalidCredentials')
             break
           case 'MISSING_FIELDS':
-            errorMessage = translations.serverError
+            errorMessage = t('serverError')
             break
           default:
-            errorMessage = translations.serverError
+            errorMessage = t('serverError')
         }
         
         setErrors({ general: errorMessage })
       }
     } catch (error) {
       console.error('Ошибка при авторизации:', error)
-      setErrors({ general: translations.networkError })
+      setErrors({ general: t('networkError') })
     } finally {
       setIsLoading(false)
     }
@@ -199,14 +201,14 @@ const AuthPage = ({ translations, currentLanguage }) => {
       <div className="auth-white-block">
         <div className="home-link">
           <Link to="/" className="home-link-content">
-            <img src={getHomeIcon()} alt={translations.homeAlt} className="home-icon" />
-            <span className="home-text">{translations.homeText}</span>
+            <img src={getHomeIcon()} alt={t('homeAlt')} className="home-icon" />
+            <span className="home-text">{t('homeText')}</span>
           </Link>
         </div>
 
         <div className="auth-container">
           <div className="auth-form-block">
-            <h1 className="auth-title">{translations.loginTitle}</h1>
+            <h1 className="auth-title">{t('loginTitle')}</h1>
             
             <form onSubmit={handleSubmit} className="auth-form" noValidate>
               <div className="form-fields-container">
@@ -216,7 +218,7 @@ const AuthPage = ({ translations, currentLanguage }) => {
                     name="login"
                     value={formData.login}
                     onChange={handleInputChange}
-                    placeholder={translations.loginPlaceholder}
+                    placeholder={t('loginPlaceholder')}
                     className={`auth-input ${errors.login ? 'error' : ''}`}
                     disabled={isLoading}
                   />
@@ -229,7 +231,7 @@ const AuthPage = ({ translations, currentLanguage }) => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    placeholder={translations.passwordPlaceholder}
+                    placeholder={t('passwordPlaceholder')}
                     className={`auth-input ${errors.password ? 'error' : ''}`}
                     disabled={isLoading}
                   />
@@ -244,12 +246,12 @@ const AuthPage = ({ translations, currentLanguage }) => {
                   className="auth-submit-button"
                   disabled={isLoading}
                 >
-                  {isLoading ? '...' : translations.loginButton}
+                  {isLoading ? '...' : t('loginButton')}
                 </button>
               </div>
               
               <div className="auth-register-link">
-                {translations.noAccountText} <Link to="/register" className="register-link">{translations.registerLink}</Link>
+                {t('noAccountText')} <Link to="/register" className="register-link">{t('registerLink')}</Link>
               </div>
             </form>
           </div>
@@ -289,8 +291,8 @@ const AuthPage = ({ translations, currentLanguage }) => {
                   <button 
                     className="sound-button"
                     onClick={handleSoundButtonClick}
-                    title={translations.enableLeafSound}
-                    aria-label={translations.enableLeafSound}
+                    title={t('enableLeafSound')}
+                    aria-label={t('enableLeafSound')}
                   >
                     🔊
                   </button>

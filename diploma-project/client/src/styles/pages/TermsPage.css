@@ -38,7 +38,7 @@
 }
 
 .back-link {
-  color: var(--terms-link, #535E51);
+  color: var(--terms-link, #7cb342);
   text-decoration: none;
   font-size: 16px;
   margin-bottom: 30px;
@@ -71,14 +71,14 @@
 }
 
 .terms-content p {
-  color: var(--terms-content-text, #444444);
+  color: var(--terms-content-text, #222222);
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 15px;
 }
 
 .terms-content ul {
-  color: var(--terms-content-text, #444444);
+  color: var(--terms-content-text, #222222);
   font-size: 16px;
   line-height: 1.6;
   margin-bottom: 15px;

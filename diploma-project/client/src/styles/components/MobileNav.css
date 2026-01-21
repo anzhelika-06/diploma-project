@@ -187,3 +187,72 @@
     display: flex;
   }
 }
+
+/* Темная тема */
+.mobile-nav[data-theme="dark"] {
+  background: #1e1e1e;
+  border-top-color: #404040;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-item {
+  color: #fff;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-item:hover {
+  background: #333;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-item.active {
+  color: #4caf50;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg path,
+.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg circle {
+  stroke: #fff;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg {
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg {
+  filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg path,
+.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg circle {
+  stroke: #4caf50;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu {
+  background: #1e1e1e;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-header {
+  background: #1e1e1e;
+  border-bottom-color: #404040;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-header h3 {
+  color: #fff;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-close {
+  color: #fff;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-close:hover {
+  background: #333;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-item {
+  color: #fff;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-item:hover {
+  background: #333;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-menu-icon-svg {
+  filter: brightness(0) saturate(100%) invert(100%);
+}

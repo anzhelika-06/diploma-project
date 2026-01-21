@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/components/Sidebar.css'
 import petIcon from '../assets/icons/pet.svg'
 import teamIcon from '../assets/icons/team.svg'
@@ -19,6 +20,7 @@ import logoIcon from '../assets/images/logo-icon.png'
 
 const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const location = useLocation()
+  const { t } = useLanguage()
   const [currentTheme, setCurrentTheme] = useState('light')
 
   useEffect(() => {
@@ -50,18 +52,18 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   }, [])
 
   const menuItems = [
-    { id: 'pet', label: 'Питомец', path: '/pet', icon: petIcon },
-    { id: 'teams', label: 'Команды', path: '/teams', icon: teamIcon },
-    { id: 'messages', label: 'Сообщения', path: '/messages', icon: messageIcon },
-    { id: 'friends', label: 'Друзья', path: '/friends', icon: friendsIcon },
-    { id: 'notifications', label: 'Уведомления', path: '/notifications', icon: notificationIcon },
-    { id: 'achievements', label: 'Достижения', path: '/achievements', icon: achievementsIcon },
-    { id: 'statistics', label: 'Статистика', path: '/statistics', icon: statisticIcon },
-    { id: 'leaderboard', label: 'Рейтинг', path: '/leaderboard', icon: leaderboardIcon },
-    { id: 'contribution', label: 'Вклад', path: '/contribution', icon: contributionIcon },
-    { id: 'reviews', label: 'Отзывы', path: '/reviews', icon: reviewsIcon },
-    { id: 'profile', label: 'Профиль', path: '/profile', icon: profileIcon },
-    { id: 'settings', label: 'Настройки', path: '/settings', icon: settingsIcon },
+    { id: 'pet', label: t('menuPet'), path: '/pet', icon: petIcon },
+    { id: 'teams', label: t('menuTeams'), path: '/teams', icon: teamIcon },
+    { id: 'messages', label: t('menuMessages'), path: '/messages', icon: messageIcon },
+    { id: 'friends', label: t('menuFriends'), path: '/friends', icon: friendsIcon },
+    { id: 'notifications', label: t('menuNotifications'), path: '/notifications', icon: notificationIcon },
+    { id: 'achievements', label: t('menuAchievements'), path: '/achievements', icon: achievementsIcon },
+    { id: 'statistics', label: t('menuStatistics'), path: '/statistics', icon: statisticIcon },
+    { id: 'leaderboard', label: t('menuLeaderboard'), path: '/leaderboard', icon: leaderboardIcon },
+    { id: 'contribution', label: t('menuContribution'), path: '/contribution', icon: contributionIcon },
+    { id: 'reviews', label: t('menuReviews'), path: '/reviews', icon: reviewsIcon },
+    { id: 'profile', label: t('menuProfile'), path: '/profile', icon: profileIcon },
+    { id: 'settings', label: t('menuSettings'), path: '/settings', icon: settingsIcon },
   ]
 
   return (
@@ -95,8 +97,8 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
         {/* Режим эко-отпуск */}
         <div className="sidebar-footer">
           <button className="sidebar-item eco-vacation">
-            <img src={vacationIcon} alt="Эко-отпуск" className="sidebar-icon-svg" />
-            {isExpanded && <span className="sidebar-label">Эко-отпуск</span>}
+            <img src={vacationIcon} alt={t('menuEcoVacation')} className="sidebar-icon-svg" />
+            {isExpanded && <span className="sidebar-label">{t('menuEcoVacation')}</span>}
           </button>
         </div>
       </div>

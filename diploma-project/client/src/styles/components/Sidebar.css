@@ -28,6 +28,9 @@
   --sidebar-hover: #333333;
   --sidebar-active: #4caf50;
   --sidebar-active-bg: #2d4a2e;
+  --sidebar-icon-filter: brightness(0) saturate(100%) invert(100%);
+  --sidebar-icon-hover-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+  --sidebar-icon-active-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
 }
 
 .sidebar[data-theme="light"] {
@@ -38,6 +41,9 @@
   --sidebar-hover: #f5f5f5;
   --sidebar-active: #2e7d32;
   --sidebar-active-bg: #e8f5e9;
+  --sidebar-icon-filter: none;
+  --sidebar-icon-hover-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+  --sidebar-icon-active-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
 }
 
 .sidebar-content {
@@ -74,6 +80,7 @@
 .logo-text {
   white-space: nowrap;
   overflow: hidden;
+  color: var(--sidebar-text, #333333);
 }
 
 .sidebar.collapsed .logo-text {
@@ -129,24 +136,35 @@
 .sidebar-icon-svg {
   width: 24px;
   height: 24px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  filter: var(--sidebar-icon-filter, none);
 }
 
-.sidebar-icon-svg path,
-.sidebar-icon-svg circle {
-  stroke: var(--sidebar-text-secondary, #666666);
-  transition: stroke 0.2s ease;
-}
-
-.sidebar-item:hover .sidebar-icon-svg path,
-.sidebar-item:hover .sidebar-icon-svg circle {
-  stroke: var(--sidebar-active, #4CAF50);
+.sidebar-item:hover .sidebar-icon-svg {
   transform: scale(1.1);
+  filter: var(--sidebar-icon-hover-filter, brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%));
 }
 
-.sidebar-item.active .sidebar-icon-svg path,
-.sidebar-item.active .sidebar-icon-svg circle {
-  stroke: var(--sidebar-active, #4CAF50);
+.sidebar-item.active .sidebar-icon-svg {
+  filter: var(--sidebar-icon-active-filter, brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%));
+}
+
+
+
+/* Темная тема - белые иконки */
+.sidebar[data-theme="dark"] .sidebar-icon-svg path,
+.sidebar[data-theme="dark"] .sidebar-icon-svg circle {
+  stroke: #ffffff;
+}
+
+.sidebar[data-theme="dark"] .sidebar-item:hover .sidebar-icon-svg path,
+.sidebar[data-theme="dark"] .sidebar-item:hover .sidebar-icon-svg circle {
+  stroke: #4CAF50;
+}
+
+.sidebar[data-theme="dark"] .sidebar-item.active .sidebar-icon-svg path,
+.sidebar[data-theme="dark"] .sidebar-item.active .sidebar-icon-svg circle {
+  stroke: #4CAF50;
 }
 
 .sidebar-icon {
@@ -215,4 +233,8 @@
 
 .sidebar.collapsed .sidebar-emoji-icon {
   font-size: 24px;
+}
+/* Темная тема - белый текст EcoSteps */
+.sidebar[data-theme="dark"] .logo-text {
+  color: #ffffff;
 }

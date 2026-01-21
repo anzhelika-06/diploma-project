@@ -8,9 +8,11 @@ import treeStage2 from '../assets/images/tree growth stage2.png'
 import treeStage3 from '../assets/images/tree growth stage3.png'
 import { getRegistrationPhrase } from '../utils/randomPhrases'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
+import { useLanguage } from '../contexts/LanguageContext'
 
-const RegisterPage = ({ translations, currentLanguage }) => {
+const RegisterPage = () => {
   const navigate = useNavigate()
+  const { currentLanguage, t } = useLanguage()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     login: '',

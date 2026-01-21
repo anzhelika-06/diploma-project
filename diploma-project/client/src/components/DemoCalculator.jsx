@@ -2,8 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import '../styles/components/DemoCalculator.css'
 import { translateServerMessage, translateRecommendation, formatCarbonFootprint } from '../utils/translations'
 import { getSavedTheme } from '../utils/themeManager'
+import { useLanguage } from '../contexts/LanguageContext'
 
-const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage, onShake }) => {
+const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
+  const { currentLanguage, t } = useLanguage()
   const [selectedNutrition, setSelectedNutrition] = useState('')
   const [selectedTransport, setSelectedTransport] = useState('')
   const [nutritionDropdownOpen, setNutritionDropdownOpen] = useState(false)
@@ -15,6 +17,8 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
   const [showSuccess, setShowSuccess] = useState(false)
   const [calculationResult, setCalculationResult] = useState(null)
   const [currentTheme, setCurrentTheme] = useState('light')
+  const [isTranslatingRecommendations, setIsTranslatingRecommendations] = useState(false)
+  const [translatedRecommendations, setTranslatedRecommendations] = useState([])
   const modalRef = useRef(null)
 
   // Функция для перевода рекомендаций
@@ -61,7 +65,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
   useEffect(() => {
     setSelectedNutrition('')
     setSelectedTransport('')
-  }, [translations])
+  }, [currentLanguage])
 
   // Обработка перетаскивания
   const handleMouseDown = (e) => {
@@ -113,17 +117,20 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
 
   const handleCalculate = async () => {
     // Получаем текущие значения (выбранные или по умолчанию)
-    const currentNutrition = selectedNutrition || Object.values(translations.nutritionOptions)[0];
-    const currentTransport = selectedTransport || Object.values(translations.transportOptions)[0];
+    const nutritionOptions = t('nutritionOptions')
+    const transportOptions = t('transportOptions')
+    
+    const currentNutrition = selectedNutrition || Object.values(nutritionOptions)[0];
+    const currentTransport = selectedTransport || Object.values(transportOptions)[0];
     
     if (currentNutrition && currentTransport) {
       try {
         // Определяем ключи для отправки на сервер
-        const nutritionKey = Object.keys(translations.nutritionOptions).find(
-          key => translations.nutritionOptions[key] === currentNutrition
+        const nutritionKey = Object.keys(nutritionOptions).find(
+          key => nutritionOptions[key] === currentNutrition
         );
-        const transportKey = Object.keys(translations.transportOptions).find(
-          key => translations.transportOptions[key] === currentTransport
+        const transportKey = Object.keys(transportOptions).find(
+          key => transportOptions[key] === currentTransport
         );
 
         if (!nutritionKey || !transportKey) {
@@ -198,15 +205,15 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
           onMouseDown={handleMouseDown}
         >
           <div className="modal-header">
-            <h2 className="modal-title">{translations.calculatorTitle}</h2>
+            <h2 className="modal-title">{t('calculatorTitle')}</h2>
             <button className="close-button" onClick={onClose}>×</button>
           </div>
           
           <div className="modal-body">
-            <p className="modal-subtitle">{translations.calculatorSubtitle}</p>
+            <p className="modal-subtitle">{t('calculatorSubtitle')}</p>
             
             <div className="form-section">
-              <h3 className="section-title">{translations.nutritionTitle}</h3>
+              <h3 className="section-title">{t('nutritionTitle')}</h3>
               <div className="custom-dropdown">
                 <div 
                   className={`dropdown-trigger ${nutritionDropdownOpen ? 'active' : ''}`}
@@ -217,7 +224,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                     }
                   }}
                 >
-                  <span>{selectedNutrition || Object.values(translations.nutritionOptions)[0]}</span>
+                  <span>{selectedNutrition || Object.values(t('nutritionOptions'))[0]}</span>
                   <svg 
                     className={`dropdown-arrow-calc ${nutritionDropdownOpen ? 'rotated' : ''}`}
                     width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -227,7 +234,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 </div>
                 {nutritionDropdownOpen && !showError && !showSuccess && (
                   <div className="dropdown-options-calc">
-                    {Object.entries(translations.nutritionOptions).map(([key, value]) => (
+                    {Object.entries(t('nutritionOptions')).map(([key, value]) => (
                       <div
                         key={key}
                         className="dropdown-option-calc"
@@ -242,7 +249,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
             </div>
 
             <div className="form-section">
-              <h3 className="section-title">{translations.transportTitle}</h3>
+              <h3 className="section-title">{t('transportTitle')}</h3>
               <div className="custom-dropdown">
                 <div 
                   className={`dropdown-trigger ${transportDropdownOpen ? 'active' : ''}`}
@@ -253,7 +260,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                     }
                   }}
                 >
-                  <span>{selectedTransport || Object.values(translations.transportOptions)[0]}</span>
+                  <span>{selectedTransport || Object.values(t('transportOptions'))[0]}</span>
                   <svg 
                     className={`dropdown-arrow-calc ${transportDropdownOpen ? 'rotated' : ''}`}
                     width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -263,7 +270,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 </div>
                 {transportDropdownOpen && !showError && !showSuccess && (
                   <div className="dropdown-options-calc">
-                    {Object.entries(translations.transportOptions).map(([key, value]) => (
+                    {Object.entries(t('transportOptions')).map(([key, value]) => (
                       <div
                         key={key}
                         className="dropdown-option-calc"
@@ -282,7 +289,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
               onClick={handleCalculate}
               disabled={showError || showSuccess} // блокируем кнопку при показе уведомлений
             >
-              {translations.calculateButton}
+              {t('calculateButton')}
             </button>
           </div>
         </div>
@@ -303,7 +310,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
             }}
           >
             <div className="notification-header">
-              <h3>{translations.calculatorError}</h3>
+              <h3>{t('calculatorError')}</h3>
               <button 
                 className="notification-close" 
                 onClick={(e) => {
@@ -314,7 +321,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 ×
               </button>
             </div>
-            <p>{translations.calculatorErrorMessage}</p>
+            <p>{t('calculatorErrorMessage')}</p>
             <button 
               className="notification-button" 
               onClick={(e) => {
@@ -322,7 +329,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 setShowError(false)
               }}
             >
-              {translations.calculatorErrorButton}
+              {t('calculatorErrorButton')}
             </button>
           </div>
         </div>
@@ -343,7 +350,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
             }}
           >
             <div className="notification-header">
-              <h3>{translations.resultTitle}</h3>
+              <h3>{t('resultTitle')}</h3>
               <button 
                 className="notification-close" 
                 onClick={(e) => {
@@ -360,15 +367,15 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                   {translateServerMessage(calculationResult.total.message, currentLanguage)}
                 </p>
                 <p className="result-total-footprint">
-                  {translations.totalFootprint}: <strong>{formatCarbonFootprint(calculationResult.total.carbon, currentLanguage)}/год</strong>
+                  {t('totalFootprint')}: <strong>{formatCarbonFootprint(calculationResult.total.carbon, currentLanguage)}/год</strong>
                 </p>
                 <div className="result-breakdown">
-                  <div>{translations.nutrition}: {formatCarbonFootprint(calculationResult.nutrition.carbon, currentLanguage)}/год</div>
-                  <div>{translations.transport}: {formatCarbonFootprint(calculationResult.transport.carbon, currentLanguage)}/год</div>
+                  <div>{t('nutrition')}: {formatCarbonFootprint(calculationResult.nutrition.carbon, currentLanguage)}/год</div>
+                  <div>{t('transport')}: {formatCarbonFootprint(calculationResult.transport.carbon, currentLanguage)}/год</div>
                 </div>
                 {calculationResult.recommendations && calculationResult.recommendations.length > 0 && (
                   <div className="result-recommendations">
-                    <strong>{translations.recommendations}:</strong>
+                    <strong>{t('recommendations')}:</strong>
                     <ul>
                       {calculationResult.recommendations.map((rec, index) => {
                         const translatedRec = translateRecommendation(rec, currentLanguage);
@@ -384,15 +391,15 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 )}
                 {calculationResult.comparison && (
                   <div className="result-comparison">
-                    <div><strong>{translations.comparison}:</strong></div>
-                    <div>{translations.worldAverage}: {calculationResult.comparison.worldAverage.value} {translations.units.kgCO2Year} 
+                    <div><strong>{t('comparison')}:</strong></div>
+                    <div>{t('worldAverage')}: {calculationResult.comparison.worldAverage.value} {t('units.kgCO2Year')} 
                       ({calculationResult.comparison.worldAverage.percentage > 0 ? '+' : ''}{calculationResult.comparison.worldAverage.percentage}%)
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p>{translations.calculateButton} выполнен успешно!</p>
+              <p>{t('calculateButton')} выполнен успешно!</p>
             )}
             <button 
               className="notification-button" 
@@ -401,7 +408,7 @@ const DemoCalculator = ({ isOpen, onClose, translations, shake, currentLanguage,
                 setShowSuccess(false)
               }}
             >
-              {translations.okButton}
+              {t('okButton')}
             </button>
           </div>
         </div>

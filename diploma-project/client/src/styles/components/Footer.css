@@ -220,6 +220,60 @@
   background: #e0e0e0;
 }
 
+/* Темная тема */
+.dashboard-footer[data-theme="dark"] {
+  --footer-bg: #1e1e1e;
+  --footer-border: #404040;
+  --footer-text: #ffffff;
+  background: var(--footer-bg);
+  border-top-color: var(--footer-border);
+}
+
+.dashboard-footer[data-theme="dark"] .footer-copyright {
+  color: var(--footer-text);
+}
+
+.dashboard-footer[data-theme="dark"] .footer-section a {
+  color: var(--footer-text);
+}
+
+.dashboard-footer[data-theme="dark"] .user-info {
+  background: #2d2d2d;
+  color: #fff;
+}
+
+.dashboard-footer[data-theme="dark"] .user-info p {
+  color: #fff;
+}
+
+.dashboard-footer[data-theme="dark"] .modal {
+  background: #1e1e1e;
+  color: #fff;
+}
+
+.dashboard-footer[data-theme="dark"] .modal-header {
+  border-bottom-color: #404040;
+}
+
+.dashboard-footer[data-theme="dark"] .modal-header h3 {
+  color: #fff;
+}
+
+.dashboard-footer[data-theme="dark"] .modal-footer {
+  border-top-color: #404040;
+}
+
+.dashboard-footer[data-theme="dark"] .modal-input,
+.dashboard-footer[data-theme="dark"] .modal-textarea {
+  background: #2d2d2d;
+  border-color: #404040;
+  color: #fff;
+}
+
+.dashboard-footer[data-theme="dark"] .form-group label {
+  color: #fff;
+}
+
 @media (max-width: 768px) {
   .dashboard-footer {
     display: none; /* Скрываем футер на мобильных */

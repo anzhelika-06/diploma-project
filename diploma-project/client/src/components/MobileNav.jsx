@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import '../styles/components/MobileNav.css'
 import homeIcon from '../assets/icons/home.svg'
 import createIcon from '../assets/icons/create.svg'
@@ -19,6 +19,35 @@ import settingsIcon from '../assets/icons/settings.svg'
 const MobileNav = () => {
   const location = useLocation()
   const [showMenu, setShowMenu] = useState(false)
+  const [currentTheme, setCurrentTheme] = useState('light')
+
+  useEffect(() => {
+    // Получаем текущую тему из localStorage
+    const savedSettings = localStorage.getItem('appSettings')
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings)
+      setCurrentTheme(settings.theme || 'light')
+    }
+
+    // Слушаем изменения темы
+    const handleStorageChange = () => {
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings)
+        setCurrentTheme(settings.theme || 'light')
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Проверяем изменения каждую секунду
+    const interval = setInterval(handleStorageChange, 1000)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [])
 
   const mainNavItems = [
     { id: 'home', path: '/feed', icon: homeIcon },
@@ -42,7 +71,7 @@ const MobileNav = () => {
 
   return (
     <>
-      <nav className="mobile-nav">
+      <nav className="mobile-nav" data-theme={currentTheme}>
         <Link
           to="/feed"
           className={`mobile-nav-item ${location.pathname === '/feed' ? 'active' : ''}`}
@@ -78,7 +107,7 @@ const MobileNav = () => {
       {showMenu && (
         <>
           <div className="mobile-menu-overlay" onClick={() => setShowMenu(false)} />
-          <div className="mobile-menu">
+          <div className="mobile-menu" data-theme={currentTheme}>
             <div className="mobile-menu-header">
               <h3>Меню</h3>
               <button className="mobile-menu-close" onClick={() => setShowMenu(false)}>✕</button>
