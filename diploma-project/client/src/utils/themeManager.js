@@ -11,6 +11,16 @@ export const DEFAULT_THEME = THEMES.LIGHT
 // Получить сохраненную тему из localStorage
 export const getSavedTheme = () => {
   try {
+    // Сначала проверяем appSettings (более приоритетные настройки)
+    const appSettings = localStorage.getItem('appSettings')
+    if (appSettings) {
+      const settings = JSON.parse(appSettings)
+      if (settings.theme && Object.values(THEMES).includes(settings.theme)) {
+        return settings.theme
+      }
+    }
+    
+    // Если в appSettings нет темы, проверяем старое место хранения
     const savedTheme = localStorage.getItem('appTheme')
     return Object.values(THEMES).includes(savedTheme) ? savedTheme : DEFAULT_THEME
   } catch (error) {
@@ -23,7 +33,20 @@ export const getSavedTheme = () => {
 export const saveTheme = (theme) => {
   try {
     if (Object.values(THEMES).includes(theme)) {
+      // Сохраняем в старое место для совместимости
       localStorage.setItem('appTheme', theme)
+      
+      // Также обновляем в appSettings если они существуют
+      const appSettings = localStorage.getItem('appSettings')
+      if (appSettings) {
+        try {
+          const settings = JSON.parse(appSettings)
+          settings.theme = theme
+          localStorage.setItem('appSettings', JSON.stringify(settings))
+        } catch (error) {
+          console.warn('Ошибка обновления темы в appSettings:', error)
+        }
+      }
     }
   } catch (error) {
     console.warn('Не удалось сохранить тему:', error)
@@ -39,7 +62,7 @@ export const saveThemeToDatabase = async (theme) => {
       return false
     }
 
-    const response = await fetch('http://localhost:3001/api/user-settings', {
+    const response = await fetch('/api/user-settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +94,7 @@ export const loadThemeFromDatabase = async () => {
       return null
     }
 
-    const response = await fetch('http://localhost:3001/api/user-settings', {
+    const response = await fetch('/api/user-settings', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -162,16 +185,37 @@ export const applyTheme = (theme) => {
 
 // Инициализация темы при загрузке приложения
 export const initializeTheme = async () => {
-  // Сначала пытаемся загрузить тему из БД
-  const dbTheme = await loadThemeFromDatabase()
+  // Проверяем, авторизован ли пользователь
+  const token = localStorage.getItem('token')
+  const user = localStorage.getItem('user')
   
-  // Если есть тема в БД, используем её, иначе берем из localStorage
-  const savedTheme = dbTheme || getSavedTheme()
+  let savedTheme = DEFAULT_THEME
+  
+  if (token && user) {
+    // Если пользователь авторизован, пытаемся загрузить тему из БД
+    const dbTheme = await loadThemeFromDatabase()
+    savedTheme = dbTheme || getSavedTheme()
+  } else {
+    // Если пользователь не авторизован, используем сохраненные настройки из localStorage
+    const appSettings = localStorage.getItem('appSettings')
+    if (appSettings) {
+      try {
+        const settings = JSON.parse(appSettings)
+        savedTheme = settings.theme || getSavedTheme()
+      } catch (error) {
+        console.warn('Ошибка парсинга настроек приложения:', error)
+        savedTheme = getSavedTheme()
+      }
+    } else {
+      savedTheme = getSavedTheme()
+    }
+  }
+  
   const activeTheme = applyTheme(savedTheme)
   
   // Если тема была загружена из БД, обновляем localStorage
-  if (dbTheme && dbTheme !== getSavedTheme()) {
-    saveTheme(dbTheme)
+  if (token && user && savedTheme !== getSavedTheme()) {
+    saveTheme(savedTheme)
   }
   
   // Слушаем изменения системной темы для auto режима

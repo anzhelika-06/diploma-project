@@ -24,7 +24,7 @@ import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import TestSettingsPage from './pages/TestSettingsPage'
 import { LanguageProvider } from './contexts/LanguageContext'
-import { initializeTheme, syncTheme } from './utils/themeManager'
+import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager'
 import './styles/variables.css'
 
 function App() {
@@ -35,8 +35,9 @@ function App() {
     // Инициализируем тему при загрузке приложения
     const initApp = async () => {
       try {
-        // Сначала инициализируем тему
-        await initializeTheme()
+        // Сначала инициализируем тему синхронно
+        const savedTheme = getSavedTheme()
+        applyTheme(savedTheme)
         
         // Проверяем авторизацию
         const user = localStorage.getItem('user')
@@ -45,8 +46,10 @@ function App() {
             const userData = JSON.parse(user)
             if (userData && userData.id) {
               setIsAuthenticated(true)
-              // Если пользователь авторизован, синхронизируем тему с БД
-              await syncTheme()
+              // Если пользователь авторизован, синхронизируем тему с БД асинхронно
+              syncTheme().catch(error => {
+                console.warn('Ошибка синхронизации темы:', error)
+              })
             }
           } catch (error) {
             console.error('Ошибка парсинга данных пользователя:', error)

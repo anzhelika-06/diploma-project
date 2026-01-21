@@ -186,7 +186,7 @@ const RegisterPage = () => {
         setErrors(stepErrors)
       }
     }
-  }, [currentStep, formData.birthdate, formData.gender, translations])
+  }, [currentStep, formData.birthdate, formData.gender, t])
 
   // Установка случайной фразы регистрации при смене языка
   useEffect(() => {
@@ -225,14 +225,14 @@ const RegisterPage = () => {
     if (step === 1) {
       // Валидация логина (email)
       if (!formData.login.trim()) {
-        newErrors.login = translations.registerLoginRequired
+        newErrors.login = t('registerLoginRequired')
       } else {
         // Строгая валидация email - только латинские символы, цифры и разрешенные символы
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
         const email = formData.login.trim()
         
         if (!emailRegex.test(email)) {
-          newErrors.login = translations.invalidEmail
+          newErrors.login = t('invalidEmail')
         } else {
           // Дополнительная проверка доменной зоны - только известные почтовые сервисы
           const domainPart = email.split('@')[1]
@@ -261,37 +261,37 @@ const RegisterPage = () => {
           const domain = domainPart.toLowerCase()
           
           if (!allowedDomains.includes(domain)) {
-            newErrors.login = translations.invalidEmail
+            newErrors.login = t('invalidEmail')
           }
         }
       }
       
       // Валидация никнейма
       if (!formData.nickname.trim()) {
-        newErrors.nickname = translations.nicknameRequired
+        newErrors.nickname = t('nicknameRequired')
       }
     } else if (step === 2) {
       // Валидация пароля - минимум 6 символов, буквы и цифры
       if (!formData.password.trim()) {
-        newErrors.password = translations.passwordRequired
+        newErrors.password = t('passwordRequired')
       } else {
         if (formData.password.length < 6) {
-          newErrors.password = translations.passwordTooShort
+          newErrors.password = t('passwordTooShort')
         } else if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(formData.password)) {
-          newErrors.password = translations.passwordTooWeak
+          newErrors.password = t('passwordTooWeak')
         }
       }
       
       // Валидация повтора пароля
       if (!formData.confirmPassword.trim()) {
-        newErrors.confirmPassword = translations.confirmPasswordRequired
+        newErrors.confirmPassword = t('confirmPasswordRequired')
       } else if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = translations.passwordMismatch
+        newErrors.confirmPassword = t('passwordMismatch')
       }
     } else if (step === 3) {
       // Валидация даты рождения
       if (!formData.birthdate) {
-        newErrors.birthdate = translations.birthdateRequired
+        newErrors.birthdate = t('birthdateRequired')
       } else {
         const birthDate = new Date(formData.birthdate)
         const today = new Date()
@@ -303,13 +303,13 @@ const RegisterPage = () => {
         }
         
         if (age < 18) {
-          newErrors.birthdate = translations.ageRestriction
+          newErrors.birthdate = t('ageRestriction')
         }
       }
       
       // Валидация пола
       if (!formData.gender) {
-        newErrors.gender = translations.genderRequired
+        newErrors.gender = t('genderRequired')
       }
     }
     
@@ -350,19 +350,22 @@ const RegisterPage = () => {
     setErrors({})
     
     try {
-      // Простая регистрация без подтверждения email
-      const response = await fetch('http://localhost:3001/api/auth/register', {
+      // Создаем объект данных для регистрации
+      const registrationData = {
+        login: formData.login.trim(),
+        nickname: formData.nickname.trim(),
+        password: formData.password,
+        birthdate: formData.birthdate,
+        gender: formData.gender
+      }
+      
+      // Безопасная отправка без логирования пароля
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          login: formData.login.trim(),
-          nickname: formData.nickname.trim(),
-          password: formData.password,
-          birthdate: formData.birthdate,
-          gender: formData.gender
-        })
+        body: JSON.stringify(registrationData)
       })
       
       const data = await response.json()
@@ -377,29 +380,29 @@ const RegisterPage = () => {
         }, 2000)
       } else {
         // Обработка ошибок с сервера
-        let errorMessage = translations.serverError
+        let errorMessage = t('serverError')
         
         switch (data.error) {
           case 'USER_EXISTS':
-            errorMessage = translations.userExists
+            errorMessage = t('userExists')
             break
           case 'INVALID_EMAIL':
-            errorMessage = translations.invalidEmail
+            errorMessage = t('invalidEmail')
             break
           case 'PASSWORD_TOO_SHORT':
-            errorMessage = translations.passwordTooShort
+            errorMessage = t('passwordTooShort')
             break
           case 'PASSWORD_TOO_WEAK':
-            errorMessage = translations.passwordTooWeak
+            errorMessage = t('passwordTooWeak')
             break
           case 'AGE_RESTRICTION':
-            errorMessage = translations.ageRestriction
+            errorMessage = t('ageRestriction')
             break
           case 'MISSING_FIELDS':
             errorMessage = 'Все поля обязательны для заполнения'
             break
           default:
-            errorMessage = translations.serverError
+            errorMessage = t('serverError')
         }
         
         setErrors({ general: errorMessage })
@@ -408,7 +411,7 @@ const RegisterPage = () => {
       }
     } catch (error) {
       console.error('Ошибка при регистрации:', error)
-      const networkErrorMessage = translations.networkError
+      const networkErrorMessage = t('networkError')
       setErrors({ general: networkErrorMessage })
       setErrorMessage(networkErrorMessage)
       setShowErrorModal(true)
@@ -428,7 +431,7 @@ const RegisterPage = () => {
   }
 
   const getStepText = () => {
-    return translations.stepOf
+    return t('stepOf')
       .replace('{current}', currentStep)
       .replace('{total}', totalSteps)
   }
@@ -444,7 +447,7 @@ const RegisterPage = () => {
                 name="login"
                 value={formData.login}
                 onChange={handleInputChange}
-                placeholder={translations.registerLoginPlaceholder}
+                placeholder={t('registerLoginPlaceholder')}
                 className={`auth-input ${errors.login ? 'error' : ''}`}
                 disabled={isLoading}
               />
@@ -457,7 +460,7 @@ const RegisterPage = () => {
                 name="nickname"
                 value={formData.nickname}
                 onChange={handleInputChange}
-                placeholder={translations.nicknamePlaceholder}
+                placeholder={t('nicknamePlaceholder')}
                 className={`auth-input ${errors.nickname ? 'error' : ''}`}
                 disabled={isLoading}
               />
@@ -475,9 +478,10 @@ const RegisterPage = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder={translations.passwordPlaceholder}
+                placeholder={t('passwordPlaceholder')}
                 className={`auth-input ${errors.password ? 'error' : ''}`}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
               {errors.password && <div className="error-message">{errors.password}</div>}
             </div>
@@ -488,9 +492,10 @@ const RegisterPage = () => {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
-                placeholder={translations.confirmPasswordPlaceholder}
+                placeholder={t('confirmPasswordPlaceholder')}
                 className={`auth-input ${errors.confirmPassword ? 'error' : ''}`}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
               {errors.confirmPassword && <div className="error-message">{errors.confirmPassword}</div>}
             </div>
@@ -636,8 +641,8 @@ const RegisterPage = () => {
                 >
                   <span className={formData.gender ? 'selected' : 'placeholder'}>
                     {formData.gender ? 
-                      (formData.gender === 'male' ? translations.genderMale : translations.genderFemale) : 
-                      translations.genderPlaceholder
+                      (formData.gender === 'male' ? t('genderMale') : t('genderFemale')) : 
+                      t('genderPlaceholder')
                     }
                   </span>
                   <svg 
@@ -658,13 +663,13 @@ const RegisterPage = () => {
                       className="gender-dropdown-option"
                       onClick={() => handleGenderSelect('male')}
                     >
-                      {translations.genderMale}
+                      {t('genderMale')}
                     </div>
                     <div 
                       className="gender-dropdown-option"
                       onClick={() => handleGenderSelect('female')}
                     >
-                      {translations.genderFemale}
+                      {t('genderFemale')}
                     </div>
                   </div>
                 )}
@@ -689,7 +694,7 @@ const RegisterPage = () => {
             onClick={handleBack}
             disabled={isLoading}
           >
-            {translations.backButton}
+            {t('backButton')}
           </button>
         )}
         <button 
@@ -698,7 +703,7 @@ const RegisterPage = () => {
           onClick={currentStep === 3 ? handleSubmit : handleNext}
           disabled={isLoading}
         >
-          {isLoading ? '...' : (currentStep === 3 ? translations.registerButton : translations.nextButton)}
+          {isLoading ? '...' : (currentStep === 3 ? t('registerButton') : t('nextButton'))}
         </button>
       </div>
     )
@@ -707,7 +712,7 @@ const RegisterPage = () => {
   const renderAuthLink = () => {
     return (
       <div className="auth-register-link">
-        {translations.hasAccountText} <Link to="/auth" className="register-link">{translations.loginLink}</Link>
+        {t('hasAccountText')} <Link to="/auth" className="register-link">{t('loginLink')}</Link>
       </div>
     )
   }
@@ -717,14 +722,14 @@ const RegisterPage = () => {
       <div className="auth-white-block">
         <div className="home-link">
           <Link to="/" className="home-link-content">
-            <img src={getHomeIcon()} alt={translations.homeAlt} className="home-icon" />
-            <span className="home-text">{translations.homeText}</span>
+            <img src={getHomeIcon()} alt={t('homeAlt')} className="home-icon" />
+            <span className="home-text">{t('homeText')}</span>
           </Link>
         </div>
 
         <div className="auth-container">
           <div className="auth-form-block">
-            <h1 className="auth-title">{translations.registerTitle}</h1>
+            <h1 className="auth-title">{t('registerTitle')}</h1>
             
             <form className="auth-form" noValidate>
               <div className="form-fields-container">
@@ -761,9 +766,9 @@ const RegisterPage = () => {
         {/* Условия использования в низу белого блока */}
         <div className="terms-section-bottom">
           <p className="terms-text-bottom">
-            {translations.termsText} <Link to="/terms" state={{ from: '/register' }} className="terms-link-bottom">{translations.termsOfService}</Link>
+            {t('termsText')} <Link to="/terms" state={{ from: '/register' }} className="terms-link-bottom">{t('termsOfService')}</Link>
             <br />
-            <Link to="/privacy" state={{ from: '/register' }} className="terms-link-bottom">{translations.privacyPolicy}</Link>.
+            <Link to="/privacy" state={{ from: '/register' }} className="terms-link-bottom">{t('privacyPolicy')}</Link>.
           </p>
         </div>
       </div>
@@ -773,7 +778,7 @@ const RegisterPage = () => {
         <div className="error-modal-overlay">
           <div className="error-modal">
             <div className="error-modal-header">
-              <h3>{translations.registrationErrorTitle}</h3>
+              <h3>{t('registrationErrorTitle')}</h3>
               <button 
                 className="error-modal-close"
                 onClick={handleErrorModalClose}
@@ -790,7 +795,7 @@ const RegisterPage = () => {
                 className="error-modal-button"
                 onClick={handleErrorModalClose}
               >
-                {translations.errorModalOk}
+                {t('errorModalOk')}
               </button>
             </div>
           </div>
@@ -802,17 +807,17 @@ const RegisterPage = () => {
         <div className="success-modal-overlay">
           <div className="success-modal">
             <div className="success-modal-header">
-              <h3>{translations.registrationSuccess}</h3>
+              <h3>{t('registrationSuccess')}</h3>
             </div>
             <div className="success-modal-body">
-              <p>{translations.registrationSuccessMessage}</p>
+              <p>{t('registrationSuccessMessage')}</p>
             </div>
             <div className="success-modal-footer">
               <button 
                 className="success-modal-button"
                 onClick={handleSuccessModalClose}
               >
-                {translations.goToLogin}
+                {t('goToLogin')}
               </button>
             </div>
           </div>

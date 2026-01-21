@@ -149,15 +149,19 @@ const AuthPage = () => {
     setErrors({})
     
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      // Создаем объект без пароля для логирования
+      const loginData = {
+        login: formData.login.trim(),
+        password: formData.password
+      }
+      
+      // Безопасная отправка без логирования пароля
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          login: formData.login.trim(),
-          password: formData.password
-        })
+        body: JSON.stringify(loginData)
       })
       
       const data = await response.json()
@@ -165,6 +169,7 @@ const AuthPage = () => {
       if (data.success) {
         // Сохраняем данные пользователя в localStorage
         localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('token', data.token) // Добавляем токен
         localStorage.setItem('isAuthenticated', 'true')
         
         // Редирект на страницу ленты
@@ -234,6 +239,7 @@ const AuthPage = () => {
                     placeholder={t('passwordPlaceholder')}
                     className={`auth-input ${errors.password ? 'error' : ''}`}
                     disabled={isLoading}
+                    autoComplete="current-password"
                   />
                   {errors.password && <div className="error-message">{errors.password}</div>}
                   {errors.general && <div className="error-message">{errors.general}</div>}

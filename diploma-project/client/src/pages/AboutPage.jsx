@@ -45,7 +45,7 @@ const AboutPage = () => {
 
   // Подключение к WebSocket
   useEffect(() => {
-    const newSocket = io('http://localhost:3001')
+    const newSocket = io('/api')
     
     newSocket.on('connect', () => {
       console.log('🔌 WebSocket подключен:', newSocket.id)
@@ -112,12 +112,73 @@ const AboutPage = () => {
     }
   }, [])
 
-  // Загрузка историй
+  // Функция для немедленной сортировки существующих историй
+  const sortStoriesImmediately = (filter) => {
+    setStories(prevStories => {
+      const sortedStories = [...prevStories]
+      
+      if (filter === 'best') {
+        sortedStories.sort((a, b) => {
+          // Сначала по количеству лайков (по убыванию)
+          if (b.likes_count !== a.likes_count) {
+            return b.likes_count - a.likes_count
+          }
+          // Затем по дате создания (новые первыми)
+          return new Date(b.created_at) - new Date(a.created_at)
+        })
+        console.log('⚡ Мгновенная сортировка по лайкам:', sortedStories.map(s => ({ title: s.title, likes: s.likes_count })))
+      } else if (filter === 'recent') {
+        sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        console.log('⚡ Мгновенная сортировка по дате:', sortedStories.map(s => ({ title: s.title, date: s.created_at })))
+      }
+      
+      return sortedStories
+    })
+
+    // Также сортируем переведенные истории для немедленного отображения
+    setTranslatedStories(prevTranslated => {
+      const sortedTranslated = [...prevTranslated]
+      
+      if (filter === 'best') {
+        sortedTranslated.sort((a, b) => {
+          // Сначала по количеству лайков (по убыванию)
+          if (b.likes_count !== a.likes_count) {
+            return b.likes_count - a.likes_count
+          }
+          // Затем по дате создания (новые первыми)
+          return new Date(b.created_at) - new Date(a.created_at)
+        })
+      } else if (filter === 'recent') {
+        sortedTranslated.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      }
+      
+      return sortedTranslated
+    })
+  }
+
+  // Обработчик смены фильтра с немедленной сортировкой
+  const handleFilterChange = (newFilter) => {
+    console.log('🔄 Смена фильтра на:', newFilter)
+    
+    // Немедленно сортируем существующие истории
+    if (stories.length > 0) {
+      sortStoriesImmediately(newFilter)
+    }
+    
+    // Обновляем состояние фильтра (это запустит useEffect для загрузки новых данных)
+    setStoriesFilter(newFilter)
+  }
   const loadStories = async (filter = 'all', category = 'all', page = 1) => {
     try {
       setLoading(true)
+      
+      // Сбрасываем истории при смене фильтра (page === 1)
+      if (page === 1) {
+        setStories([])
+      }
+      
       // Для демонстрации используем ID первого пользователя
-      const url = `http://localhost:3001/api/stories?filter=${filter}&userId=1&category=${category}&page=${page}&limit=10`
+      const url = `/api/stories?filter=${filter}&userId=1&category=${category}&page=${page}&limit=10`
       console.log('🔄 Загружаем истории:', { filter, category, page, url })
       
       const response = await fetch(url, {
@@ -137,11 +198,28 @@ const AboutPage = () => {
       })
       
       if (data.success) {
+        let sortedStories = [...data.stories]
+        
+        // Дополнительная сортировка на клиенте для гарантии правильного порядка
+        if (filter === 'best') {
+          sortedStories.sort((a, b) => {
+            // Сначала по количеству лайков (по убыванию)
+            if (b.likes_count !== a.likes_count) {
+              return b.likes_count - a.likes_count
+            }
+            // Затем по дате создания (новые первыми)
+            return new Date(b.created_at) - new Date(a.created_at)
+          })
+          console.log('🔄 Отсортированы истории по лайкам:', sortedStories.map(s => ({ title: s.title, likes: s.likes_count })))
+        } else if (filter === 'recent') {
+          sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        }
+        
         if (page === 1) {
-          setStories(data.stories)
+          setStories(sortedStories)
         } else {
           // Добавляем к существующим историям при загрузке следующих страниц
-          setStories(prev => [...prev, ...data.stories])
+          setStories(prev => [...prev, ...sortedStories])
         }
         
         // Обновляем состояние лайкнутых историй
@@ -163,7 +241,7 @@ const AboutPage = () => {
   // Загрузка категорий
   const loadCategories = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/stories/categories')
+      const response = await fetch('/api/stories/categories')
       const data = await response.json()
       
       if (data.success) {
@@ -178,7 +256,7 @@ const AboutPage = () => {
   const loadUserRatings = async () => {
     try {
       console.log('🔄 Загружаем рейтинг пользователей...')
-      const response = await fetch(`http://localhost:3001/api/rankings/users`, {
+      const response = await fetch(`/api/rankings/users`, {
         cache: 'no-cache',
         headers: {
           'Cache-Control': 'no-cache'
@@ -205,7 +283,7 @@ const AboutPage = () => {
   // Загрузка рейтингов команд
   const loadTeamRatings = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/rankings/teams')
+      const response = await fetch('/api/rankings/teams')
       const data = await response.json()
       
       if (data.success) {
@@ -219,7 +297,7 @@ const AboutPage = () => {
   // Загрузка статистики через API
   const loadStats = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/stats')
+      const response = await fetch('/api/stats')
       const data = await response.json()
       
       if (data.success) {
@@ -409,7 +487,7 @@ const AboutPage = () => {
       const requestBody = { userId: userData.id }
       console.log('📤 Отправляем запрос:', requestBody)
       
-      const response = await fetch(`http://localhost:3001/api/stories/${storyId}/like`, {
+      const response = await fetch(`/api/stories/${storyId}/like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -462,6 +540,7 @@ const AboutPage = () => {
   // Загрузка данных при смене фильтра историй или категории
   useEffect(() => {
     if (activeTab === 'stories') {
+      console.log('🔄 Загружаем истории с фильтром:', { storiesFilter, selectedCategory })
       loadStories(storiesFilter, selectedCategory)
     }
   }, [activeTab, storiesFilter, selectedCategory])
@@ -507,15 +586,15 @@ const AboutPage = () => {
         {/* Ссылка "Главная" */}
         <div className="home-link">
           <Link to="/" className="home-link-content">
-            <img src={getHomeIcon()} alt={translations.homeAlt} className="home-icon" />
-            <span className="home-text">{translations.homeText}</span>
+            <img src={getHomeIcon()} alt={t('homeAlt')} className="home-icon" />
+            <span className="home-text">{t('homeText')}</span>
           </Link>
         </div>
 
         {/* Заголовок страницы */}
         <div className="about-header">
-          <h1 className="about-title">{translations.aboutPageTitle}</h1>
-          <p className="about-subtitle">{translations.aboutPageSubtitle}</p>
+          <h1 className="about-title">{t('aboutPageTitle')}</h1>
+          <p className="about-subtitle">{t('aboutPageSubtitle')}</p>
         </div>
 
         {/* Навигация по табам */}
@@ -524,19 +603,19 @@ const AboutPage = () => {
             className={`tab-button ${activeTab === 'about' ? 'active' : ''}`}
             onClick={() => setActiveTab('about')}
           >
-            {translations.aboutTabAbout}
+            {t('aboutTabAbout')}
           </button>
           <button 
             className={`tab-button ${activeTab === 'stories' ? 'active' : ''}`}
             onClick={() => setActiveTab('stories')}
           >
-            {translations.aboutTabStories}
+            {t('aboutTabStories')}
           </button>
           <button 
             className={`tab-button ${activeTab === 'ratings' ? 'active' : ''}`}
             onClick={() => setActiveTab('ratings')}
           >
-            {translations.aboutTabRatings}
+            {t('aboutTabRatings')}
           </button>
         </div>
 
@@ -545,66 +624,66 @@ const AboutPage = () => {
           {activeTab === 'about' && (
             <div className="about-info">
               <div className="info-section">
-                <h2>{translations.aboutMissionTitle}</h2>
+                <h2>{t('aboutMissionTitle')}</h2>
                 <p>
-                  {translations.aboutMissionText}
+                  {t('aboutMissionText')}
                 </p>
               </div>
               
               <div className="info-section">
-                <h2>{translations.aboutWhatWeOfferTitle}</h2>
+                <h2>{t('aboutWhatWeOfferTitle')}</h2>
                 <div className="features-grid">
                   <div className="feature-card">
                     <div className="feature-icon">📊</div>
-                    <h3>{translations.aboutFeatureCalculator}</h3>
-                    <p>{translations.aboutFeatureCalculatorDesc}</p>
+                    <h3>{t('aboutFeatureCalculator')}</h3>
+                    <p>{t('aboutFeatureCalculatorDesc')}</p>
                   </div>
                   <div className="feature-card">
                     <div className="feature-icon">👥</div>
-                    <h3>{translations.aboutFeatureCommunity}</h3>
-                    <p>{translations.aboutFeatureCommunityDesc}</p>
+                    <h3>{t('aboutFeatureCommunity')}</h3>
+                    <p>{t('aboutFeatureCommunityDesc')}</p>
                   </div>
                   <div className="feature-card">
                     <div className="feature-icon">🏆</div>
-                    <h3>{translations.aboutFeatureRatings}</h3>
-                    <p>{translations.aboutFeatureRatingsDesc}</p>
+                    <h3>{t('aboutFeatureRatings')}</h3>
+                    <p>{t('aboutFeatureRatingsDesc')}</p>
                   </div>
                   <div className="feature-card">
                     <div className="feature-icon">📖</div>
-                    <h3>{translations.aboutFeatureStories}</h3>
-                    <p>{translations.aboutFeatureStoriesDesc}</p>
+                    <h3>{t('aboutFeatureStories')}</h3>
+                    <p>{t('aboutFeatureStoriesDesc')}</p>
                   </div>
                   <div className="feature-card">
                     <div className="feature-icon">🎯</div>
-                    <h3>{translations.aboutFeatureEducation}</h3>
-                    <p>{translations.aboutFeatureEducationDesc}</p>
+                    <h3>{t('aboutFeatureEducation')}</h3>
+                    <p>{t('aboutFeatureEducationDesc')}</p>
                   </div>
                   <div className="feature-card">
                     <div className="feature-icon">📈</div>
-                    <h3>{translations.aboutFeatureProgress}</h3>
-                    <p>{translations.aboutFeatureProgressDesc}</p>
+                    <h3>{t('aboutFeatureProgress')}</h3>
+                    <p>{t('aboutFeatureProgressDesc')}</p>
                   </div>
                 </div>
               </div>
 
               <div className="info-section">
-                <h2>{translations.aboutAchievementsTitle}</h2>
+                <h2>{t('aboutAchievementsTitle')}</h2>
                 <div className="stats-grid">
                   <div className="stat-card">
                     <div className="stat-number">{stats.activeUsers.toLocaleString()}</div>
-                    <div className="stat-label">{translations.aboutActiveUsers}</div>
+                    <div className="stat-label">{t('aboutActiveUsers')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-number">{stats.co2Saved}т</div>
-                    <div className="stat-label">{translations.aboutCO2Saved}</div>
+                    <div className="stat-label">{t('aboutCO2Saved')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-number">{stats.ecoTeams}</div>
-                    <div className="stat-label">{translations.aboutEcoTeams}</div>
+                    <div className="stat-label">{t('aboutEcoTeams')}</div>
                   </div>
                   <div className="stat-card">
                     <div className="stat-number">{stats.successStories.toLocaleString()}</div>
-                    <div className="stat-label">{translations.aboutSuccessStories}</div>
+                    <div className="stat-label">{t('aboutSuccessStories')}</div>
                   </div>
                 </div>
               </div>
@@ -616,34 +695,34 @@ const AboutPage = () => {
               <div className="stories-filters">
                 <button 
                   className={`filter-button ${storiesFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setStoriesFilter('all')}
+                  onClick={() => handleFilterChange('all')}
                 >
-                  {translations.aboutStoriesAll}
+                  {t('aboutStoriesAll')}
                 </button>
                 <button 
                   className={`filter-button ${storiesFilter === 'best' ? 'active' : ''}`}
-                  onClick={() => setStoriesFilter('best')}
+                  onClick={() => handleFilterChange('best')}
                 >
-                  {translations.aboutStoriesBest}
+                  {t('aboutStoriesBest')}
                 </button>
                 <button 
                   className={`filter-button ${storiesFilter === 'recent' ? 'active' : ''}`}
-                  onClick={() => setStoriesFilter('recent')}
+                  onClick={() => handleFilterChange('recent')}
                 >
-                  {translations.aboutStoriesRecent}
+                  {t('aboutStoriesRecent')}
                 </button>
               </div>
 
               {/* Анимированный островок с категориями */}
               <div className="categories-island animated-border">
                 <div className="categories-island-content">
-                  <span className="categories-label">{translations.aboutCategoriesLabel}</span>
+                  <span className="categories-label">{t('aboutCategoriesLabel')}</span>
                   <div className="categories-buttons">
                     <button 
                       className={`category-chip ${selectedCategory === 'all' ? 'active' : ''}`}
                       onClick={() => setSelectedCategory('all')}
                     >
-                      {translations.aboutCategoriesAll}
+                      {t('aboutCategoriesAll')}
                     </button>
                     {categories.map(category => (
                       <button 
@@ -660,11 +739,11 @@ const AboutPage = () => {
 
               {loading ? (
                 <div className="loading">
-                  {translations.aboutStoriesLoading}
+                  {t('aboutStoriesLoading')}
                 </div>
               ) : translating ? (
                 <div className="loading">
-                  {translations.storiesTranslating}
+                  {t('storiesTranslating')}
                 </div>
               ) : (
                 <div className="stories-grid">
@@ -682,7 +761,7 @@ const AboutPage = () => {
                       <p className="story-content">{story.content}</p>
                       <div className="story-footer">
                         <div className="carbon-saved">
-                          🌱 {translations.aboutCarbonSaved} {formatCarbonFootprint(story.carbon_saved, currentLanguage)}
+                          🌱 {t('aboutCarbonSaved')} {formatCarbonFootprint(story.carbon_saved, currentLanguage)}
                         </div>
                         <div className="story-likes">
                           <button 
@@ -707,19 +786,19 @@ const AboutPage = () => {
                   className={`rating-tab ${ratingsTab === 'users' ? 'active' : ''}`}
                   onClick={() => setRatingsTab('users')}
                 >
-                  {translations.aboutRatingsUsers}
+                  {t('aboutRatingsUsers')}
                 </button>
                 <button 
                   className={`rating-tab ${ratingsTab === 'teams' ? 'active' : ''}`}
                   onClick={() => setRatingsTab('teams')}
                 >
-                  {translations.aboutRatingsTeams}
+                  {t('aboutRatingsTeams')}
                 </button>
               </div>
 
               {ratingsTab === 'users' && (
                 <div className="rating-list">
-                  <h3>🏆 {translations.aboutTopUsers}</h3>
+                  <h3>🏆 {t('aboutTopUsers')}</h3>
                   {userRatings.map((user, index) => (
                     <div key={user.id} className="rating-item">
                       <div className="rating-position">#{index + 1}</div>
@@ -740,14 +819,14 @@ const AboutPage = () => {
 
               {ratingsTab === 'teams' && (
                 <div className="rating-list">
-                  <h3>🏆 {translations.aboutTopTeams}</h3>
+                  <h3>🏆 {t('aboutTopTeams')}</h3>
                   {teamRatings.map((team, index) => (
                     <div key={team.id} className="rating-item">
                       <div className="rating-position">#{index + 1}</div>
                       <div className="rating-avatar">{team.avatar_emoji}</div>
                       <div className="rating-info">
                         <div className="rating-name">{team.name}</div>
-                        <div className="rating-level">{team.member_count} {translations.aboutMembersCount}</div>
+                        <div className="rating-level">{team.member_count} {t('aboutMembersCount')}</div>
                       </div>
                       <div className="rating-score">
                         {formatCarbonFootprint(team.carbon_saved, currentLanguage)}
@@ -767,7 +846,7 @@ const AboutPage = () => {
           <div className="modal-overlay" onClick={() => setShowAuthModal(false)} />
           <div className="auth-modal">
             <div className="modal-header">
-              <h3>Требуется авторизация</h3>
+              <h3>Требуется регистрация</h3>
               <button className="modal-close" onClick={() => setShowAuthModal(false)}>✕</button>
             </div>
             <div className="modal-body">

@@ -1,14 +1,14 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { translations, getSavedLanguage } from '../utils/translations'
+import { getSavedLanguage } from '../utils/translations'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
+import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/pages/TermsPage.css'
 
 const PrivacyPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const currentLanguage = getSavedLanguage()
-  const t = translations[currentLanguage]
+  const { t, currentLanguage } = useLanguage()
   const [returnPath, setReturnPath] = useState('/')
   const [currentTheme, setCurrentTheme] = useState('light')
 
@@ -185,7 +185,7 @@ const PrivacyPage = () => {
       <div className="terms-container">
         <button onClick={() => navigate(returnPath)} className="back-link">← Назад</button>
         
-        <h1>{t.privacyPageTitle}</h1>
+        <h1>{t('privacyPageTitle')}</h1>
         
         {getPrivacyContent()}
       </div>

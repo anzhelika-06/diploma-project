@@ -110,15 +110,15 @@
 }
 
 /* В темной теме все ссылки серые с подчеркиванием - очень специфичный селектор */
-.main-container[data-theme="dark"] .footer-link[href="#about"],
-.main-container[data-theme="dark"] .footer-link[href="#register"] {
+.main-container[data-theme="dark"] .footer-link[href="/about"],
+.main-container[data-theme="dark"] .footer-link[href="/register"] {
   color: var(--link-color) !important;
   text-decoration: underline !important;
   opacity: 1;
 }
 
-.main-container[data-theme="dark"] .footer-link[href="#about"]:hover,
-.main-container[data-theme="dark"] .footer-link[href="#register"]:hover {
+.main-container[data-theme="dark"] .footer-link[href="/about"]:hover,
+.main-container[data-theme="dark"] .footer-link[href="/register"]:hover {
   color: var(--link-color-hover) !important;
   opacity: 1;
 }
@@ -428,26 +428,26 @@ a.btn {
   opacity: 0.7;
 }
 
-.footer-link[href="#about"] {
+.footer-link[href="/about"] {
   color: var(--text-color-secondary);
   text-decoration: underline !important;
 }
 
-.footer-link[href="#register"] {
+.footer-link[href="/register"] {
   color: var(--text-color);
   text-decoration: underline !important;
 }
 
 /* В темной теме все ссылки серые с подчеркиванием - очень специфичный селектор */
-.main-container[data-theme="dark"] .footer-link[href="#about"],
-.main-container[data-theme="dark"] .footer-link[href="#register"] {
+.main-container[data-theme="dark"] .footer-link[href="/about"],
+.main-container[data-theme="dark"] .footer-link[href="/register"] {
   color: var(--link-color) !important;
   text-decoration: underline !important;
   opacity: 1;
 }
 
-.main-container[data-theme="dark"] .footer-link[href="#about"]:hover,
-.main-container[data-theme="dark"] .footer-link[href="#register"]:hover {
+.main-container[data-theme="dark"] .footer-link[href="/about"]:hover,
+.main-container[data-theme="dark"] .footer-link[href="/register"]:hover {
   color: var(--link-color-hover) !important;
   opacity: 1;
 }

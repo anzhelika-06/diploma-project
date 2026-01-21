@@ -958,7 +958,7 @@ export const saveLanguageToDatabase = async (language) => {
       return false
     }
 
-    const response = await fetch('http://localhost:3001/api/user-settings', {
+    const response = await fetch('/api/user-settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -990,7 +990,7 @@ export const loadLanguageFromDatabase = async () => {
       return null
     }
 
-    const response = await fetch('http://localhost:3001/api/user-settings', {
+    const response = await fetch('/api/user-settings', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`

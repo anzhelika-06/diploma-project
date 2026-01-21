@@ -65,7 +65,7 @@ const SettingsPage = () => {
 
       const user = JSON.parse(userData)
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:3001/api/user-settings', {
+      const response = await fetch('/api/user-settings', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -153,9 +153,27 @@ const SettingsPage = () => {
   }
 
   const handleLogout = () => {
+    // Сохраняем текущую тему перед выходом
+    const currentTheme = settings.theme
+    
     localStorage.removeItem('user')
     localStorage.removeItem('token')
-    // Оставляем настройки в localStorage для следующего входа
+    
+    // Сохраняем настройки в localStorage для следующего входа (включая тему)
+    const settingsToKeep = {
+      theme: currentTheme,
+      language: settings.language,
+      notifications: settings.notifications,
+      ecoTips: settings.ecoTips,
+      emailNotifications: settings.emailNotifications,
+      pushNotifications: settings.pushNotifications,
+      privacyLevel: settings.privacyLevel
+    }
+    localStorage.setItem('appSettings', JSON.stringify(settingsToKeep))
+    
+    // Применяем текущую тему (она должна остаться такой же)
+    applyTheme(currentTheme)
+    
     window.location.href = '/'
   }
 

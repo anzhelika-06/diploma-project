@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import '../styles/pages/MainLayout.css'
 import logoIcon from '../assets/images/logo-icon.png'
 import { availableLanguages } from '../utils/translations'
@@ -8,6 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import DemoCalculator from '../components/DemoCalculator'
 
 const MainLayout = () => {
+  const navigate = useNavigate()
   const { currentLanguage, changeLanguage, t } = useLanguage()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false)
@@ -72,7 +73,6 @@ const MainLayout = () => {
   }
 
   // Получаем переводы для текущего языка
-  // const t = propTranslations || translations[selectedLanguage]
 
   return (
     <div className="main-container" data-theme={currentTheme}>
@@ -162,12 +162,14 @@ const MainLayout = () => {
       </div>
 
       {/* Модальное окно калькулятора */}
-      <DemoCalculator 
-        isOpen={isCalculatorOpen}
-        onClose={handleCloseCalculator}
-        shake={shakeCalculator}
-        onShake={triggerShake}
-      />
+      {isCalculatorOpen && (
+        <DemoCalculator 
+          isOpen={isCalculatorOpen}
+          onClose={handleCloseCalculator}
+          shake={shakeCalculator}
+          onShake={triggerShake}
+        />
+      )}
     </div>
   )
 }

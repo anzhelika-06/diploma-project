@@ -876,6 +876,27 @@
   }
 }
 /* Модальное окно авторизации */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 2000;
+  animation: fadeIn 0.3s ease;
+  pointer-events: auto;
+}
+
+[data-theme="dark"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .auth-modal {
   position: fixed;
   top: 50%;
@@ -888,14 +909,16 @@
   z-index: 2001;
   animation: slideIn 0.3s ease;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  pointer-events: auto;
 }
 
 .auth-modal .modal-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #e0e0e0;
+  position: relative;
 }
 
 .auth-modal .modal-header h3 {
@@ -903,6 +926,7 @@
   font-weight: 600;
   color: #333;
   margin: 0;
+  text-align: center;
 }
 
 .auth-modal .modal-close {
@@ -919,6 +943,10 @@
   justify-content: center;
   border-radius: 50%;
   transition: background 0.2s ease;
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .auth-modal .modal-close:hover {
@@ -984,4 +1012,45 @@
     transform: translate(-50%, -50%); 
     opacity: 1; 
   }
+}
+
+/* Темная тема для модального окна */
+[data-theme="dark"] .auth-modal {
+  background: #2d2d2d;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .auth-modal .modal-header {
+  border-bottom-color: #404040;
+}
+
+[data-theme="dark"] .auth-modal .modal-header h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .auth-modal .modal-close {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .auth-modal .modal-close:hover {
+  background: #404040;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .auth-modal .modal-body p {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .auth-modal .modal-footer {
+  border-top-color: #404040;
+}
+
+[data-theme="dark"] .auth-modal .btn-secondary {
+  background: #404040;
+  color: #cccccc;
+}
+
+[data-theme="dark"] .auth-modal .btn-secondary:hover {
+  background: #505050;
+  color: #ffffff;
 }

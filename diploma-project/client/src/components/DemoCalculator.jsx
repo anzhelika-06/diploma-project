@@ -140,7 +140,7 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
         }
 
         // Отправляем запрос на сервер
-        const response = await fetch('http://localhost:3001/api/calculator/calculate', {
+        const response = await fetch('/api/calculator/calculate', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
