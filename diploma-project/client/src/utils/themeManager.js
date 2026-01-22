@@ -56,17 +56,32 @@ export const saveTheme = (theme) => {
 // Сохранить тему в базу данных
 export const saveThemeToDatabase = async (theme) => {
   try {
+    // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
     const token = localStorage.getItem('token')
-    if (!token) {
-      console.warn('Пользователь не авторизован, тема не сохранена в БД')
+    const userData = localStorage.getItem('user')
+    
+    if (!token || !userData) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Пользователь не авторизован, тема не сохранена в БД')
+      }
       return false
     }
 
+    const user = JSON.parse(userData)
+    
+    // ПРОВЕРЯЕМ ЧТО У ПОЛЬЗОВАТЕЛЯ ЕСТЬ ID
+    if (!user || !user.id) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Неверные данные пользователя:', user)
+      }
+      return false
+    }
+    
     const response = await fetch('/api/user-settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'X-User-Id': user.id.toString()
       },
       body: JSON.stringify({
         theme: theme
@@ -86,18 +101,27 @@ export const saveThemeToDatabase = async (theme) => {
   }
 }
 
-// Загрузить тему из базы данных
 export const loadThemeFromDatabase = async () => {
   try {
+    // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
     const token = localStorage.getItem('token')
-    if (!token) {
+    const userData = localStorage.getItem('user')
+    
+    if (!token || !userData) {
       return null
     }
 
+    const user = JSON.parse(userData)
+    
+    // ПРОВЕРЯЕМ ЧТО У ПОЛЬЗОВАТЕЛЯ ЕСТЬ ID
+    if (!user || !user.id) {
+      return null
+    }
+    
     const response = await fetch('/api/user-settings', {
-      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json',
+        'X-User-Id': user.id.toString()
       }
     })
 
@@ -132,7 +156,8 @@ export const getActiveTheme = (theme = getSavedTheme()) => {
 }
 
 // Применить тему к документу
-export const applyTheme = (theme) => {
+export const applyTheme = async (theme, options = {}) => {
+  const { skipSave = false } = options // ДОБАВЛЯЕМ ПАРАМЕТР skipSave
   const activeTheme = getActiveTheme(theme)
   
   // Применяем к html элементу
@@ -175,15 +200,19 @@ export const applyTheme = (theme) => {
   // Сохраняем тему локально
   saveTheme(theme)
   
-  // Сохраняем тему в БД (асинхронно, не блокируем UI)
-  saveThemeToDatabase(theme).catch(error => {
-    console.warn('Не удалось сохранить тему в БД:', error)
-  })
+  // Сохраняем тему в БД (асинхронно, не блокируем UI), только если skipSave = false
+  if (!skipSave) {
+    try {
+      await saveThemeToDatabase(theme)
+    } catch (error) {
+      console.warn('Не удалось сохранить тему в БД:', error)
+    }
+  }
   
   return activeTheme
 }
 
-// Инициализация темы при загрузке приложения
+// Обновляем другие функции, чтобы они тоже поддерживали skipSave
 export const initializeTheme = async () => {
   // Проверяем, авторизован ли пользователь
   const token = localStorage.getItem('token')
@@ -193,8 +222,13 @@ export const initializeTheme = async () => {
   
   if (token && user) {
     // Если пользователь авторизован, пытаемся загрузить тему из БД
-    const dbTheme = await loadThemeFromDatabase()
-    savedTheme = dbTheme || getSavedTheme()
+    try {
+      const dbTheme = await loadThemeFromDatabase()
+      savedTheme = dbTheme || getSavedTheme()
+    } catch (error) {
+      console.warn('Ошибка загрузки темы из БД, используем локальную:', error)
+      savedTheme = getSavedTheme()
+    }
   } else {
     // Если пользователь не авторизован, используем сохраненные настройки из localStorage
     const appSettings = localStorage.getItem('appSettings')
@@ -211,7 +245,8 @@ export const initializeTheme = async () => {
     }
   }
   
-  const activeTheme = applyTheme(savedTheme)
+  // При инициализации используем skipSave: true, чтобы не сохранять в БД
+  const activeTheme = await applyTheme(savedTheme, { skipSave: true })
   
   // Если тема была загружена из БД, обновляем localStorage
   if (token && user && savedTheme !== getSavedTheme()) {
@@ -225,7 +260,7 @@ export const initializeTheme = async () => {
     const handleSystemThemeChange = (e) => {
       const currentTheme = getSavedTheme()
       if (currentTheme === THEMES.AUTO) {
-        applyTheme(currentTheme)
+        applyTheme(currentTheme, { skipSave: true })
       }
     }
     
@@ -242,11 +277,13 @@ export const initializeTheme = async () => {
 }
 
 // Переключить тему
-export const toggleTheme = () => {
+export const toggleTheme = async () => {
   const currentTheme = getSavedTheme()
   const newTheme = currentTheme === THEMES.LIGHT ? THEMES.DARK : THEMES.LIGHT
-  return applyTheme(newTheme)
+  // При переключении сохраняем в БД (skipSave: false по умолчанию)
+  return await applyTheme(newTheme)
 }
+
 
 // Получить название темы для отображения
 export const getThemeDisplayName = (theme, language = 'RU') => {
@@ -280,11 +317,18 @@ export const isDarkTheme = (theme = getSavedTheme()) => {
 export const syncTheme = async () => {
   try {
     const localTheme = getSavedTheme()
+    const token = localStorage.getItem('token') // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
+    const user = localStorage.getItem('user')
+    
+    if (!token || !user) { // ИСПРАВЛЯЕМ: проверяем оба условия
+      return localTheme
+    }
+    
     const dbTheme = await loadThemeFromDatabase()
     
     if (dbTheme && dbTheme !== localTheme) {
       // Если в БД есть более новая тема, применяем её
-      applyTheme(dbTheme)
+      await applyTheme(dbTheme)
       return dbTheme
     } else if (!dbTheme && localTheme !== DEFAULT_THEME) {
       // Если в БД нет темы, но есть в localStorage, сохраняем в БД

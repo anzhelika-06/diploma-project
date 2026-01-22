@@ -13,9 +13,9 @@ const TermsPage = () => {
   const [currentTheme, setCurrentTheme] = useState('light')
 
   useEffect(() => {
-    // Применяем сохраненную тему при загрузке страницы
+    // Применяем сохраненную тему при загрузке страницы БЕЗ сохранения в БД
     const savedTheme = getSavedTheme()
-    applyTheme(savedTheme)
+    applyTheme(savedTheme, { skipSave: true }) // ДОБАВЛЯЕМ skipSave: true
     setCurrentTheme(savedTheme)
     
     // Определяем путь возврата на основе referrer или state

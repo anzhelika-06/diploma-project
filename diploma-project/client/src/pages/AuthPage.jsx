@@ -32,21 +32,22 @@ const AuthPage = () => {
   const [showLeafText, setShowLeafText] = useState(false)
   const [currentTheme, setCurrentTheme] = useState('light')
 
-  // Устанавливаем рандомную фразу над листиком и статичную под ним
-  useEffect(() => {
-    // Применяем сохраненную тему при загрузке страницы
-    const savedTheme = getSavedTheme()
-    applyTheme(savedTheme)
-    setCurrentTheme(savedTheme)
-    
-    const randomBubblePhrase = getRandomPhrase(currentLanguage)
-    const staticBottomPhrase = t('leafStaticPhrase') || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
-    
-    setRandomPhrase(randomBubblePhrase)
-    setStaticPhrase(staticBottomPhrase)
-    setLeafText(randomBubblePhrase)
-    setShowLeafText(true)
-  }, [currentLanguage, t])
+// Устанавливаем рандомную фразу над листиком и статичную под ним
+useEffect(() => {
+  // Применяем сохраненную тему без сохранения в БД
+  const savedTheme = getSavedTheme()
+  // Используем skipSave: true чтобы не пытаться сохранить в БД на странице авторизации
+  applyTheme(savedTheme, { skipSave: true })
+  setCurrentTheme(savedTheme)
+  
+  const randomBubblePhrase = getRandomPhrase(currentLanguage)
+  const staticBottomPhrase = t('leafStaticPhrase') || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
+  
+  setRandomPhrase(randomBubblePhrase)
+  setStaticPhrase(staticBottomPhrase)
+  setLeafText(randomBubblePhrase)
+  setShowLeafText(true)
+}, [currentLanguage, t])
 
   // Получить правильную иконку домика в зависимости от темы
   const getHomeIcon = () => {

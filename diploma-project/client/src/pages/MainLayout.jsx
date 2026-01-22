@@ -17,9 +17,9 @@ const MainLayout = () => {
   
   // Обновляем локальное состояние при изменении пропсов
   useEffect(() => {
-    // Применяем тему при загрузке
+    // Применяем тему при загрузке БЕЗ сохранения в БД
     const savedTheme = getSavedTheme()
-    applyTheme(savedTheme)
+    applyTheme(savedTheme, { skipSave: true }) // ДОБАВЛЯЕМ skipSave: true
     setCurrentTheme(savedTheme)
   }, [])
   
@@ -42,6 +42,7 @@ const MainLayout = () => {
       document.removeEventListener('click', handleClickOutside)
     }
   }, [isDropdownOpen])
+  
   const handleLanguageSelect = async (language) => {
     if (isCalculatorOpen) {
       triggerShake()
@@ -72,8 +73,6 @@ const MainLayout = () => {
     }
   }
 
-  // Получаем переводы для текущего языка
-
   return (
     <div className="main-container" data-theme={currentTheme}>
       {/* Основная карточка с фиксированным размером */}
@@ -100,7 +99,7 @@ const MainLayout = () => {
                 }}
               >
                 <span className="selected-language">{currentLanguage}</span>
-                <svg className="dropdown-arrow" width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg className="dropdown-arrow" width="8" height="5" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org2000/svg">
                   <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" fill="#222222"/>
                 </svg>
                 {isDropdownOpen && (

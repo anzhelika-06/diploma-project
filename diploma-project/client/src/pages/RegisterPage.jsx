@@ -190,14 +190,15 @@ const RegisterPage = () => {
 
   // Установка случайной фразы регистрации при смене языка
   useEffect(() => {
-    // Применяем сохраненную тему при загрузке страницы
+    // Применяем сохраненную тему при загрузке страницы БЕЗ сохранения в БД
     const savedTheme = getSavedTheme()
-    applyTheme(savedTheme)
+    applyTheme(savedTheme, { skipSave: true }) // ДОБАВЛЯЕМ skipSave: true
     setCurrentTheme(savedTheme)
     
     const phrase = getRegistrationPhrase(currentLanguage)
     setRegistrationPhrase(phrase)
   }, [currentLanguage])
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.custom-gender-dropdown')) {

@@ -35,13 +35,15 @@ function App() {
     // Инициализируем тему при загрузке приложения
     const initApp = async () => {
       try {
-        // Сначала инициализируем тему синхронно
+        // Сначала инициализируем тему синхронно с skipSave: true
         const savedTheme = getSavedTheme()
-        applyTheme(savedTheme)
+        applyTheme(savedTheme, { skipSave: true })
         
         // Проверяем авторизацию
         const user = localStorage.getItem('user')
-        if (user) {
+        const token = localStorage.getItem('token') // Проверяем токен
+        
+        if (user && token) {
           try {
             const userData = JSON.parse(user)
             if (userData && userData.id) {
@@ -54,6 +56,7 @@ function App() {
           } catch (error) {
             console.error('Ошибка парсинга данных пользователя:', error)
             localStorage.removeItem('user')
+            localStorage.removeItem('token')
           }
         }
       } catch (error) {

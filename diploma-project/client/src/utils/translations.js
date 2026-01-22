@@ -1,5 +1,6 @@
 // Файл с переводами для всех языков приложения
-
+// Импортируем функцию getSavedTheme из themeManager.js
+import { getSavedTheme } from './themeManager'
 export const translations = {
   RU: {
     mainTitle: "Уменьшите свой углеродный след",
@@ -481,24 +482,28 @@ export const translations = {
     termsPageTitle: "Terms of Service",
     privacyPageTitle: "Privacy Policy",
     // Настройки
-    settingsTitle: "Настройки",
-    settingsAppearance: "Внешний вид",
-    settingsNotifications: "Уведомления", 
-    settingsPrivacy: "Конфиденциальность",
-    settingsAccount: "Аккаунт", 
-    settingsSupport: "Поддержка",
+    settingsTitle: "Settings", 
+    settingsAppearance: "Appearance", 
+    settingsNotifications: "Notifications", 
+    settingsPrivacy: "Privacy", 
+    settingsAccount: "Account", 
+    settingsSupport: "Support", 
+    
     languageRussian: "Russian",
     languageBelarusian: "Belarusian",
     languageEnglish: "English",
-    themeLight: "Светлая тема",
-    themeDark: "Темная тема",
-    appearanceTitle: "Внешний вид и интерфейс",
-    themeSelectionTitle: "Тема оформления",
-    themeSelectionDescription: "Выберите светлую или темную тему интерфейса",
-    lightThemeDescription: "Классический светлый интерфейс",
-    darkThemeDescription: "Темный режим для комфорта глаз",
-    languageSelectionTitle: "Язык интерфейса",
-    languageSelectionDescription: "Выберите предпочитаемый язык приложения",
+    
+    themeLight: "Light theme", 
+    themeDark: "Dark theme", 
+    
+    appearanceTitle: "Appearance and Interface", 
+    themeSelectionTitle: "Theme", 
+    themeSelectionDescription: "Choose a light or dark theme for the interface", 
+    lightThemeDescription: "Classic light interface", 
+    darkThemeDescription: "Dark mode for eye comfort", 
+    languageSelectionTitle: "Interface Language", 
+    languageSelectionDescription: "Choose the preferred language of the application", 
+
     // Меню сайдбара
     menuPet: "Pet",
     menuTeams: "Teams",
@@ -514,63 +519,66 @@ export const translations = {
     menuSettings: "Settings",
     menuEcoVacation: "Eco Vacation",
     // Настройки - уведомления
-    notificationsTitle: "Уведомления и рассылки",
-    generalNotifications: "Общие уведомления",
-    generalNotificationsDesc: "Получать уведомления о новых функциях, обновлениях и важных событиях",
-    dailyEcoTips: "Ежедневные эко-советы",
-    dailyEcoTipsDesc: "Получать полезные советы по экологии каждый день. Более 365 уникальных советов!",
-    emailNotifications: "Email уведомления",
-    emailNotificationsDesc: "Получать важные уведомления на электронную почту",
-    pushNotifications: "Push уведомления",
-    pushNotificationsDesc: "Получать мгновенные уведомления в браузере",
+  notificationsTitle: "Notifications and mailing lists", 
+  generalNotifications: "General notifications", 
+  generalNotificationsDesc: "Receive notifications about new features, updates and important events", 
+  dailyEcoTips: "Daily eco-tips", 
+  dailyEcoTipsDesc: "Receive useful ecology tips every day. Over 365 unique tips!", 
+  emailNotifications: "Email notifications", 
+  emailNotificationsDesc: "Receive important notifications by email", 
+  pushNotifications: "Push notifications", 
+  pushNotificationsDesc: "Receive instant notifications in the browser", 
     // Настройки - конфиденциальность
-    privacyTitle: "Конфиденциальность и безопасность",
-    resetPassword: "Сброс пароля",
-    resetPasswordDesc: "Изменить пароль для входа в систему. Ссылка будет отправлена на ваш email.",
-    privacyPolicyTitle: "Политика конфиденциальности",
-    privacyPolicyDesc: "Ознакомьтесь с тем, как мы собираем, используем и защищаем ваши данные",
-    termsOfUseTitle: "Условия использования",
-    termsOfUseDesc: "Правила и условия использования приложения EcoSteps",
-    dataSecurity: "Безопасность данных",
-    dataSecurityDesc: "Ваши данные защищены современными методами шифрования и не передаются третьим лицам",
-    sslEncryption: "SSL шифрование",
-    gdprCompliance: "GDPR совместимость",
+  privacyTitle: "Privacy and Security",
+  resetPassword: "Reset password", 
+  resetPasswordDesc: "Change password to log in to the system. The link will be sent to your email.", 
+  privacyPolicyTitle: "Privacy policy", 
+  privacyPolicyDesc: "Learn how we collect, use and protect your data", 
+  termsOfUseTitle: "Terms of use", 
+  termsOfUseDesc: "Rules and conditions for using the EcoSteps application", 
+  dataSecurity: "Data security", 
+  dataSecurityDesc: "Your data is protected by modern encryption methods and is not transferred to third parties", 
+  sslEncryption: "SSL encryption", 
+  gdprCompliance: "GDPR compliance", 
     // Настройки - аккаунт
-    accountManagement: "Управление аккаунтом",
-    clearCache: "Очистка кэша",
-    clearCacheDesc: "Очистить временные файлы, данные приложения и кэш браузера для улучшения производительности",
-    exportData: "Экспорт данных",
-    exportDataDesc: "Скачать все ваши данные в формате JSON",
-    logout: "Выход из системы",
-    logoutDesc: "Завершить текущую сессию и выйти из аккаунта",
-    deleteAccount: "Удаление аккаунта",
-    deleteAccountDesc: "Безвозвратно удалить аккаунт и все связанные данные. Это действие нельзя отменить!",
-    // Настройки - поддержка
-    supportTitle: "Поддержка и помощь",
-    faqTitle: "FAQ / Часто задаваемые вопросы",
-    faqDesc: "Ответы на популярные вопросы пользователей о работе с приложением",
-    contactSupport: "Связаться с поддержкой",
-    contactSupportDesc: "Отправить сообщение команде поддержки или сообщить о проблеме",
-    aboutApp: "О приложении",
-    aboutAppDesc: "Информация о версии, разработчиках и миссии EcoSteps",
-    shareStory: "Поделиться историей",
-    shareStoryDesc: "Расскажите свою эко-историю и поделитесь ей в разделе \"Истории\"",
-    // Модальные окна
-    logoutModalTitle: "Выход из системы",
-    logoutConfirm: "Вы уверены, что хотите выйти из системы?",
-    logoutWarning: "Все несохраненные данные будут потеряны.",
-    deleteAccountModalTitle: "Удаление аккаунта",
-    deleteWarning: "Внимание! Это действие нельзя отменить.",
-    deleteWillRemove: "Будут безвозвратно удалены:",
-    deleteProfile: "Ваш профиль и все личные данные",
-    deleteHistory: "История активности и статистика",
-    deleteTeams: "Участие в командах",
-    deleteStories: "Все ваши истории успеха",
-    deleteAchievements: "Достижения и прогресс",
-    deleteConfirm: "Вы действительно хотите удалить аккаунт навсегда?",
-    resetPasswordModalTitle: "Сброс пароля",
-    resetPasswordInfo: "Мы отправим ссылку для сброса пароля на ваш email:",
-    resetPasswordSpam: "Проверьте папку \"Спам\", если письмо не придет в течение нескольких минут.",
+   accountManagement: "Account management", 
+   clearCache: "Clear cache", 
+   clearCacheDesc: "Clear temporary files, application data and browser cache to improve performance",
+   exportData: "Export data", 
+   exportDataDesc: "Download all your data in JSON format", 
+   logout: "Log out of the system", 
+   logoutDesc: "Complete the current session and log out of your account", 
+   deleteAccount: "Delete account",
+   deleteAccountDesc: "Permanently delete your account and all related data. This action cannot be undone!", 
+ 
+     // Настройки - поддержка
+  supportTitle: "Support and help", 
+  faqTitle: "FAQ / Frequently Asked Questions", 
+  faqDesc: "Answers to popular user questions about working with the application", 
+  contactSupport: "Contact support", 
+  contactSupportDesc: "Send a message to the support team or report a problem", 
+  aboutApp: "About the application", 
+  aboutAppDesc: "Information about the version, developers and mission of EcoSteps", 
+  shareStory: "Share a story", 
+  shareStoryDesc: "Tell your eco-story and share it in the \"Stories\" section", 
+
+  // Модальные окна
+  logoutModalTitle: "Log out of the system",
+  logoutConfirm: "Are you sure you want to log out of the system?", 
+  logoutWarning: "All unsaved data will be lost.", 
+  deleteAccountModalTitle: "Delete account", 
+  deleteWarning: "Attention! This action cannot be undone.", 
+  deleteWillRemove: "The following will be permanently deleted:", 
+  deleteProfile: "Your profile and all personal data", 
+  deleteHistory: "Activity history and statistics", 
+  deleteTeams: "Participation in teams", 
+  deleteStories: "All your success stories", 
+  deleteAchievements: "Achievements and progress", 
+  deleteConfirm: "Do you really want to delete your account forever?",
+  resetPasswordModalTitle: "Password reset", 
+  resetPasswordInfo: "We will send a password reset link to your email:", 
+  resetPasswordSpam: "Check the \"Spam\" folder if the email does not arrive within a few minutes.", 
+
     // Кнопки
     cancel: "Cancel",
     confirm: "Confirm",
@@ -600,18 +608,18 @@ export const translations = {
     categoryHousehold: "Household",
     categoryConsumption: "Consumption",
     categoryPlanning: "Planning",
-    // Кнопки действий
-    readPolicy: "Читать политику",
-    readTerms: "Читать условия",
-    writeToSupport: "Написать в поддержку",
-    openFAQ: "Открыть FAQ",
-    tellStory: "Рассказать историю",
-    sendLink: "Отправить ссылку",
-    clearCacheBtn: "Очистить кэш",
-    exportDataBtn: "Экспортировать данные",
-    logoutBtn: "Выйти из системы",
-    deleteAccountBtn: "Удалить аккаунт",
-    deleteForever: "Удалить навсегда"
+     // Кнопки действий
+    readPolicy: "Read policy", 
+    readTerms: "Read terms", 
+    writeToSupport: "Write to support", 
+    openFAQ: "Open FAQ", 
+    tellStory: "Tell a story", 
+    sendLink: "Send link", 
+    clearCacheBtn: "Clear cache", 
+    exportDataBtn: "Export data", 
+    logoutBtn: "Log out of the system", 
+    deleteAccountBtn: "Delete account", 
+    deleteForever: "Delete forever" 
   },
   BY: {
     mainTitle: "Паменшыце свой вугляродны след",
@@ -952,17 +960,19 @@ export const saveLanguage = (language) => {
 // Функция для сохранения языка в базу данных
 export const saveLanguageToDatabase = async (language) => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
+    const userData = localStorage.getItem('user')
+    if (!userData) {
       console.warn('Пользователь не авторизован, язык не сохранен в БД')
       return false
     }
 
+    const user = JSON.parse(userData)
+    
     const response = await fetch('/api/user-settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'X-User-Id': user.id.toString() // ИСПРАВЛЕНО: используем X-User-Id
       },
       body: JSON.stringify({
         language: language
@@ -985,15 +995,17 @@ export const saveLanguageToDatabase = async (language) => {
 // Функция для загрузки языка из базы данных
 export const loadLanguageFromDatabase = async () => {
   try {
-    const token = localStorage.getItem('token')
-    if (!token) {
+    const userData = localStorage.getItem('user')
+    if (!userData) {
       return null
     }
 
+    const user = JSON.parse(userData)
+    
     const response = await fetch('/api/user-settings', {
-      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Content-Type': 'application/json',
+        'X-User-Id': user.id.toString() // ИСПРАВЛЕНО: используем X-User-Id
       }
     })
 
@@ -1003,24 +1015,60 @@ export const loadLanguageFromDatabase = async () => {
         console.log('Язык загружен из базы данных:', data.settings.language)
         return data.settings.language
       }
+    } else if (response.status === 404) {
+      // Если настроек нет в БД, создаем их с дефолтными значениями
+      await createDefaultSettings(user.id)
+      return getSavedLanguage() || defaultLanguage
     }
+    
     return null
   } catch (error) {
     console.warn('Ошибка при загрузке языка из БД:', error)
     return null
   }
 }
-
+// Функция для создания настроек по умолчанию
+const createDefaultSettings = async (userId) => {
+  try {
+    const currentLang = getSavedLanguage() || defaultLanguage
+    
+    const response = await fetch('/api/user-settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': userId.toString() // ИСПРАВЛЕНО: используем X-User-Id
+      },
+      body: JSON.stringify({
+        language: currentLang,
+        theme: typeof getSavedTheme !== 'undefined' ? getSavedTheme() : 'light'
+      })
+    })
+    
+    if (!response.ok) {
+      console.warn('Ошибка создания настроек по умолчанию:', response.statusText)
+    }
+  } catch (error) {
+    console.warn('Ошибка создания настроек по умолчанию:', error)
+  }
+}
 // Функция для сохранения языка и в localStorage и в БД
 export const saveLanguageEverywhere = async (language) => {
-  // Сохраняем в localStorage
-  saveLanguage(language)
-  
-  // Сохраняем в БД (асинхронно, не блокируем UI)
   try {
-    await saveLanguageToDatabase(language)
+    // Сохраняем в localStorage
+    saveLanguage(language)
+    
+    // Сохраняем в БД (асинхронно)
+    const success = await saveLanguageToDatabase(language)
+    
+    if (!success) {
+      console.warn('Язык сохранен в localStorage, но не в БД')
+    }
+    
+    return success
   } catch (error) {
-    console.warn('Не удалось сохранить язык в БД:', error)
+    console.warn('Ошибка при сохранении языка:', error)
+    // Язык все равно сохранен в localStorage, это важнее
+    return false
   }
 }
 

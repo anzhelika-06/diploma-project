@@ -43,53 +43,72 @@ const SettingsPage = () => {
   }
 
   const loadUserSettings = async () => {
-    try {
-      const userData = localStorage.getItem('user')
-      if (!userData) {
-        // Если пользователь не авторизован, используем настройки из localStorage
-        const savedSettings = localStorage.getItem('appSettings')
-        if (savedSettings) {
-          const localSettings = JSON.parse(savedSettings)
-          setSettings({
-            theme: localSettings.theme || getSavedTheme(),
-            language: localSettings.language || 'RU',
-            notifications: localSettings.notifications !== undefined ? localSettings.notifications : true,
-            ecoTips: localSettings.ecoTips !== undefined ? localSettings.ecoTips : true,
-            emailNotifications: localSettings.emailNotifications !== undefined ? localSettings.emailNotifications : true,
-            pushNotifications: localSettings.pushNotifications !== undefined ? localSettings.pushNotifications : false,
-            privacyLevel: localSettings.privacyLevel || 1
-          })
-        }
-        return
+  try {
+    const userData = localStorage.getItem('user')
+    const token = localStorage.getItem('token') // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
+    
+    // ИСПРАВЛЯЕМ: проверяем и токен, и данные пользователя
+    if (!userData || !token) {
+      // Если пользователь не авторизован, используем настройки из localStorage
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const localSettings = JSON.parse(savedSettings)
+        setSettings({
+          theme: localSettings.theme || getSavedTheme(),
+          language: localSettings.language || 'RU',
+          notifications: localSettings.notifications !== undefined ? localSettings.notifications : true,
+          ecoTips: localSettings.ecoTips !== undefined ? localSettings.ecoTips : true,
+          emailNotifications: localSettings.emailNotifications !== undefined ? localSettings.emailNotifications : true,
+          pushNotifications: localSettings.pushNotifications !== undefined ? localSettings.pushNotifications : false,
+          privacyLevel: localSettings.privacyLevel || 1
+        })
       }
+      return
+    }
 
-      const user = JSON.parse(userData)
-      const token = localStorage.getItem('token')
-      const response = await fetch('/api/user-settings', {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.settings) {
-          setSettings(data.settings)
-          // Применяем тему через новую систему
-          applyTheme(data.settings.theme)
-        }
-      } else {
-        console.error('Ошибка загрузки настроек:', response.status)
-        // Fallback к localStorage
-        const savedSettings = localStorage.getItem('appSettings')
-        if (savedSettings) {
-          const localSettings = JSON.parse(savedSettings)
-          setSettings(prev => ({ ...prev, ...localSettings }))
-        }
+    const user = JSON.parse(userData)
+    
+    // ПРОВЕРЯЕМ ЧТО У ПОЛЬЗОВАТЕЛЯ ЕСТЬ ID
+    if (!user || !user.id) {
+      console.error('У пользователя нет ID или неверные данные пользователя')
+      // Используем настройки из localStorage
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const localSettings = JSON.parse(savedSettings)
+        setSettings({
+          theme: localSettings.theme || getSavedTheme(),
+          language: localSettings.language || 'RU',
+          notifications: localSettings.notifications !== undefined ? localSettings.notifications : true,
+          ecoTips: localSettings.ecoTips !== undefined ? localSettings.ecoTips : true,
+          emailNotifications: localSettings.emailNotifications !== undefined ? localSettings.emailNotifications : true,
+          pushNotifications: localSettings.pushNotifications !== undefined ? localSettings.pushNotifications : false,
+          privacyLevel: localSettings.privacyLevel || 1
+        })
       }
-    } catch (error) {
-      console.error('Ошибка загрузки настроек:', error)
+      return
+    }
+    
+    // ОТПРАВЛЯЕМ userId В ЗАГОЛОВКЕ, КАК ОЖИДАЕТ БЭКЕНД
+    const response = await fetch('/api/user-settings', {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': user.id.toString()
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      if (data.success && data.settings) {
+        setSettings(data.settings)
+        // Применяем тему через новую систему
+        applyTheme(data.settings.theme)
+      }
+    } else if (response.status === 404) {
+      // Если настроек нет в БД, создаем их с дефолтными значениями
+      await createDefaultSettings(user.id)
+      loadUserSettings() // Загружаем заново
+    } else {
+      console.error('Ошибка загрузки настроек:', response.status)
       // Fallback к localStorage
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
@@ -97,54 +116,101 @@ const SettingsPage = () => {
         setSettings(prev => ({ ...prev, ...localSettings }))
       }
     }
-  }
-
-  const saveSettings = async (newSettings) => {
-    try {
-      const userData = localStorage.getItem('user')
-      
-      // Всегда сохраняем в localStorage для быстрого доступа
-      localStorage.setItem('appSettings', JSON.stringify(newSettings))
-      setSettings(newSettings)
-
-      // Если пользователь авторизован, сохраняем в БД
-      if (userData) {
-        const user = JSON.parse(userData)
-        const response = await fetch('/api/user-settings', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-Id': user.id.toString()
-          },
-          body: JSON.stringify(newSettings)
-        })
-
-        if (!response.ok) {
-          console.error('Ошибка сохранения настроек в БД:', response.status)
-          // Настройки уже сохранены в localStorage, продолжаем работу
-        }
-      }
-    } catch (error) {
-      console.error('Ошибка сохранения настроек:', error)
-      // Настройки уже сохранены в localStorage, продолжаем работу
+  } catch (error) {
+    console.error('Ошибка загрузки настроек:', error)
+    // Fallback к localStorage
+    const savedSettings = localStorage.getItem('appSettings')
+    if (savedSettings) {
+      const localSettings = JSON.parse(savedSettings)
+      setSettings(prev => ({ ...prev, ...localSettings }))
     }
   }
-
-  const handleThemeChange = (theme) => {
-    const newSettings = { ...settings, theme }
-    setSettings(newSettings)
-    saveSettings(newSettings)
+} 
+// Функция для создания настроек по умолчанию
+const createDefaultSettings = async (userId) => {
+  try {
+    const response = await fetch('/api/user-settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': userId.toString()
+      },
+      body: JSON.stringify({
+        theme: getSavedTheme(),
+        language: currentLanguage,
+        notifications: true,
+        ecoTips: true,
+        emailNotifications: true,
+        pushNotifications: false,
+        privacyLevel: 1
+      })
+    })
     
-    // Используем новую систему управления темами
-    applyTheme(theme)
+    if (!response.ok) {
+      console.error('Ошибка создания настроек:', response.status)
+    }
+  } catch (error) {
+    console.error('Ошибка создания настроек:', error)
   }
+}
+const saveSettings = async (newSettings) => {
+  try {
+    const userData = localStorage.getItem('user')
+    
+    // Всегда сохраняем в localStorage для быстрого доступа
+    localStorage.setItem('appSettings', JSON.stringify(newSettings))
+    setSettings(newSettings)
+
+    // Если пользователь авторизован, сохраняем в БД
+    if (userData) {
+      const user = JSON.parse(userData)
+      const response = await fetch('/api/user-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user.id.toString() // Используем правильный заголовок
+        },
+        body: JSON.stringify(newSettings)
+      })
+
+      if (!response.ok) {
+        console.error('Ошибка сохранения настроек в БД:', response.status)
+        // Настройки уже сохранены в localStorage, продолжаем работу
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка сохранения настроек:', error)
+    // Настройки уже сохранены в localStorage, продолжаем работу
+  }
+}
+
+const handleThemeChange = (theme) => {
+  const newSettings = { ...settings, theme }
+  setSettings(newSettings)
+  saveSettings(newSettings)
+  
+  // Используем новую систему управления темами
+  // При смене темы в настройках сохраняем в БД (skipSave: false по умолчанию)
+  applyTheme(theme)
+}
 
   const handleLanguageChange = async (language) => {
-    const newSettings = { ...settings, language }
-    setSettings(newSettings)
-    saveSettings(newSettings)
-    // Используем новую систему смены языка
-    await changeLanguage(language)
+    try {
+      const newSettings = { ...settings, language }
+      setSettings(newSettings)
+      
+      // Сохраняем настройки локально
+      localStorage.setItem('appSettings', JSON.stringify(newSettings))
+      
+      // Пытаемся сохранить в БД
+      await saveSettings(newSettings)
+      
+      // Используем новую систему смены языка
+      await changeLanguage(language)
+    } catch (error) {
+      console.error('Ошибка при смене языка:', error)
+      // Показываем пользователю сообщение об ошибке если нужно
+    }
   }
 
   const handleNotificationToggle = (type) => {

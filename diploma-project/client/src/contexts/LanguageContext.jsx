@@ -48,21 +48,43 @@ export const LanguageProvider = ({ children }) => {
 
     initializeLanguage()
   }, [])
-
-  // Функция для смены языка
-  const changeLanguage = async (newLanguage) => {
+// Функция для смены языка
+const changeLanguage = async (newLanguage) => {
+  try {
+    setCurrentLanguage(newLanguage)
+    
+    // Сохраняем язык везде
+    await saveLanguageEverywhere(newLanguage)
+    
+    // Обновляем appSettings в localStorage
     try {
-      setCurrentLanguage(newLanguage)
-      await saveLanguageEverywhere(newLanguage)
-      
-      // Уведомляем другие компоненты об изменении языка
-      window.dispatchEvent(new CustomEvent('languageChanged', { 
-        detail: { language: newLanguage } 
-      }))
+      const appSettings = localStorage.getItem('appSettings')
+      if (appSettings) {
+        const settings = JSON.parse(appSettings)
+        settings.language = newLanguage
+        localStorage.setItem('appSettings', JSON.stringify(settings))
+      } else {
+        // Создаем базовые appSettings если их нет
+        localStorage.setItem('appSettings', JSON.stringify({
+          language: newLanguage,
+          theme: 'light'
+        }))
+      }
     } catch (error) {
-      console.error('Ошибка смены языка:', error)
+      console.warn('Не удалось обновить appSettings:', error)
     }
+    
+    // Уведомляем другие компоненты об изменении языка
+    window.dispatchEvent(new CustomEvent('languageChanged', { 
+      detail: { language: newLanguage } 
+    }))
+    
+    console.log('Язык изменен на:', newLanguage)
+  } catch (error) {
+    console.error('Ошибка смены языка:', error)
+    // Не выбрасываем ошибку дальше, чтобы не ломать UI
   }
+}
 
   // Функция для получения переводов
   const t = (key, params = {}) => {

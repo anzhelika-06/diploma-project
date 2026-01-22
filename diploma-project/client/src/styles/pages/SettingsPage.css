@@ -22,7 +22,7 @@
   text-align: center;
 }
 
-/* Вкладки сверху как папочки - в стиле CommonPage */
+/* Вкладки сверху - фиксированные размеры под самый длинный текст */
 .settings-tabs {
   display: flex;
   gap: 8px;
@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 16px;
   border: none;
   background: transparent;
   color: #666;
@@ -46,21 +46,28 @@
   border-radius: 8px;
   transition: all 0.2s ease;
   white-space: nowrap;
-}
-
-.tab-btn:hover {
-  background: #f5f5f5;
-  color: #2e7d32;
+  /* ФИКСИРОВАННАЯ ШИРИНА - под самый длинный текст "Конфиденциальность" */
+  min-width: 180px;
+  justify-content: center;
 }
 
 .tab-btn.active {
-  background: #e8f5e9;
+  background: transparent; /* Убираем зеленый фон */
   color: #2e7d32;
-  font-weight: 600;
+  box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+    border: 1px solid rgba(76, 175, 80, 0.3); /* Легкая обводка */
 }
+
+.tab-btn:hover {
+  background: transparent; /* Убираем серый фон при наведении */
+  color: #2e7d32;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.3);}
 
 .tab-icon {
   font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
 }
 
 .tab-label {
@@ -103,25 +110,32 @@
   line-height: 1.4;
 }
 
-/* Кнопки выбора темы - блоки с цветными иконками */
+/* Кнопки выбора темы - РАСТЯНУТЫЕ ПО ШИРИНЕ И УМЕНЬШЕННЫЕ ПО ВЫСОТЕ */
 .theme-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  display: flex;
+  justify-content: space-between; /* Растягиваем карточки по ширине */
+  gap: 30px;
+  flex-wrap: nowrap; /* Не переносим на новую строку */
+  width: 100%;
 }
 
 .theme-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 24px;
+  gap: 12px;
+  padding: 16px 20px;
   border: 2px solid #e0e0e0;
   border-radius: 16px;
   background: #fff;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
+  /* РАСТЯГИВАЕМ ПО ШИРИНЕ И УМЕНЬШАЕМ ВЫСОТУ */
+  flex: 1;
+  min-width: 0;
+  max-width: 500px;
+  min-height: 180px; /* Уменьшено с 240px */
 }
 
 .theme-card:hover {
@@ -138,29 +152,43 @@
 }
 
 .theme-icon {
-  font-size: 40px;
+  font-size: 42px !important; 
 }
 
 .theme-name {
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  /* УМЕНЬШЕННАЯ ВЫСОТА */
+  min-height: 40px; /* Уменьшено с 60px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 10px;
 }
 
 .theme-description {
   font-size: 14px;
   color: #666;
   line-height: 1.4;
+  /* УМЕНЬШЕННАЯ ВЫСОТА */
+  min-height: 60px; /* Уменьшено с 90px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 10px;
 }
 
 /* Цветные иконки для тем */
 .light-theme-icon {
-  color: #ff9800 !important; /* Более яркое оранжевое солнце */
-  text-shadow: 0 0 8px rgba(255, 152, 0, 0.3); /* Легкое свечение */
+  color: #ff9800 !important;
+  text-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
 }
 
 .dark-theme-icon {
-  color: #333333 !important; /* Черная луна в светлой теме */
+  color: #333333 !important;
 }
 
 /* В темной теме */
@@ -189,20 +217,18 @@
 }
 
 [data-theme="dark"] .light-theme-icon {
-  color: #ff9800 !important; /* Яркое оранжевое солнце остается ярким */
-  text-shadow: 0 0 12px rgba(255, 152, 0, 0.5); /* Более яркое свечение в темной теме */
+  color: #ff9800 !important;
+  text-shadow: 0 0 12px rgba(255, 152, 0, 0.5);
 }
 
 [data-theme="dark"] .dark-theme-icon {
-  color: #ffffff !important; /* Белая луна остается белой */
+  color: #ffffff !important;
 }
 
-
-
-/* Языковые кнопки - улучшенный дизайн */
+/* Языковые кнопки - УМЕНЬШЕННАЯ ВЫСОТА */
 .language-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
@@ -210,7 +236,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 20px;
+  padding: 12px 20px; /* Уменьшено с 16px 20px */
   border: 2px solid #e0e0e0;
   border-radius: 12px;
   background: #fff;
@@ -219,6 +245,9 @@
   font-size: 16px;
   font-weight: 500;
   color: #333;
+  /* УМЕНЬШЕННАЯ ВЫСОТА */
+  min-height: 60px; /* Уменьшено с 80px */
+  min-width: 220px;
 }
 
 .language-btn:hover {
@@ -231,10 +260,9 @@
   border-color: #4caf50;
   background: #e8f5e9;
   color: #2e7d32;
-  font-weight: 600;
 }
 
-/* Настройки переключателей - улучшенный дизайн */
+/* Настройки переключателей */
 .setting-item {
   display: flex;
   justify-content: space-between;
@@ -245,6 +273,8 @@
   margin-bottom: 16px;
   border: 1px solid #e0e0e0;
   transition: all 0.3s ease;
+  /* Минимальная высота для сохранения пропорций */
+  min-height: 100px;
 }
 
 .setting-item:hover {
@@ -263,6 +293,8 @@
   color: #333;
   font-size: 16px;
   font-weight: 600;
+  /* Минимальная высота для заголовков */
+  min-height: 24px;
 }
 
 .setting-info p {
@@ -270,6 +302,8 @@
   color: #666;
   font-size: 14px;
   line-height: 1.5;
+  /* Минимальная высота для описаний */
+  min-height: 42px;
 }
 
 /* Переключатель */
@@ -320,7 +354,7 @@ input:checked + .toggle-slider:before {
   transform: translateX(22px);
 }
 
-/* Элементы контента - оригинальный дизайн */
+/* Элементы контента */
 .privacy-item,
 .account-item,
 .support-item {
@@ -333,6 +367,8 @@ input:checked + .toggle-slider:before {
   margin-bottom: 16px;
   border: 1px solid #e0e0e0;
   transition: all 0.3s ease;
+  /* Минимальная высота для сохранения пропорций */
+  min-height: 120px;
 }
 
 .privacy-item:hover,
@@ -376,6 +412,8 @@ input:checked + .toggle-slider:before {
   color: #333;
   font-size: 16px;
   font-weight: 600;
+  /* Минимальная высота для заголовков */
+  min-height: 24px;
 }
 
 .privacy-content p,
@@ -385,6 +423,8 @@ input:checked + .toggle-slider:before {
   color: #666;
   font-size: 14px;
   line-height: 1.5;
+  /* Минимальная высота для описаний */
+  min-height: 42px;
 }
 
 .danger-zone {
@@ -392,7 +432,7 @@ input:checked + .toggle-slider:before {
   background: #fff5f5;
 }
 
-/* Кнопки действий - простые с небольшими закруглениями (высокая специфичность) */
+/* Кнопки действий - ФИКСИРОВАННЫЕ размеры */
 .settings-page .action-btn,
 .privacy-content .action-btn,
 .account-content .action-btn,
@@ -400,7 +440,7 @@ input:checked + .toggle-slider:before {
   display: inline-flex !important;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px !important;
+  padding: 8px 16px !important;
   border: 1px solid #e0e0e0 !important;
   border-radius: 4px !important;
   background: #fff !important;
@@ -410,9 +450,10 @@ input:checked + .toggle-slider:before {
   font-weight: 500;
   color: #333 !important;
   text-decoration: none;
-  width: auto !important;
-  min-width: auto !important;
-  white-space: nowrap !important; /* Не переносим текст на новую строку */
+  white-space: nowrap !important;
+  /* ФИКСИРОВАННАЯ ШИРИНА под самый длинный текст */
+  min-width: 200px;
+  justify-content: center;
 }
 
 .settings-page .action-btn.secondary,
@@ -483,17 +524,21 @@ input:checked + .toggle-slider:before {
   gap: 4px;
   background: #e8f5e9;
   color: #2e7d32;
-  padding: 4px 8px;
+  padding: 4px 12px;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
+  /* ФИКСИРОВАННАЯ ШИРИНА под самый длинный текст */
+  min-width: 140px;
+  justify-content: center;
+  height: 28px;
 }
 
 .security-badge .material-icons {
   font-size: 14px;
 }
 
-/* Превью уведомлений - улучшенный дизайн */
+/* Превью уведомлений */
 .notification-preview {
   margin-top: 24px;
   padding: 20px;
@@ -501,6 +546,8 @@ input:checked + .toggle-slider:before {
   border-radius: 16px;
   border-left: 4px solid #4caf50;
   box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
+  /* Минимальная высота для сохранения пропорций */
+  min-height: 180px;
 }
 
 .preview-header {
@@ -508,6 +555,7 @@ input:checked + .toggle-slider:before {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  height: 40px;
 }
 
 .preview-header h3 {
@@ -530,6 +578,10 @@ input:checked + .toggle-slider:before {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  /* ФИКСИРОВАННАЯ ШИРИНА под самый длинный текст */
+  min-width: 220px;
+  justify-content: center;
+  height: 36px;
 }
 
 .refresh-tip-btn:hover:not(:disabled) {
@@ -551,6 +603,12 @@ input:checked + .toggle-slider:before {
   text-align: center;
   padding: 32px 20px;
   color: #666;
+  /* Минимальная высота */
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .placeholder-icon .material-icons {
@@ -571,6 +629,9 @@ input:checked + .toggle-slider:before {
   cursor: pointer;
   margin-top: 12px;
   transition: all 0.3s ease;
+  /* ФИКСИРОВАННАЯ ШИРИНА под самый длинный текст */
+  min-width: 160px;
+  height: 40px;
 }
 
 .retry-btn:hover {
@@ -598,14 +659,14 @@ input:checked + .toggle-slider:before {
   background: #fff;
   border-radius: 12px;
   width: 90%;
-  max-width: 500px;
+  max-width: 600px;
   z-index: 2001;
   animation: slideIn 0.3s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 .modal.large {
-  max-width: 600px;
+  max-width: 700px;
   width: 95%;
 }
 
@@ -625,6 +686,7 @@ input:checked + .toggle-slider:before {
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #e0e0e0;
+  height: 60px;
 }
 
 .modal-header h3 {
@@ -645,6 +707,8 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
 }
 
 .modal-close:hover {
@@ -684,6 +748,7 @@ input:checked + .toggle-slider:before {
   justify-content: flex-end;
   padding: 20px;
   border-top: 1px solid #e0e0e0;
+  height: 80px;
 }
 
 /* Кнопки модальных окон */
@@ -697,6 +762,9 @@ input:checked + .toggle-slider:before {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  /* ФИКСИРОВАННАЯ ШИРИНА под самый длинный текст */
+  min-width: 140px;
+  height: 40px;
 }
 
 .btn-secondary {
@@ -736,6 +804,8 @@ input:checked + .toggle-slider:before {
 .faq-item {
   padding: 16px 0;
   border-bottom: 1px solid #e0e0e0;
+  /* Минимальная высота для сохранения пропорций */
+  min-height: 80px;
 }
 
 .faq-item:last-child {
@@ -747,6 +817,8 @@ input:checked + .toggle-slider:before {
   color: #2e7d32;
   font-size: 14px;
   font-weight: 600;
+  /* Минимальная высота для заголовков */
+  min-height: 20px;
 }
 
 .faq-item p {
@@ -754,6 +826,8 @@ input:checked + .toggle-slider:before {
   color: #666;
   font-size: 13px;
   line-height: 1.4;
+  /* Минимальная высота для текста */
+  min-height: 40px;
 }
 
 /* Формы */
@@ -767,6 +841,8 @@ input:checked + .toggle-slider:before {
   font-weight: 500;
   color: #333;
   font-size: 14px;
+  /* Минимальная высота для меток */
+  min-height: 20px;
 }
 
 .form-select,
@@ -780,6 +856,9 @@ input:checked + .toggle-slider:before {
   transition: border-color 0.2s ease;
   background: #fff;
   color: #333;
+  /* ФИКСИРОВАННАЯ высота для полей ввода */
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .form-select:focus,
@@ -793,9 +872,10 @@ input:checked + .toggle-slider:before {
   resize: vertical;
   min-height: 100px;
   font-family: inherit;
+  height: auto;
 }
 
-/* Темная тема - все тексты белые */
+/* Темная тема */
 [data-theme="dark"] .settings-container {
   background: #1e1e1e;
   color: #fff;
@@ -814,13 +894,15 @@ input:checked + .toggle-slider:before {
 }
 
 [data-theme="dark"] .tab-btn:hover {
-  background: #4caf50;
-  color: #ffffff;
+  background: transparent; /* Убираем зеленый фон при наведении */
+  color: #4caf50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.3); /* Легкое свечение при наведении */
 }
-
 [data-theme="dark"] .tab-btn.active {
-  background: #4caf50;
-  color: #ffffff;
+  background: transparent; /* Убираем зеленый фон */
+  color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4); /* Эффект свечения */
+  border: 1px solid rgba(76, 175, 80, 0.4); /* Легкая обводка */
 }
 
 [data-theme="dark"] .settings-section h2 {
@@ -838,8 +920,6 @@ input:checked + .toggle-slider:before {
 [data-theme="dark"] .setting-description {
   color: #fff;
 }
-
-
 
 [data-theme="dark"] .language-btn {
   background: #2d2d2d;
@@ -958,7 +1038,7 @@ input:checked + .toggle-slider:before {
   color: #fff;
 }
 
-/* Кнопки действий в темной теме - простые (высокая специфичность) */
+/* Кнопки действий в темной теме */
 [data-theme="dark"] .settings-page .action-btn.secondary,
 [data-theme="dark"] .privacy-content .action-btn.secondary,
 [data-theme="dark"] .account-content .action-btn.secondary,
@@ -979,11 +1059,11 @@ input:checked + .toggle-slider:before {
 /* Опасные блоки в темной теме */
 [data-theme="dark"] .danger-zone {
   border-left: 4px solid #f44336;
-  background: #2d1f1f !important; /* Темно-красноватый фон */
+  background: #2d1f1f !important;
 }
 
 [data-theme="dark"] .danger-zone .account-icon {
-  background: #4a2c2c; /* Темно-красноватый фон для иконки */
+  background: #4a2c2c;
 }
 
 /* Адаптивность */
@@ -1001,16 +1081,49 @@ input:checked + .toggle-slider:before {
   .settings-tabs {
     flex-wrap: wrap;
     gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 12px;
   }
 
   .tab-btn {
-    padding: 10px 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    min-width: 160px;
+    flex-shrink: 0;
+  }
+
+  .theme-options {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .theme-card {
+    width: 100%;
+    min-height: 160px; /* Уменьшено для мобильных */
+  }
+
+  .theme-icon {
+    font-size: 32px;
+  }
+
+  .theme-name {
+    min-height: 36px;
+    font-size: 16px;
+  }
+
+  .theme-description {
+    min-height: 54px;
     font-size: 13px;
   }
 
-  .theme-options,
   .language-options {
     grid-template-columns: 1fr;
+  }
+
+  .language-btn {
+    min-width: 200px;
+    min-height: 55px; /* Уменьшено для мобильных */
+    padding: 10px 16px;
   }
 
   .privacy-item,
@@ -1034,5 +1147,13 @@ input:checked + .toggle-slider:before {
   .modal-body,
   .modal-footer {
     padding: 16px;
+  }
+  
+  .modal-header {
+    height: 50px;
+  }
+  
+  .modal-footer {
+    height: 70px;
   }
 }

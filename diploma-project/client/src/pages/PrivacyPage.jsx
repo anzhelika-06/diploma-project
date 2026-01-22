@@ -15,7 +15,7 @@ const PrivacyPage = () => {
   useEffect(() => {
     // Применяем сохраненную тему при загрузке страницы
     const savedTheme = getSavedTheme()
-    applyTheme(savedTheme)
+    applyTheme(savedTheme, { skipSave: true }) // Стало
     setCurrentTheme(savedTheme)
     
     // Определяем путь возврата на основе referrer или state

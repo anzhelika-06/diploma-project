@@ -13,7 +13,26 @@ const pool = new Pool({
 
 // Middleware для проверки авторизации
 const requireAuth = (req, res, next) => {
-  const userId = req.headers['x-user-id']; // Временно используем заголовок
+  let userId = null;
+  
+  // Проверяем оба варианта: X-User-Id и Authorization header
+  if (req.headers['x-user-id']) {
+    userId = req.headers['x-user-id'];
+  } else if (req.headers['authorization']) {
+    // Пытаемся извлечь userId из токена (упрощенная версия)
+    const token = req.headers['authorization'].replace('Bearer ', '');
+    // В реальном приложении здесь была бы верификация токена
+    // Для простоты предполагаем, что userId передается в токене
+    try {
+      // Простая декодировка (в реальном приложении используйте JWT)
+      const decoded = Buffer.from(token, 'base64').toString();
+      userId = decoded.split(':')[0]; // предполагаем формат "userId:timestamp"
+    } catch (error) {
+      // Если не получается декодировать, используем заголовок X-User-Id
+      console.warn('Не удалось декодировать токен:', error);
+    }
+  }
+  
   if (!userId) {
     return res.status(401).json({
       success: false,
@@ -21,9 +40,78 @@ const requireAuth = (req, res, next) => {
       message: 'Требуется авторизация'
     });
   }
+  
   req.userId = parseInt(userId);
   next();
 };
+
+// Создать настройки по умолчанию (новый endpoint)
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    const {
+      theme = 'light',
+      language = 'RU',
+      notifications = true,
+      ecoTips = true,
+      emailNotifications = true,
+      pushNotifications = false,
+      privacyLevel = 1,
+      timezone = 'Europe/Minsk'
+    } = req.body;
+    
+    const query = `
+      INSERT INTO user_settings (
+        user_id,
+        theme,
+        language,
+        notifications_enabled,
+        eco_tips_enabled,
+        email_notifications,
+        push_notifications,
+        privacy_level,
+        timezone
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (user_id) DO UPDATE SET
+        theme = EXCLUDED.theme,
+        language = EXCLUDED.language,
+        notifications_enabled = EXCLUDED.notifications_enabled,
+        eco_tips_enabled = EXCLUDED.eco_tips_enabled,
+        email_notifications = EXCLUDED.email_notifications,
+        push_notifications = EXCLUDED.push_notifications,
+        privacy_level = EXCLUDED.privacy_level,
+        timezone = EXCLUDED.timezone,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+    
+    const values = [
+      req.userId,
+      theme,
+      language,
+      notifications,
+      ecoTips,
+      emailNotifications,
+      pushNotifications,
+      privacyLevel,
+      timezone
+    ];
+    
+    const result = await pool.query(query, values);
+    
+    res.json({
+      success: true,
+      message: 'Настройки созданы/обновлены',
+      settings: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Ошибка создания настроек:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Ошибка сервера'
+    });
+  }
+});
 
 // Получить настройки пользователя
 router.get('/', requireAuth, async (req, res) => {
@@ -91,6 +179,15 @@ router.put('/', requireAuth, async (req, res) => {
       timezone
     } = req.body;
     
+    // Проверяем, есть ли уже настройки у пользователя
+    const checkQuery = 'SELECT user_id FROM user_settings WHERE user_id = $1';
+    const checkResult = await pool.query(checkQuery, [req.userId]);
+    
+    if (checkResult.rows.length === 0) {
+      // Если настроек нет, создаем их
+      return router.post(req, res);
+    }
+    
     // Строим динамический запрос только для переданных полей
     const updates = [];
     const values = [req.userId];
@@ -157,6 +254,7 @@ router.put('/', requireAuth, async (req, res) => {
     const query = `
       UPDATE user_settings SET ${updates.join(', ')}
       WHERE user_id = $1
+      RETURNING *
     `;
     
     const result = await pool.query(query, values);
@@ -171,7 +269,8 @@ router.put('/', requireAuth, async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Настройки успешно обновлены'
+      message: 'Настройки успешно обновлены',
+      settings: result.rows[0]
     });
   } catch (error) {
     console.error('Ошибка обновления настроек:', error);
@@ -198,13 +297,15 @@ router.post('/reset', requireAuth, async (req, res) => {
         timezone = 'Europe/Minsk',
         updated_at = CURRENT_TIMESTAMP
       WHERE user_id = $1
+      RETURNING *
     `;
     
-    await pool.query(query, [req.userId]);
+    const result = await pool.query(query, [req.userId]);
     
     res.json({
       success: true,
-      message: 'Настройки сброшены к значениям по умолчанию'
+      message: 'Настройки сброшены к значениям по умолчанию',
+      settings: result.rows[0]
     });
   } catch (error) {
     console.error('Ошибка сброса настроек:', error);
