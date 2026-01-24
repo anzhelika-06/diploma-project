@@ -1,3 +1,4 @@
+/* MobileNav.css */
 .mobile-nav {
   display: none;
   position: fixed;
@@ -42,10 +43,6 @@
 .mobile-nav-icon {
   font-size: 24px;
   transition: transform 0.2s ease;
-}
-
-.mobile-nav-icon {
-  font-size: 24px;
 }
 
 .mobile-nav-icon-svg {
@@ -188,7 +185,7 @@
   }
 }
 
-/* Темная тема */
+/* Темная тема для .mobile-nav */
 .mobile-nav[data-theme="dark"] {
   background: #1e1e1e;
   border-top-color: #404040;
@@ -206,11 +203,7 @@
   color: #4caf50;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg path,
-.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg circle {
-  stroke: #fff;
-}
-
+/* Темная тема для иконок SVG в навигации */
 .mobile-nav[data-theme="dark"] .mobile-nav-icon-svg {
   filter: brightness(0) saturate(100%) invert(100%);
 }
@@ -219,40 +212,44 @@
   filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
 }
 
-.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg path,
-.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg circle {
-  stroke: #4caf50;
+/* Темная тема для .mobile-menu - ОСНОВНОЙ СЕЛЕКТОР */
+[data-theme="dark"] .mobile-menu,
+.mobile-menu[data-theme="dark"] {
+  background: #1e1e1e !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu {
-  background: #1e1e1e;
+[data-theme="dark"] .mobile-menu .mobile-menu-header,
+.mobile-menu[data-theme="dark"] .mobile-menu-header {
+  background: #1e1e1e !important;
+  border-bottom-color: #404040 !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu-header {
-  background: #1e1e1e;
-  border-bottom-color: #404040;
+[data-theme="dark"] .mobile-menu .mobile-menu-header h3,
+.mobile-menu[data-theme="dark"] .mobile-menu-header h3 {
+  color: #fff !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu-header h3 {
-  color: #fff;
+[data-theme="dark"] .mobile-menu .mobile-menu-close,
+.mobile-menu[data-theme="dark"] .mobile-menu-close {
+  color: #fff !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu-close {
-  color: #fff;
+[data-theme="dark"] .mobile-menu .mobile-menu-close:hover,
+.mobile-menu[data-theme="dark"] .mobile-menu-close:hover {
+  background: #333 !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu-close:hover {
-  background: #333;
+[data-theme="dark"] .mobile-menu .mobile-menu-item,
+.mobile-menu[data-theme="dark"] .mobile-menu-item {
+  color: #fff !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu-item {
-  color: #fff;
+[data-theme="dark"] .mobile-menu .mobile-menu-item:hover,
+.mobile-menu[data-theme="dark"] .mobile-menu-item:hover {
+  background: #333 !important;
 }
 
-.mobile-nav[data-theme="dark"] .mobile-menu-item:hover {
-  background: #333;
-}
-
-.mobile-nav[data-theme="dark"] .mobile-menu-icon-svg {
-  filter: brightness(0) saturate(100%) invert(100%);
+[data-theme="dark"] .mobile-menu .mobile-menu-icon-svg,
+.mobile-menu[data-theme="dark"] .mobile-menu-icon-svg {
+  filter: brightness(0) saturate(100%) invert(100%) !important;
 }

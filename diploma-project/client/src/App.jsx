@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react' // ДОБАВЬТЕ useCallback
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './pages/MainLayout'
 import AuthPage from './pages/AuthPage'
@@ -23,6 +23,7 @@ import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
 import SearchPage from './pages/SearchPage'
 import TestSettingsPage from './pages/TestSettingsPage'
+import NotificationSystem from './components/NotificationSystem'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager'
 import './styles/variables.css'
@@ -30,6 +31,36 @@ import './styles/variables.css'
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [showNotifications, setShowNotifications] = useState(false)
+
+  // Функция для показа уведомлений
+  const showAppNotification = useCallback((title, body, type = 'success') => {
+    if (window.showNotification) {
+      window.showNotification({
+        title,
+        body,
+        type
+      });
+    } else {
+      // Если NotificationSystem еще не загружен, сохраняем в localStorage
+      const notification = {
+        id: `app-notif-${Date.now()}`,
+        type,
+        title,
+        body,
+        timestamp: new Date().toISOString(),
+        autoHide: true
+      };
+      
+      // Сохраняем во временное хранилище
+      const pendingNotifications = JSON.parse(localStorage.getItem('pendingNotifications') || '[]');
+      pendingNotifications.push(notification);
+      localStorage.setItem('pendingNotifications', JSON.stringify(pendingNotifications));
+      
+      // Показываем alert как fallback
+      alert(`${title}: ${body}`);
+    }
+  }, []);
 
   useEffect(() => {
     // Инициализируем тему при загрузке приложения
@@ -88,45 +119,51 @@ function App() {
       <div className="page-container">
         <Router>
           <Routes>
-          {/* Главная страница - редирект в зависимости от авторизации */}
-          <Route 
-            path="/" 
-            element={
-              isAuthenticated ? (
-                <Navigate to="/feed" replace />
-              ) : (
-                <MainLayout />
-              )
-            } 
-          />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/test-settings" element={<TestSettingsPage />} />
-          <Route path="/about" element={<AboutPage />} />
+            {/* Главная страница - редирект в зависимости от авторизации */}
+            <Route 
+              path="/" 
+              element={
+                isAuthenticated ? (
+                  <Navigate to="/feed" replace />
+                ) : (
+                  <MainLayout />
+                )
+              } 
+            />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/test-settings" element={<TestSettingsPage />} />
+            <Route path="/about" element={<AboutPage />} />
 
-          {/* Защищенные страницы с Dashboard Layout */}
-          <Route element={<DashboardLayout />}>
-            <Route path="/feed" element={<FeedPage />} />
-            <Route path="/pet" element={<PetPage />} />
-            <Route path="/teams" element={<TeamsPage />} />
-            <Route path="/messages" element={<MessagesPage />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/create" element={<CreatePostPage />} />
-            <Route path="/achievements" element={<AchievementsPage />} />
-            <Route path="/statistics" element={<StatisticsPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/contribution" element={<ContributionPage />} />
-            <Route path="/reviews" element={<ReviewsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/search" element={<SearchPage />} />
-          </Route>
-        </Routes>
-      </Router>
-    </div>
+            {/* Защищенные страницы с Dashboard Layout */}
+            <Route element={<DashboardLayout />}>
+              <Route path="/feed" element={<FeedPage />} />
+              <Route path="/pet" element={<PetPage />} />
+              <Route path="/teams" element={<TeamsPage />} />
+              <Route path="/messages" element={<MessagesPage />} />
+              <Route path="/friends" element={<FriendsPage />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+              <Route path="/create" element={<CreatePostPage />} />
+              <Route path="/achievements" element={<AchievementsPage />} />
+              <Route path="/statistics" element={<StatisticsPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/contribution" element={<ContributionPage />} />
+              <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/search" element={<SearchPage />} />
+            </Route>
+          </Routes>
+          
+          {/* Система уведомлений (всегда висит внизу иерархии) */}
+          <NotificationSystem 
+            isVisible={showNotifications} 
+            onClose={() => setShowNotifications(false)}
+          />
+        </Router>
+      </div>
     </LanguageProvider>
   )
 }

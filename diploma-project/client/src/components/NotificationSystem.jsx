@@ -20,16 +20,39 @@ const NotificationSystem = ({ isVisible, onClose }) => {
       })
     }
 
+    // Загружаем ожидающие уведомления из localStorage
+    loadPendingNotifications()
+
     // Проверяем, нужно ли показать совет дня
     if (isVisible) {
       checkDailyTip()
     }
     
     // Устанавливаем интервал для проверки новых уведомлений
-    const interval = setInterval(checkDailyTip, 60000) // каждую минуту
+    const interval = setInterval(checkDailyTip, 60000)
 
     return () => clearInterval(interval)
   }, [isVisible])
+
+  const loadPendingNotifications = () => {
+    const pending = localStorage.getItem('pendingNotifications')
+    if (pending) {
+      try {
+        const pendingNotifications = JSON.parse(pending)
+        pendingNotifications.forEach(notification => {
+          showNotification({
+            title: notification.title,
+            body: notification.body,
+            type: notification.type
+          })
+        })
+        // Очищаем после загрузки
+        localStorage.removeItem('pendingNotifications')
+      } catch (error) {
+        console.error('Ошибка загрузки ожидающих уведомлений:', error)
+      }
+    }
+  }
 
   const checkDailyTip = async () => {
     if (!settings.ecoTips) return
@@ -113,8 +136,15 @@ const NotificationSystem = ({ isVisible, onClose }) => {
   }
 
   // Экспортируем функцию для использования в других компонентах
-  window.showNotification = showNotification
-  window.requestNotificationPermission = requestNotificationPermission
+  useEffect(() => {
+    window.showNotification = showNotification
+    window.requestNotificationPermission = requestNotificationPermission
+    
+    return () => {
+      window.showNotification = null
+      window.requestNotificationPermission = null
+    }
+  }, [])
 
   if (!isVisible) {
     return null

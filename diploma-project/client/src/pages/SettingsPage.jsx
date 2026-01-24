@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { applyTheme, getSavedTheme, THEMES, getThemeDisplayName } from '../utils/themeManager'
 import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/pages/SettingsPage.css'
-
+import useNotification from '../hooks/useNotification';
 const SettingsPage = () => {
   const { currentLanguage, changeLanguage, t } = useLanguage()
+  const { showSuccess, showError } = useNotification()
   const [activeTab, setActiveTab] = useState('appearance')
+  const [tempNotification, setTempNotification] = useState({ show: false, title: '', body: '' })
   const [user, setUser] = useState(null)
   const [settings, setSettings] = useState({
     theme: getSavedTheme(),
@@ -22,6 +24,7 @@ const SettingsPage = () => {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showFaqModal, setShowFaqModal] = useState(false)
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [showClearCacheModal, setShowClearCacheModal] = useState(false)
   const [feedbackForm, setFeedbackForm] = useState({
     type: 'Природа',
@@ -239,7 +242,7 @@ const handleThemeChange = (theme) => {
     
     // Применяем текущую тему (она должна остаться такой же)
     applyTheme(currentTheme)
-    
+    showSuccess(t('loggedOutSuccess'), t('loggedOutDetails'));
     window.location.href = '/'
   }
 
@@ -266,34 +269,61 @@ const handleThemeChange = (theme) => {
   }
 
   const handleClearCache = () => {
+    console.log('=== handleClearCache вызван ===');
+    
     // Очищаем localStorage (кроме важных данных пользователя)
     const userData = localStorage.getItem('user')
     const token = localStorage.getItem('token')
     const appSettings = localStorage.getItem('appSettings')
     
+    console.log('Данные до очистки:', { userData: !!userData, token: !!token, appSettings: !!appSettings });
+    
     localStorage.clear()
     
     // Восстанавливаем важные данные
-    if (userData) localStorage.setItem('user', userData)
-    if (token) localStorage.setItem('token', token)
-    if (appSettings) localStorage.setItem('appSettings', appSettings)
+    if (userData) {
+      localStorage.setItem('user', userData)
+      console.log('user восстановлен');
+    }
+    if (token) {
+      localStorage.setItem('token', token)
+      console.log('token восстановлен');
+    }
+    if (appSettings) {
+      localStorage.setItem('appSettings', appSettings)
+      console.log('appSettings восстановлены');
+    }
     
     // Очищаем sessionStorage
     sessionStorage.clear()
+    console.log('sessionStorage очищен');
     
     // Очищаем кэш браузера если возможно
     if ('caches' in window) {
       caches.keys().then(names => {
+        console.log('Удаляем кэши:', names);
         names.forEach(name => {
           caches.delete(name)
         })
       })
     }
     
-    setShowClearCacheModal(false)
-    alert('Кэш успешно очищен!')
-  }
-
+    setShowClearCacheModal(false);
+  
+    // Показываем временное уведомление
+    setTempNotification({
+      show: true,
+      title: t('cacheClearedSuccess') || 'Кэш очищен!',
+      body: t('cacheClearedDetails') || 'Временные файлы удалены.'
+    });
+    
+    // Автоматически скрываем через 3 секунды
+    setTimeout(() => {
+      setTempNotification({ show: false, title: '', body: '' });
+    }, 3000);
+  };
+  
+  
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault()
     try {
@@ -578,21 +608,6 @@ const handleThemeChange = (theme) => {
                     </button>
                   </div>
                 </div>
-
-                <div className="account-item">
-                  <div className="account-icon">
-                    <span className="material-icons">download</span>
-                  </div>
-                  <div className="account-content">
-                    <h3>{t('exportData')}</h3>
-                    <p>{t('exportDataDesc')}</p>
-                    <button className="action-btn secondary">
-                      <span className="material-icons">download</span>
-                      {t('exportData')}
-                    </button>
-                  </div>
-                </div>
-
                 <div className="account-item danger-zone">
                   <div className="account-icon">
                     <span className="material-icons">logout</span>
@@ -964,47 +979,82 @@ const handleThemeChange = (theme) => {
       )}
 
       {/* Модальное окно очистки кэша */}
-      {showClearCacheModal && (
-        <>
-          <div className="modal-overlay" onClick={() => setShowClearCacheModal(false)} />
-          <div className="modal">
-            <div className="modal-header">
-              <h3>Очистка кэша</h3>
-              <button 
-                className="modal-close"
-                onClick={() => setShowClearCacheModal(false)}
-              >
-                <span className="material-icons">close</span>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p><strong>Вы уверены, что хотите очистить кэш?</strong></p>
-              <p>Будут удалены:</p>
-              <ul>
-                <li>Временные файлы приложения</li>
-                <li>Кэшированные данные</li>
-                <li>Данные сессии</li>
-                <li>Кэш браузера</li>
-              </ul>
-              <p><strong>Ваши настройки и данные аккаунта сохранятся.</strong></p>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-secondary"
-                onClick={() => setShowClearCacheModal(false)}
-              >
-                Отмена
-              </button>
-              <button 
-                className="btn-primary"
-                onClick={handleClearCache}
-              >
-                Очистить кэш
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+{showClearCacheModal && (
+  <>
+    <div className="modal-overlay" onClick={() => setShowClearCacheModal(false)} />
+    <div className="modal">
+      <div className="modal-header">
+        <h3>{t('clearCacheTitle')}</h3>
+        <button 
+          className="modal-close"
+          onClick={() => setShowClearCacheModal(false)}
+        >
+          <span className="material-icons">close</span>
+        </button>
+      </div>
+      <div className="modal-body">
+        <p><strong>{t('clearCacheConfirmation')}</strong></p>
+        <p>{t('clearCacheWillBeDeleted')}</p>
+        <ul>
+          <li>{t('clearCacheTempFiles')}</li>
+          <li>{t('clearCacheCachedData')}</li>
+          <li>{t('clearCacheSessionData')}</li>
+          <li>{t('clearCacheBrowserCache')}</li>
+        </ul>
+        <p><strong>{t('clearCacheNote')}</strong></p>
+      </div>
+      <div className="modal-footer">
+        <button 
+          className="btn-secondary"
+          onClick={() => setShowClearCacheModal(false)}
+        >
+          {t('cancel')}
+        </button>
+        <button 
+          className="btn-primary"
+          onClick={handleClearCache}
+        >
+          {t('clearCacheButton')}
+        </button>
+      </div>
+    </div>
+  </>
+)}
+{/* Временное уведомление об успешной очистке кэша */}
+{tempNotification.show && (
+  <>
+    <div className="modal-overlay" onClick={() => setTempNotification({ show: false, title: '', body: '' })} />
+    <div className="modal notification-modal">
+      <div className="modal-header">
+        <h3>
+          <span className="material-icons" style={{ color: '#10b981', marginRight: '8px' }}>check_circle</span>
+          {tempNotification.title}
+        </h3>
+        <button 
+          className="modal-close"
+          onClick={() => setTempNotification({ show: false, title: '', body: '' })}
+        >
+          <span className="material-icons">close</span>
+        </button>
+      </div>
+      <div className="modal-body">
+        <p style={{ textAlign: 'center' }}>{tempNotification.body}</p> {/* ДОБАВЬТЕ textAlign: 'center' */}
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <span className="material-icons" style={{ fontSize: '48px', color: '#10b981' }}>cleaning_services</span>
+        </div>
+      </div>
+      <div className="modal-footer">
+        <button 
+          className="btn-primary"
+          onClick={() => setTempNotification({ show: false, title: '', body: '' })}
+          style={{ width: '100%' }}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  </>
+)}
     </div>
   )
 }

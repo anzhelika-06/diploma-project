@@ -183,7 +183,7 @@ const PrivacyPage = () => {
   return (
     <div className="terms-page" data-theme={currentTheme}>
       <div className="terms-container">
-        <button onClick={() => navigate(returnPath)} className="back-link">← Назад</button>
+      <button onClick={() => navigate(returnPath)} className="back-link">← {t('backButton')}</button>        
         
         <h1>{t('privacyPageTitle')}</h1>
         
