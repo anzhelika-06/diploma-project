@@ -192,7 +192,7 @@ const RegisterPage = () => {
   useEffect(() => {
     // Применяем сохраненную тему при загрузке страницы БЕЗ сохранения в БД
     const savedTheme = getSavedTheme()
-    applyTheme(savedTheme, { skipSave: true }) // ДОБАВЛЯЕМ skipSave: true
+    applyTheme(savedTheme, { skipSave: true })
     setCurrentTheme(savedTheme)
     
     const phrase = getRegistrationPhrase(currentLanguage)
@@ -339,7 +339,6 @@ const RegisterPage = () => {
   }
 
   const handleSubmit = async () => {
-    
     const stepErrors = validateStep(currentStep)
     
     if (Object.keys(stepErrors).length > 0) {
@@ -360,7 +359,7 @@ const RegisterPage = () => {
         gender: formData.gender
       }
       
-      // Безопасная отправка без логирования пароля
+      // Отправляем данные регистрации
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
@@ -372,12 +371,21 @@ const RegisterPage = () => {
       const data = await response.json()
       
       if (data.success) {
+        // ✅ ВАЖНО: Теперь сервер возвращает токен
+        console.log('✅ Регистрация успешна!')
+        console.log('🔑 Токен получен:', data.token ? 'Да' : 'Нет')
+        console.log('👤 Данные пользователя:', data.user)
+        
+        // Сохраняем пользователя и токен в localStorage
+        localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('token', data.token) // ← СОХРАНЯЕМ ТОКЕН
+        
         // Показываем модалку успеха
         setShowSuccessModal(true)
         
-        // Редирект на страницу авторизации через 2 секунды
+        // Редирект на главную страницу через 2 секунды
         setTimeout(() => {
-          navigate('/auth')
+          navigate('/') // Идем на главную, а не на авторизацию
         }, 2000)
       } else {
         // Обработка ошибок с сервера
@@ -411,7 +419,7 @@ const RegisterPage = () => {
         setShowErrorModal(true)
       }
     } catch (error) {
-      console.error('Ошибка при регистрации:', error)
+      console.error('❌ Ошибка при регистрации:', error)
       const networkErrorMessage = t('networkError')
       setErrors({ general: networkErrorMessage })
       setErrorMessage(networkErrorMessage)
@@ -423,7 +431,7 @@ const RegisterPage = () => {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false)
-    navigate('/auth')
+    navigate('/') // Идем на главную
   }
 
   const handleErrorModalClose = () => {
@@ -808,17 +816,17 @@ const RegisterPage = () => {
         <div className="success-modal-overlay">
           <div className="success-modal">
             <div className="success-modal-header">
-              <h3>{t('registrationSuccess')}</h3>
+              <h3>Регистрация успешна!</h3>
             </div>
             <div className="success-modal-body">
-              <p>{t('registrationSuccessMessage')}</p>
+              <p>Вы успешно зарегистрированы и авторизованы!</p>
             </div>
             <div className="success-modal-footer">
               <button 
                 className="success-modal-button"
                 onClick={handleSuccessModalClose}
               >
-                {t('goToLogin')}
+                Перейти на главную
               </button>
             </div>
           </div>

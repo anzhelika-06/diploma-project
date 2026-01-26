@@ -4,6 +4,7 @@ import { applyTheme, getSavedTheme, THEMES, getThemeDisplayName } from '../utils
 import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/pages/SettingsPage.css'
 import useNotification from '../hooks/useNotification';
+
 const SettingsPage = () => {
   const { currentLanguage, changeLanguage, t } = useLanguage()
   const { showSuccess, showError } = useNotification()
@@ -22,17 +23,21 @@ const SettingsPage = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showFaqModal, setShowFaqModal] = useState(false)
-  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [showClearCacheModal, setShowClearCacheModal] = useState(false)
-  const [feedbackForm, setFeedbackForm] = useState({
-    type: 'Природа',
+  
+  // Состояния для поддержки
+  const [showSupportModal, setShowSupportModal] = useState(false)
+  const [showMyQuestionsModal, setShowMyQuestionsModal] = useState(false)
+  const [supportForm, setSupportForm] = useState({
     subject: '',
-    message: '',
-    co2Saved: ''
+    message: ''
   })
-
+  const [myQuestions, setMyQuestions] = useState([])
+  const [questionsLoading, setQuestionsLoading] = useState(false)
+  const [selectedQuestion, setSelectedQuestion] = useState(null)
+  const [showQuestionDetailsModal, setShowQuestionDetailsModal] = useState(false)
+const [supportSuccess, setSupportSuccess] = useState(false)
   useEffect(() => {
     loadUserData()
     loadUserSettings()
@@ -46,173 +51,196 @@ const SettingsPage = () => {
   }
 
   const loadUserSettings = async () => {
-  try {
-    const userData = localStorage.getItem('user')
-    const token = localStorage.getItem('token') // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
-    
-    // ИСПРАВЛЯЕМ: проверяем и токен, и данные пользователя
-    if (!userData || !token) {
-      // Если пользователь не авторизован, используем настройки из localStorage
-      const savedSettings = localStorage.getItem('appSettings')
-      if (savedSettings) {
-        const localSettings = JSON.parse(savedSettings)
-        setSettings({
-          theme: localSettings.theme || getSavedTheme(),
-          language: localSettings.language || 'RU',
-          notifications: localSettings.notifications !== undefined ? localSettings.notifications : true,
-          ecoTips: localSettings.ecoTips !== undefined ? localSettings.ecoTips : true,
-          emailNotifications: localSettings.emailNotifications !== undefined ? localSettings.emailNotifications : true,
-          pushNotifications: localSettings.pushNotifications !== undefined ? localSettings.pushNotifications : false,
-          privacyLevel: localSettings.privacyLevel || 1
-        })
-      }
-      return
-    }
-
-    const user = JSON.parse(userData)
-    
-    // ПРОВЕРЯЕМ ЧТО У ПОЛЬЗОВАТЕЛЯ ЕСТЬ ID
-    if (!user || !user.id) {
-      console.error('У пользователя нет ID или неверные данные пользователя')
-      // Используем настройки из localStorage
-      const savedSettings = localStorage.getItem('appSettings')
-      if (savedSettings) {
-        const localSettings = JSON.parse(savedSettings)
-        setSettings({
-          theme: localSettings.theme || getSavedTheme(),
-          language: localSettings.language || 'RU',
-          notifications: localSettings.notifications !== undefined ? localSettings.notifications : true,
-          ecoTips: localSettings.ecoTips !== undefined ? localSettings.ecoTips : true,
-          emailNotifications: localSettings.emailNotifications !== undefined ? localSettings.emailNotifications : true,
-          pushNotifications: localSettings.pushNotifications !== undefined ? localSettings.pushNotifications : false,
-          privacyLevel: localSettings.privacyLevel || 1
-        })
-      }
-      return
-    }
-    
-    // ОТПРАВЛЯЕМ userId В ЗАГОЛОВКЕ, КАК ОЖИДАЕТ БЭКЕНД
-    const response = await fetch('/api/user-settings', {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': user.id.toString()
-      }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      if (data.success && data.settings) {
-        setSettings(data.settings)
-        // Применяем тему через новую систему
-        applyTheme(data.settings.theme)
-      }
-    } else if (response.status === 404) {
-      // Если настроек нет в БД, создаем их с дефолтными значениями
-      await createDefaultSettings(user.id)
-      loadUserSettings() // Загружаем заново
-    } else {
-      console.error('Ошибка загрузки настроек:', response.status)
-      // Fallback к localStorage
-      const savedSettings = localStorage.getItem('appSettings')
-      if (savedSettings) {
-        const localSettings = JSON.parse(savedSettings)
-        setSettings(prev => ({ ...prev, ...localSettings }))
-      }
-    }
-  } catch (error) {
-    console.error('Ошибка загрузки настроек:', error)
-    // Fallback к localStorage
-    const savedSettings = localStorage.getItem('appSettings')
-    if (savedSettings) {
-      const localSettings = JSON.parse(savedSettings)
-      setSettings(prev => ({ ...prev, ...localSettings }))
-    }
-  }
-} 
-// Функция для создания настроек по умолчанию
-const createDefaultSettings = async (userId) => {
-  try {
-    const response = await fetch('/api/user-settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': userId.toString()
-      },
-      body: JSON.stringify({
-        theme: getSavedTheme(),
-        language: currentLanguage,
-        notifications: true,
-        ecoTips: true,
-        emailNotifications: true,
-        pushNotifications: false,
-        privacyLevel: 1
+    try {
+      const userData = localStorage.getItem('user')
+      const token = localStorage.getItem('token')
+      
+      console.log('🔐 Проверка авторизации:', {
+        hasUser: !!userData,
+        hasToken: !!token,
+        userId: userData ? JSON.parse(userData).id : 'none'
       })
-    })
-    
-    if (!response.ok) {
-      console.error('Ошибка создания настроек:', response.status)
-    }
-  } catch (error) {
-    console.error('Ошибка создания настроек:', error)
-  }
-}
-const saveSettings = async (newSettings) => {
-  try {
-    const userData = localStorage.getItem('user')
-    
-    // Всегда сохраняем в localStorage для быстрого доступа
-    localStorage.setItem('appSettings', JSON.stringify(newSettings))
-    setSettings(newSettings)
-
-    // Если пользователь авторизован, сохраняем в БД
-    if (userData) {
+      
+      // Если нет токена, используем локальные настройки
+      if (!userData || !token) {
+        console.log('👤 Нет авторизации, локальные настройки')
+        const savedSettings = localStorage.getItem('appSettings')
+        if (savedSettings) {
+          const localSettings = JSON.parse(savedSettings)
+          setSettings(localSettings)
+        }
+        return
+      }
+  
       const user = JSON.parse(userData)
+      const userId = user.id
+      
+      if (!userId) {
+        console.error('❌ У пользователя нет ID')
+        return
+      }
+      
+      console.log(`👤 Загрузка настроек для пользователя ID: ${userId}`)
+      
+      // ОТПРАВЛЯЕМ ОБА ЗАГОЛОВКА
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-User-Id': userId.toString(),
+        'Authorization': `Bearer ${token}`
+      }
+      
+      console.log('📤 Заголовки запроса:', headers)
+      
       const response = await fetch('/api/user-settings', {
-        method: 'PUT',
+        headers: headers
+      })
+  
+      console.log('📡 Ответ сервера:', response.status, response.statusText)
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.settings) {
+          console.log('✅ Настройки загружены из БД')
+          setSettings(data.settings)
+          applyTheme(data.settings.theme)
+        }
+      } else if (response.status === 404) {
+        console.log('📝 Настроек нет, создаем по умолчанию')
+        await createDefaultSettings(userId)
+        setTimeout(() => loadUserSettings(), 1000)
+      } else if (response.status === 401) {
+        console.warn('🔒 Ошибка 401: Требуется авторизация')
+        // Возможно токен истек
+        localStorage.removeItem('token')
+      } else {
+        console.warn(`⚠️ Ошибка сервера ${response.status}`)
+        const savedSettings = localStorage.getItem('appSettings')
+        if (savedSettings) {
+          const localSettings = JSON.parse(savedSettings)
+          setSettings(localSettings)
+        }
+      }
+    } catch (error) {
+      console.warn('🌐 Сетевая ошибка:', error.message)
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const localSettings = JSON.parse(savedSettings)
+        setSettings(localSettings)
+      }
+    }
+  }
+  const createDefaultSettings = async (userId) => {
+    try {
+      console.log(`📝 Создание настроек по умолчанию для пользователя: ${userId}`)
+      
+      const response = await fetch('/api/user-settings', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-User-Id': user.id.toString() // Используем правильный заголовок
+          'X-User-Id': userId.toString()
         },
-        body: JSON.stringify(newSettings)
+        body: JSON.stringify({
+          theme: getSavedTheme(),
+          language: currentLanguage,
+          notifications: true,
+          ecoTips: true,
+          emailNotifications: true,
+          pushNotifications: false,
+          privacyLevel: 1
+        })
       })
-
+      
+      console.log('📡 Ответ сервера при создании:', response.status)
+      
       if (!response.ok) {
-        console.error('Ошибка сохранения настроек в БД:', response.status)
-        // Настройки уже сохранены в localStorage, продолжаем работу
+        console.warn(`⚠️ Ошибка создания настроек: ${response.status}`)
+      } else {
+        console.log('✅ Настройки созданы')
       }
+    } catch (error) {
+      console.error('❌ Ошибка создания настроек:', error)
     }
-  } catch (error) {
-    console.error('Ошибка сохранения настроек:', error)
-    // Настройки уже сохранены в localStorage, продолжаем работу
   }
-}
 
-const handleThemeChange = (theme) => {
-  const newSettings = { ...settings, theme }
-  setSettings(newSettings)
-  saveSettings(newSettings)
+  const saveSettings = async (newSettings) => {
+    try {
+      const userData = localStorage.getItem('user')
+      const token = localStorage.getItem('token')
+      
+      console.log('💾 Сохранение настроек...', {
+        hasUser: !!userData,
+        hasToken: !!token
+      })
+      
+      // ВСЕГДА сохраняем локально
+      localStorage.setItem('appSettings', JSON.stringify(newSettings))
+      setSettings(newSettings)
   
-  // Используем новую систему управления темами
-  // При смене темы в настройках сохраняем в БД (skipSave: false по умолчанию)
-  applyTheme(theme)
-}
+      // Сохраняем на сервере только если есть токен
+      if (userData && token) {
+        try {
+          const user = JSON.parse(userData)
+          const userId = user.id
+          
+          if (!userId) {
+            console.warn('⚠️ У пользователя нет ID')
+            return
+          }
+          
+          console.log(`👤 Сохранение в БД для пользователя ID: ${userId}`)
+          
+          // ОТПРАВЛЯЕМ ОБА ЗАГОЛОВКА
+          const headers = {
+            'Content-Type': 'application/json',
+            'X-User-Id': userId.toString(),
+            'Authorization': `Bearer ${token}`
+          }
+          
+          const response = await fetch('/api/user-settings', {
+            method: 'PUT',
+            headers: headers,
+            body: JSON.stringify(newSettings)
+          })
+  
+          console.log('📡 Ответ сервера:', response.status, response.statusText)
+          
+          if (response.ok) {
+            console.log('✅ Настройки сохранены в БД')
+          } else if (response.status === 401) {
+            console.warn('🔒 Ошибка 401: Недействительный токен')
+          } else {
+            console.warn(`⚠️ Ошибка сервера: ${response.status}`)
+          }
+        } catch (error) {
+          console.warn('⚠️ Ошибка отправки на сервер:', error.message)
+        }
+      } else {
+        console.log('👤 Нет токена, сохраняем только локально')
+      }
+      
+    } catch (error) {
+      console.error('❌ Ошибка сохранения настроек:', error)
+    }
+  }
+  const handleThemeChange = (theme) => {
+    const newSettings = { ...settings, theme }
+    setSettings(newSettings)
+    saveSettings(newSettings)
+    applyTheme(theme)
+  }
 
   const handleLanguageChange = async (language) => {
     try {
       const newSettings = { ...settings, language }
       setSettings(newSettings)
       
-      // Сохраняем настройки локально
       localStorage.setItem('appSettings', JSON.stringify(newSettings))
       
-      // Пытаемся сохранить в БД
       await saveSettings(newSettings)
       
-      // Используем новую систему смены языка
       await changeLanguage(language)
     } catch (error) {
       console.error('Ошибка при смене языка:', error)
-      // Показываем пользователю сообщение об ошибке если нужно
     }
   }
 
@@ -222,25 +250,23 @@ const handleThemeChange = (theme) => {
   }
 
   const handleLogout = () => {
-    // Сохраняем текущую тему перед выходом
     const currentTheme = settings.theme
     
     localStorage.removeItem('user')
     localStorage.removeItem('token')
     
-    // Сохраняем настройки в localStorage для следующего входа (включая тему)
+    // Сохраняем только основные настройки без привязки к пользователю
     const settingsToKeep = {
       theme: currentTheme,
-      language: settings.language,
-      notifications: settings.notifications,
-      ecoTips: settings.ecoTips,
-      emailNotifications: settings.emailNotifications,
-      pushNotifications: settings.pushNotifications,
-      privacyLevel: settings.privacyLevel
+      language: settings.language || 'RU',
+      notifications: true,
+      ecoTips: true,
+      emailNotifications: true,
+      pushNotifications: false,
+      privacyLevel: 1
     }
     localStorage.setItem('appSettings', JSON.stringify(settingsToKeep))
     
-    // Применяем текущую тему (она должна остаться такой же)
     applyTheme(currentTheme)
     showSuccess(t('loggedOutSuccess'), t('loggedOutDetails'));
     window.location.href = '/'
@@ -248,7 +274,6 @@ const handleThemeChange = (theme) => {
 
   const handleDeleteAccount = async () => {
     try {
-      // Здесь будет API запрос на удаление аккаунта
       alert('Функция удаления аккаунта будет реализована позже')
       setShowDeleteModal(false)
     } catch (error) {
@@ -259,7 +284,6 @@ const handleThemeChange = (theme) => {
 
   const handleResetPassword = async () => {
     try {
-      // Здесь будет API запрос на сброс пароля
       alert('Ссылка для сброса пароля отправлена на ваш email')
       setShowResetPasswordModal(false)
     } catch (error) {
@@ -271,7 +295,6 @@ const handleThemeChange = (theme) => {
   const handleClearCache = () => {
     console.log('=== handleClearCache вызван ===');
     
-    // Очищаем localStorage (кроме важных данных пользователя)
     const userData = localStorage.getItem('user')
     const token = localStorage.getItem('token')
     const appSettings = localStorage.getItem('appSettings')
@@ -280,7 +303,6 @@ const handleThemeChange = (theme) => {
     
     localStorage.clear()
     
-    // Восстанавливаем важные данные
     if (userData) {
       localStorage.setItem('user', userData)
       console.log('user восстановлен');
@@ -294,11 +316,9 @@ const handleThemeChange = (theme) => {
       console.log('appSettings восстановлены');
     }
     
-    // Очищаем sessionStorage
     sessionStorage.clear()
     console.log('sessionStorage очищен');
     
-    // Очищаем кэш браузера если возможно
     if ('caches' in window) {
       caches.keys().then(names => {
         console.log('Удаляем кэши:', names);
@@ -310,31 +330,192 @@ const handleThemeChange = (theme) => {
     
     setShowClearCacheModal(false);
   
-    // Показываем временное уведомление
     setTempNotification({
       show: true,
       title: t('cacheClearedSuccess') || 'Кэш очищен!',
       body: t('cacheClearedDetails') || 'Временные файлы удалены.'
     });
     
-    // Автоматически скрываем через 3 секунды
     setTimeout(() => {
       setTempNotification({ show: false, title: '', body: '' });
     }, 3000);
   };
-  
-  
-  const handleFeedbackSubmit = async (e) => {
-    e.preventDefault()
+
+  // ====== ФУНКЦИИ ДЛЯ ПОДДЕРЖКИ ======
+
+  const loadMyQuestions = async () => {
     try {
-      // Здесь будет API запрос отправки обратной связи
-      console.log('Отправка обратной связи:', feedbackForm)
-      alert('Спасибо за обратную связь! Мы рассмотрим ваше сообщение.')
-      setFeedbackForm({ type: 'Природа', subject: '', message: '', co2Saved: '' })
-      setShowFeedbackModal(false)
+      console.log('=== Загрузка вопросов пользователя ===');
+      setQuestionsLoading(true);
+      
+      const userData = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (!userData || !token) {
+        console.warn('Пользователь не авторизован');
+        setMyQuestions([]);
+        showError(t('authRequired'), t('needToLogin'));
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      console.log('Загружаем вопросы для пользователя ID:', user.id);
+      
+      const response = await fetch('/api/support/my-questions', {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user.id.toString()
+        }
+      });
+      
+      console.log('Ответ сервера:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Данные от сервера:', data);
+      
+      if (data.success && data.tickets) {
+        console.log(`Получено ${data.tickets.length} вопросов`);
+        setMyQuestions(data.tickets);
+        
+        if (data.tickets.length === 0) {
+          showSuccess(t('noQuestionsFound'), t('createFirstQuestionDesc'));
+        }
+      } else if (data.success && !data.tickets) {
+        console.warn('Сервер вернул success, но нет поля tickets:', data);
+        setMyQuestions([]);
+      } else {
+        console.error('Ошибка от сервера:', data);
+        setMyQuestions([]);
+        showError(
+          t('errorLoadingQuestions'), 
+          data.message || t('serverError')
+        );
+      }
+      
     } catch (error) {
-      console.error('Ошибка отправки обратной связи:', error)
-      alert('Ошибка при отправке сообщения')
+      console.error('Ошибка загрузки вопросов:', error);
+      setMyQuestions([]);
+      showError(
+        t('errorLoadingQuestions'), 
+        t('checkInternetConnection')
+      );
+    } finally {
+      setQuestionsLoading(false);
+    }
+  };
+  const handleSupportSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      console.log('=== Отправка вопроса в поддержку ===');
+      
+      const userData = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (!userData || !token) {
+        showError(t('authRequired'), t('needToLogin'));
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      console.log('Отправка от пользователя ID:', user.id);
+      console.log('Данные формы:', supportForm);
+      
+      if (!supportForm.subject?.trim() || !supportForm.message?.trim()) {
+        showError(t('fillRequiredFields'), t('subjectAndMessageRequired'));
+        return;
+      }
+      
+      const response = await fetch('/api/support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user.id.toString()
+        },
+        body: JSON.stringify({
+          subject: supportForm.subject.trim(),
+          message: supportForm.message.trim()
+        })
+      });
+      
+      console.log('Ответ сервера:', response.status);
+      
+      const data = await response.json();
+      console.log('Данные ответа:', data);
+      
+      if (data.success) {
+        // Показываем успешное уведомление
+        setSupportSuccess(true);
+        
+        // Используем переводы в уведомлении
+        showSuccess(
+          t('supportRequestSent'), 
+          t('supportWillRespond') + (data.ticket?.ticket_number ? ` (${data.ticket.ticket_number})` : '')
+        );
+        
+        // Сбрасываем форму
+        setSupportForm({ subject: '', message: '' });
+        
+        // Через 5 секунд закрываем модалку и сбрасываем состояние
+        setTimeout(() => {
+          setShowSupportModal(false);
+          setSupportSuccess(false);
+        }, 5000); // 5000 мс = 5 секунд
+        
+        // Обновляем список вопросов
+        await loadMyQuestions();
+      } else {
+        console.error('Ошибка от сервера:', data);
+        showError(
+          t('errorSendingRequest'), 
+          data.message || t('unknownError')
+        );
+      }
+      
+    } catch (error) {
+      console.error('Ошибка отправки вопроса:', error);
+      showError(
+        t('errorSendingRequest'), 
+        t('checkInternetConnection')
+      );
+    }
+  };
+
+  const handleViewQuestionDetails = (question) => {
+    setSelectedQuestion(question)
+    setShowQuestionDetailsModal(true)
+  }
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  const getStatusLabel = (status) => {
+    switch(status) {
+      case 'pending': return t('statusPending') || 'Ожидает ответа'
+      case 'answered': return t('statusAnswered') || 'Отвечено'
+      case 'closed': return t('statusClosed') || 'Закрыто'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'pending': return '#ff9800'
+      case 'answered': return '#4caf50'
+      case 'closed': return '#9e9e9e'
+      default: return '#666'
     }
   }
 
@@ -354,33 +535,32 @@ const handleThemeChange = (theme) => {
 
   const faqItems = [
     {
-      question: 'Как рассчитывается экономия CO₂?',
-      answer: 'Расчет основан на научных данных о выбросах различных видов деятельности. Например, поездка на велосипеде вместо автомобиля экономит примерно 2.6 кг CO₂ на 10 км.'
+      questionKey: 'faqQuestion1',
+      answerKey: 'faqAnswer1'
     },
     {
-      question: 'Как изменить свой эко-уровень?',
-      answer: 'Эко-уровень повышается автоматически при накоплении определенного количества сэкономленного CO₂ и выполнении эко-действий.'
+      questionKey: 'faqQuestion2',
+      answerKey: 'faqAnswer2'
     },
     {
-      question: 'Можно ли удалить историю успеха?',
-      answer: 'Да, вы можете удалить свои истории успеха в разделе "Мои истории" в личном кабинете.'
+      questionKey: 'faqQuestion3',
+      answerKey: 'faqAnswer3'
     },
     {
-      question: 'Как работают команды?',
-      answer: 'Команды позволяют объединяться с единомышленниками для достижения общих эко-целей. Вы можете создать команду или присоединиться к существующей.'
+      questionKey: 'faqQuestion4',
+      answerKey: 'faqAnswer4'
     },
     {
-      question: 'Безопасны ли мои данные?',
-      answer: 'Мы используем современные методы шифрования и не передаем ваши данные третьим лицам. Подробнее в политике конфиденциальности.'
+      questionKey: 'faqQuestion5',
+      answerKey: 'faqAnswer5'
     }
-  ]
+  ];
 
   return (
     <div className="settings-page">
       <div className="settings-container">
         <h1 className="settings-title">{t('settingsTitle')}</h1>
         
-        {/* Вкладки сверху */}
         <div className="settings-tabs">
           {tabs.map(tab => (
             <button
@@ -394,10 +574,8 @@ const handleThemeChange = (theme) => {
           ))}
         </div>
 
-        {/* Содержимое вкладок */}
         <div className="settings-content">
           
-          {/* Внешний вид */}
           {activeTab === 'appearance' && (
             <div className="settings-section">
               <h2>{t('appearanceTitle')}</h2>
@@ -443,7 +621,6 @@ const handleThemeChange = (theme) => {
             </div>
           )}
 
-          {/* Уведомления */}
           {activeTab === 'notifications' && (
             <div className="settings-section">
               <h2>{t('notificationsTitle')}</h2>
@@ -512,7 +689,6 @@ const handleThemeChange = (theme) => {
             </div>
           )}
 
-          {/* Конфиденциальность */}
           {activeTab === 'privacy' && (
             <div className="settings-section">
               <h2>{t('privacyTitle')}</h2>
@@ -586,7 +762,6 @@ const handleThemeChange = (theme) => {
             </div>
           )}
 
-          {/* Аккаунт */}
           {activeTab === 'account' && (
             <div className="settings-section">
               <h2>{t('accountManagement')}</h2>
@@ -645,82 +820,85 @@ const handleThemeChange = (theme) => {
             </div>
           )}
 
-          {/* Поддержка */}
-          {activeTab === 'support' && (
-            <div className="settings-section">
-              <h2>{t('supportTitle')}</h2>
-              
-              <div className="setting-group">
-                <div className="support-item">
-                  <div className="support-icon">
-                    <span className="material-icons">help</span>
-                  </div>
-                  <div className="support-content">
-                    <h3>{t('faqTitle')}</h3>
-                    <p>{t('faqDesc')}</p>
-                    <button 
-                      className="action-btn secondary"
-                      onClick={() => setShowFaqModal(true)}
-                    >
-                      <span className="material-icons">help</span>
-                      {t('openFAQ')}
-                    </button>
-                  </div>
-                </div>
+{activeTab === 'support' && (
+  <div className="settings-section">
+    <h2>{t('supportTitle')}</h2>
+    
+    <div className="setting-group">
+      {/* 1. FAQ */}
+<div className="support-item">
+  <div className="support-icon">
+    <span className="material-icons">help</span>
+  </div>
+  <div className="support-content">
+    <h3>{t('faqTitle')}</h3>
+    <p>{t('faqDesc')}</p>
+    <button 
+      className="action-btn secondary"
+      onClick={() => setShowFaqModal(true)}
+    >
+      <span className="material-icons">help</span>
+      {t('openFAQ')}
+    </button>
+  </div>
+</div>
 
-                <div className="support-item">
-                  <div className="support-icon">
-                    <span className="material-icons">contact_support</span>
-                  </div>
-                  <div className="support-content">
-                    <h3>{t('contactSupport')}</h3>
-                    <p>{t('contactSupportDesc')}</p>
-                    <button 
-                      className="action-btn secondary"
-                      onClick={() => setShowFeedbackModal(true)}
-                    >
-                      <span className="material-icons">contact_support</span>
-                      {t('writeToSupport')}
-                    </button>
-                  </div>
-                </div>
+      {/* 2. Написать в поддержку */}
+      <div className="support-item">
+        <div className="support-icon">
+          <span className="material-icons">headset</span>
+        </div>
+        <div className="support-content">
+          <h3>{t('contactSupport')}</h3>
+          <p>{t('contactSupportDesc')}</p>
+          <button 
+            className="action-btn secondary"
+            onClick={() => setShowSupportModal(true)}
+          >
+            <span className="material-icons">headset</span>
+            {t('writeToSupport')}
+          </button>
+        </div>
+      </div>
 
-                <div className="support-item">
-                  <div className="support-icon">
-                    <span className="material-icons">info</span>
-                  </div>
-                  <div className="support-content">
-                    <h3>{t('aboutApp')}</h3>
-                    <p>{t('aboutAppDesc')}</p>
-                    <Link to="/about" className="action-btn secondary">
-                      <span className="material-icons">info</span>
-                      {t('aboutApp')}
-                    </Link>
-                  </div>
-                </div>
+      {/* 3. Мои обращения */}
+      <div className="support-item">
+        <div className="support-icon">
+          <span className="material-icons">question_answer</span>
+        </div>
+        <div className="support-content">
+          <h3>{t('mySupportRequests')}</h3>
+          <p>{t('mySupportRequestsDesc')}</p>
+          <button 
+            className="action-btn secondary"
+            onClick={() => {
+              loadMyQuestions()
+              setShowMyQuestionsModal(true)
+            }}
+          >
+            <span className="material-icons">list</span>
+            {t('viewMyRequests')}
+          </button>
+        </div>
+      </div>
 
-                <div className="support-item">
-                  <div className="support-icon">
-                    <span className="material-icons">auto_stories</span>
-                  </div>
-                  <div className="support-content">
-                    <h3>{t('shareStory')}</h3>
-                    <p>{t('shareStoryDesc')}</p>
-                    <button 
-                      className="action-btn secondary"
-                      onClick={() => {
-                        setFeedbackForm({...feedbackForm, type: 'Природа'})
-                        setShowFeedbackModal(true)
-                      }}
-                    >
-                      <span className="material-icons">auto_stories</span>
-                      {t('tellStory')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+      {/* 4. О приложении */}
+      <div className="support-item">
+        <div className="support-icon">
+          <span className="material-icons">info</span>
+        </div>
+        <div className="support-content">
+          <h3>{t('aboutApp')}</h3>
+          <p>{t('aboutAppDesc')}</p>
+          <Link to="/about" className="action-btn secondary">
+            <span className="material-icons">info</span>
+            {t('aboutApp')}
+          </Link>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
         </div>
       </div>
 
@@ -840,221 +1018,506 @@ const handleThemeChange = (theme) => {
           </div>
         </>
       )}
-
-      {/* Модальное окно FAQ */}
-      {showFaqModal && (
+{/* Модальное окно FAQ */}
+{showFaqModal && (
+  <>
+    <div className="modal-overlay" onClick={() => setShowFaqModal(false)} />
+    <div className="modal large">
+      <div className="modal-header">
+        <h3>{t('faqTitle')}</h3>
+        <button 
+          className="modal-close"
+          onClick={() => setShowFaqModal(false)}
+        >
+          <span className="material-icons">close</span>
+        </button>
+      </div>
+      <div className="modal-body">
+        <div className="faq-list">
+          {faqItems.map((item, index) => (
+            <div key={index} className="faq-item">
+              <h4>{t(item.questionKey)}</h4>
+              <p>{t(item.answerKey)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="modal-footer">
+        <button 
+          className="btn-secondary"
+          onClick={() => setShowFaqModal(false)}
+        >
+          {t('close')}
+        </button>
+        <button 
+          className="btn-primary"
+          onClick={() => {
+            setShowFaqModal(false);
+            setShowSupportModal(true);
+          }}
+        >
+          {t('askQuestion')}
+        </button>
+      </div>
+    </div>
+  </>
+)}
+      {/* Модальное окно очистки кэша */}
+      {showClearCacheModal && (
         <>
-          <div className="modal-overlay" onClick={() => setShowFaqModal(false)} />
-          <div className="modal large">
+          <div className="modal-overlay" onClick={() => setShowClearCacheModal(false)} />
+          <div className="modal">
             <div className="modal-header">
-              <h3>Часто задаваемые вопросы</h3>
+              <h3>{t('clearCacheTitle')}</h3>
               <button 
                 className="modal-close"
-                onClick={() => setShowFaqModal(false)}
+                onClick={() => setShowClearCacheModal(false)}
               >
                 <span className="material-icons">close</span>
               </button>
             </div>
             <div className="modal-body">
-              <div className="faq-list">
-                {faqItems.map((item, index) => (
-                  <div key={index} className="faq-item">
-                    <h4>{item.question}</h4>
-                    <p>{item.answer}</p>
+              <p><strong>{t('clearCacheConfirmation')}</strong></p>
+              <p>{t('clearCacheWillBeDeleted')}</p>
+              <ul>
+                <li>{t('clearCacheTempFiles')}</li>
+                <li>{t('clearCacheCachedData')}</li>
+                <li>{t('clearCacheSessionData')}</li>
+                <li>{t('clearCacheBrowserCache')}</li>
+              </ul>
+              <p><strong>{t('clearCacheNote')}</strong></p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowClearCacheModal(false)}
+              >
+                {t('cancel')}
+              </button>
+              <button 
+                className="btn-primary"
+                onClick={handleClearCache}
+              >
+                {t('clearCacheButton')}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Временное уведомление об успешной очистке кэша */}
+      {tempNotification.show && (
+        <>
+          <div className="modal-overlay" onClick={() => setTempNotification({ show: false, title: '', body: '' })} />
+          <div className="modal notification-modal">
+            <div className="modal-header">
+              <h3>
+                <span className="material-icons" style={{ color: '#10b981', marginRight: '8px' }}>check_circle</span>
+                {tempNotification.title}
+              </h3>
+              <button 
+                className="modal-close"
+                onClick={() => setTempNotification({ show: false, title: '', body: '' })}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ textAlign: 'center' }}>{tempNotification.body}</p>
+              <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                <span className="material-icons" style={{ fontSize: '48px', color: '#10b981' }}>cleaning_services</span>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn-primary"
+                onClick={() => setTempNotification({ show: false, title: '', body: '' })}
+                style={{ width: '100%' }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+{/* Модальное окно для написания в поддержку */}
+{showSupportModal && (
+  <>
+    <div className="modal-overlay" onClick={() => !supportSuccess && setShowSupportModal(false)} />
+    <div className="modal large">
+      <div className="modal-header">
+        <h3>{supportSuccess ? t('messageSent') : t('writeToSupport')}</h3>
+        <button 
+          className="modal-close"
+          onClick={() => {
+            if (!supportSuccess) {
+              setShowSupportModal(false);
+            }
+          }}
+          disabled={supportSuccess}
+        >
+          <span className="material-icons">close</span>
+        </button>
+      </div>
+      <form onSubmit={handleSupportSubmit}>
+        <div className="modal-body">
+          {supportSuccess ? (
+            <div className="success-message">
+              <div className="success-icon">
+                <span className="material-icons" style={{ color: '#4caf50', fontSize: '64px' }}>check_circle</span>
+              </div>
+              <h4>{t('supportRequestSent')}</h4>
+              <p>
+                {t('supportWillRespond')}
+              </p>
+              <p style={{ marginTop: '16px', color: '#666' }}>
+                <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>schedule</span>
+                {t('responseTime')}
+              </p>
+              <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+                <p style={{ margin: '0', color: '#0369a1' }}>
+                  <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>info</span>
+                  {t('checkStatusInMyRequests')}
+                </p>
+              </div>
+              <div className="countdown" style={{ marginTop: '24px', textAlign: 'center', color: '#666' }}>
+                <p>
+                  <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>timer</span>
+                  {t('windowWillClose')}
+                </p>
+                {/* Прогресс-бар */}
+                <div 
+                  style={{ 
+                    width: '100%', 
+                    height: '4px', 
+                    backgroundColor: '#e0e0e0', 
+                    borderRadius: '2px',
+                    marginTop: '8px',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div 
+                    className="progress-bar"
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      backgroundColor: '#4caf50',
+                      transform: 'scaleX(1)',
+                      transformOrigin: 'left',
+                      animation: 'progressCountdown 5s linear forwards'
+                    }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="form-group">
+                <label>{t('supportSubject')} *</label>
+                <input 
+                  type="text"
+                  value={supportForm.subject}
+                  onChange={(e) => setSupportForm({...supportForm, subject: e.target.value})}
+                  placeholder={t('supportSubjectPlaceholder')}
+                  className="form-input"
+                  required
+                  maxLength={255}
+                  disabled={supportSuccess}
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>{t('supportMessage')} *</label>
+                <textarea 
+                  value={supportForm.message}
+                  onChange={(e) => setSupportForm({...supportForm, message: e.target.value})}
+                  placeholder={t('supportMessagePlaceholder')}
+                  className="form-textarea"
+                  rows="8"
+                  required
+                  disabled={supportSuccess}
+                />
+                <div className="form-hint">
+                  {t('supportMessageHint')}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="modal-footer">
+          {!supportSuccess && (
+            <>
+              <button 
+                type="button"
+                className="btn-secondary"
+                onClick={() => setShowSupportModal(false)}
+                disabled={supportSuccess}
+              >
+                {t('cancel')}
+              </button>
+              <button 
+                type="submit"
+                className="btn-primary"
+                disabled={supportSuccess}
+              >
+                {t('sendMessage')}
+              </button>
+            </>
+          )}
+          {supportSuccess && (
+            <button 
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                setShowSupportModal(false);
+                setSupportSuccess(false);
+              }}
+              style={{ width: '100%' }}
+            >
+              {t('close')}
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  </>
+)}
+
+{/* Модальное окно "Мои обращения" */}
+{showMyQuestionsModal && (
+  <>
+    <div className="modal-overlay" onClick={() => setShowMyQuestionsModal(false)} />
+    <div className="modal large">
+      <div className="modal-header">
+        <h3>{t('mySupportRequests')}</h3>
+        <button 
+          className="modal-close"
+          onClick={() => setShowMyQuestionsModal(false)}
+          aria-label={t('close')}
+        >
+          <span className="material-icons">close</span>
+        </button>
+      </div>
+      <div className="modal-body">
+        {questionsLoading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>{t('loading')}</p>
+          </div>
+        ) : !myQuestions || !Array.isArray(myQuestions) ? (
+          <div className="empty-state error-state">
+            <span className="material-icons" style={{ color: '#ef4444', fontSize: '48px' }}>error_outline</span>
+            <h4>{t('errorLoadingData')}</h4>
+            <p>{t('dataLoadError')}</p>
+            <button 
+              className="btn-primary"
+              onClick={() => {
+                loadMyQuestions();
+              }}
+            >
+              <span className="material-icons">refresh</span>
+              {t('tryAgain')}
+            </button>
+          </div>
+        ) : myQuestions.length === 0 ? (
+          <div className="empty-state">
+            <span className="material-icons" style={{ color: '#6b7280', fontSize: '48px' }}>question_answer</span>
+            <h4>{t('noQuestionsTitle')}</h4>
+            <p>{t('noQuestionsDescription')}</p>
+            <button 
+              className="btn-primary"
+              onClick={() => {
+                setShowMyQuestionsModal(false);
+                setShowSupportModal(true);
+              }}
+            >
+              {t('createFirstQuestion')}
+            </button>
+          </div>
+        ) : (
+          <div className="questions-list">
+            {myQuestions.map(question => {
+              // Проверка на наличие необходимых полей
+              if (!question || typeof question !== 'object') {
+                console.warn('Некорректный вопрос:', question);
+                return null;
+              }
+
+              const ticketNumber = question.ticket_number || question.ticketNumber || `TKT-${question.id || '???'}`;
+              const subject = question.subject || t('noSubject');
+              const message = question.message || '';
+              const status = question.status || 'pending';
+              const createdAt = question.created_at || question.createdAt || new Date();
+              const hasResponse = Boolean(question.admin_response);
+              
+              return (
+                <div 
+                  key={question.id || Math.random()} 
+                  className={`question-item ${status}`}
+                  onClick={() => handleViewQuestionDetails(question)}
+                  style={{ cursor: 'pointer' }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleViewQuestionDetails(question);
+                    }
+                  }}
+                >
+                  <div className="question-header">
+                    <div className="question-number" title={ticketNumber}>
+                      {ticketNumber}
+                    </div>
+                    <div 
+                      className="question-status"
+                      style={{ backgroundColor: getStatusColor(status) }}
+                      title={getStatusLabel(status)}
+                    >
+                      {getStatusLabel(status)}
+                    </div>
                   </div>
-                ))}
+                  <div className="question-subject" title={subject}>
+                    {subject}
+                  </div>
+                  <div className="question-meta">
+                    <span className="question-date">
+                      {formatDate(createdAt)}
+                    </span>
+                    {question.updated_at && question.updated_at !== createdAt && (
+                      <span className="question-updated">
+                        <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>update</span>
+                        {t('updated')}: {formatDate(question.updated_at)}
+                      </span>
+                    )}
+                  </div>
+                  {message && (
+                    <div className="question-message-preview" title={message}>
+                      {message.length > 100 ? 
+                        `${message.substring(0, 100)}...` : message}
+                    </div>
+                  )}
+                  {hasResponse && (
+                    <div className="question-has-response">
+                      <span className="material-icons" style={{ color: '#10b981', marginRight: '4px' }}>check_circle</span>
+                      {t('hasResponse')}
+                    </div>
+                  )}
+                  {question.responded_at && (
+                    <div className="question-response-date">
+                      <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>schedule</span>
+                      {t('answeredAt')}: {formatDate(question.responded_at)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+      <div className="modal-footer">
+        <button 
+          type="button"
+          className="btn-secondary"
+          onClick={() => setShowMyQuestionsModal(false)}
+        >
+          {t('close')}
+        </button>
+        {!questionsLoading && myQuestions && myQuestions.length > 0 && (
+          <button 
+            type="button"
+            className="btn-secondary"
+            onClick={() => {
+              loadMyQuestions();
+            }}
+          >
+            <span className="material-icons">refresh</span>
+            {t('refresh')}
+          </button>
+        )}
+        <button 
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setShowMyQuestionsModal(false);
+            setShowSupportModal(true);
+          }}
+        >
+          <span className="material-icons">add</span>
+          {t('askNewQuestion')}
+        </button>
+      </div>
+    </div>
+  </>
+)}
+
+      {/* Модальное окно деталей вопроса */}
+      {showQuestionDetailsModal && selectedQuestion && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowQuestionDetailsModal(false)} />
+          <div className="modal large">
+            <div className="modal-header">
+              <h3>{selectedQuestion.subject}</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowQuestionDetailsModal(false)}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="question-details">
+                <div className="details-header">
+                  <div className="details-id">
+                    <strong>ID:</strong> {selectedQuestion.ticket_number}
+                  </div>
+                  <div 
+                    className="details-status"
+                    style={{ backgroundColor: getStatusColor(selectedQuestion.status) }}
+                  >
+                    {getStatusLabel(selectedQuestion.status)}
+                  </div>
+                </div>
+                
+                <div className="details-date">
+                  <strong>{t('createdAt') || 'Создано'}:</strong> {formatDate(selectedQuestion.created_at)}
+                </div>
+                
+                {selectedQuestion.responded_at && (
+                  <div className="details-date">
+                    <strong>{t('answeredAt') || 'Отвечено'}:</strong> {formatDate(selectedQuestion.responded_at)}
+                  </div>
+                )}
+                
+                <div className="details-section">
+                  <h4>{t('yourQuestion') || 'Ваш вопрос'}</h4>
+                  <div className="details-message">
+                    {selectedQuestion.message}
+                  </div>
+                </div>
+                
+                {selectedQuestion.admin_response && (
+                  <div className="details-section">
+                    <h4>{t('adminResponse') || 'Ответ поддержки'}</h4>
+                    <div className="details-response">
+                      {selectedQuestion.admin_response}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer">
               <button 
                 className="btn-secondary"
-                onClick={() => setShowFaqModal(false)}
+                onClick={() => setShowQuestionDetailsModal(false)}
               >
-                Закрыть
-              </button>
-              <button 
-                className="btn-primary"
-                onClick={() => {
-                  setShowFaqModal(false)
-                  setShowFeedbackModal(true)
-                }}
-              >
-                Задать вопрос
+                {t('close') || 'Закрыть'}
               </button>
             </div>
           </div>
         </>
       )}
-
-      {/* Модальное окно обратной связи */}
-      {showFeedbackModal && (
-        <>
-          <div className="modal-overlay" onClick={() => setShowFeedbackModal(false)} />
-          <div className="modal large">
-            <div className="modal-header">
-              <h3>{t('addStoryTitle')}</h3>
-              <button 
-                className="modal-close"
-                onClick={() => setShowFeedbackModal(false)}
-              >
-                <span className="material-icons">close</span>
-              </button>
-            </div>
-            <form onSubmit={handleFeedbackSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>{t('storyCategory')}</label>
-                  <select 
-                    value={feedbackForm.type}
-                    onChange={(e) => setFeedbackForm({...feedbackForm, type: e.target.value})}
-                    className="form-select"
-                  >
-                    <option value="Энергия">⚡ {t('categoryEnergy')}</option>
-                    <option value="Вода">💧 {t('categoryWater')}</option>
-                    <option value="Отходы">♻️ {t('categoryWaste')}</option>
-                    <option value="Транспорт">🚲 {t('categoryTransport')}</option>
-                    <option value="Питание">🍽️ {t('categoryFood')}</option>
-                    <option value="Природа">🌿 {t('categoryNature')}</option>
-                    <option value="Быт">🏠 {t('categoryHousehold')}</option>
-                    <option value="Потребление">🛒 {t('categoryConsumption')}</option>
-                    <option value="Планирование">📋 {t('categoryPlanning')}</option>
-                  </select>
-                </div>
-                
-                <div className="form-group">
-                  <label>{t('storyTitle')}</label>
-                  <input 
-                    type="text"
-                    value={feedbackForm.subject}
-                    onChange={(e) => setFeedbackForm({...feedbackForm, subject: e.target.value})}
-                    placeholder={t('storyTitlePlaceholder')}
-                    className="form-input"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>{t('co2Saved')}</label>
-                  <input 
-                    type="number"
-                    value={feedbackForm.co2Saved || ''}
-                    onChange={(e) => setFeedbackForm({...feedbackForm, co2Saved: e.target.value})}
-                    placeholder={t('co2SavedPlaceholder')}
-                    className="form-input"
-                    min="0"
-                    step="0.1"
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label>{t('storyContent')}</label>
-                  <textarea 
-                    value={feedbackForm.message}
-                    onChange={(e) => setFeedbackForm({...feedbackForm, message: e.target.value})}
-                    placeholder={t('storyContentPlaceholder')}
-                    className="form-textarea"
-                    rows="6"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => setShowFeedbackModal(false)}
-                >
-                  {t('cancel')}
-                </button>
-                <button 
-                  type="submit"
-                  className="btn-primary"
-                >
-                  {t('addToStories')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </>
-      )}
-
-      {/* Модальное окно очистки кэша */}
-{showClearCacheModal && (
-  <>
-    <div className="modal-overlay" onClick={() => setShowClearCacheModal(false)} />
-    <div className="modal">
-      <div className="modal-header">
-        <h3>{t('clearCacheTitle')}</h3>
-        <button 
-          className="modal-close"
-          onClick={() => setShowClearCacheModal(false)}
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
-      <div className="modal-body">
-        <p><strong>{t('clearCacheConfirmation')}</strong></p>
-        <p>{t('clearCacheWillBeDeleted')}</p>
-        <ul>
-          <li>{t('clearCacheTempFiles')}</li>
-          <li>{t('clearCacheCachedData')}</li>
-          <li>{t('clearCacheSessionData')}</li>
-          <li>{t('clearCacheBrowserCache')}</li>
-        </ul>
-        <p><strong>{t('clearCacheNote')}</strong></p>
-      </div>
-      <div className="modal-footer">
-        <button 
-          className="btn-secondary"
-          onClick={() => setShowClearCacheModal(false)}
-        >
-          {t('cancel')}
-        </button>
-        <button 
-          className="btn-primary"
-          onClick={handleClearCache}
-        >
-          {t('clearCacheButton')}
-        </button>
-      </div>
-    </div>
-  </>
-)}
-{/* Временное уведомление об успешной очистке кэша */}
-{tempNotification.show && (
-  <>
-    <div className="modal-overlay" onClick={() => setTempNotification({ show: false, title: '', body: '' })} />
-    <div className="modal notification-modal">
-      <div className="modal-header">
-        <h3>
-          <span className="material-icons" style={{ color: '#10b981', marginRight: '8px' }}>check_circle</span>
-          {tempNotification.title}
-        </h3>
-        <button 
-          className="modal-close"
-          onClick={() => setTempNotification({ show: false, title: '', body: '' })}
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
-      <div className="modal-body">
-        <p style={{ textAlign: 'center' }}>{tempNotification.body}</p> {/* ДОБАВЬТЕ textAlign: 'center' */}
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <span className="material-icons" style={{ fontSize: '48px', color: '#10b981' }}>cleaning_services</span>
-        </div>
-      </div>
-      <div className="modal-footer">
-        <button 
-          className="btn-primary"
-          onClick={() => setTempNotification({ show: false, title: '', body: '' })}
-          style={{ width: '100%' }}
-        >
-          OK
-        </button>
-      </div>
-    </div>
-  </>
-)}
     </div>
   )
 }

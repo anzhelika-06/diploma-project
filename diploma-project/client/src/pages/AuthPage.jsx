@@ -32,22 +32,22 @@ const AuthPage = () => {
   const [showLeafText, setShowLeafText] = useState(false)
   const [currentTheme, setCurrentTheme] = useState('light')
 
-// Устанавливаем рандомную фразу над листиком и статичную под ним
-useEffect(() => {
-  // Применяем сохраненную тему без сохранения в БД
-  const savedTheme = getSavedTheme()
-  // Используем skipSave: true чтобы не пытаться сохранить в БД на странице авторизации
-  applyTheme(savedTheme, { skipSave: true })
-  setCurrentTheme(savedTheme)
-  
-  const randomBubblePhrase = getRandomPhrase(currentLanguage)
-  const staticBottomPhrase = t('leafStaticPhrase') || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
-  
-  setRandomPhrase(randomBubblePhrase)
-  setStaticPhrase(staticBottomPhrase)
-  setLeafText(randomBubblePhrase)
-  setShowLeafText(true)
-}, [currentLanguage, t])
+  // Устанавливаем рандомную фразу над листиком и статичную под ним
+  useEffect(() => {
+    // Применяем сохраненную тему без сохранения в БД
+    const savedTheme = getSavedTheme()
+    // Используем skipSave: true чтобы не пытаться сохранить в БД на странице авторизации
+    applyTheme(savedTheme, { skipSave: true })
+    setCurrentTheme(savedTheme)
+    
+    const randomBubblePhrase = getRandomPhrase(currentLanguage)
+    const staticBottomPhrase = t('leafStaticPhrase') || "Привет! Каждый твой выбор теперь — это вклад. Следим за следом вместе?"
+    
+    setRandomPhrase(randomBubblePhrase)
+    setStaticPhrase(staticBottomPhrase)
+    setLeafText(randomBubblePhrase)
+    setShowLeafText(true)
+  }, [currentLanguage, t])
 
   // Получить правильную иконку домика в зависимости от темы
   const getHomeIcon = () => {
@@ -150,13 +150,11 @@ useEffect(() => {
     setErrors({})
     
     try {
-      // Создаем объект без пароля для логирования
       const loginData = {
         login: formData.login.trim(),
         password: formData.password
       }
       
-      // Безопасная отправка без логирования пароля
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -167,11 +165,34 @@ useEffect(() => {
       
       const data = await response.json()
       
+      console.log('Login response:', data) // Для отладки
+      
       if (data.success) {
+        // ВАЖНО: Подготавливаем данные пользователя с isAdmin
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          nickname: data.user.nickname,
+          // Проверяем все возможные варианты названия поля
+          isAdmin: data.user.isAdmin !== undefined ? data.user.isAdmin : 
+                   (data.user.is_admin !== undefined ? data.user.is_admin : false)
+        }
+        
+        console.log('User data to save:', userData) // Для отладки
+        
         // Сохраняем данные пользователя в localStorage
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token) // Добавляем токен
+        localStorage.setItem('user', JSON.stringify(userData))
         localStorage.setItem('isAuthenticated', 'true')
+        
+        // Если сервер возвращает токен
+        if (data.token) {
+          localStorage.setItem('token', data.token)
+        }
+        
+        // Проверяем что сохранилось
+        const savedUser = JSON.parse(localStorage.getItem('user'))
+        console.log('Saved user from localStorage:', savedUser) // Для отладки
+        console.log('Is admin saved?', savedUser?.isAdmin) // Для отладки
         
         // Редирект на страницу ленты
         navigate('/feed')

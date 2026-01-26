@@ -5,12 +5,39 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
-  border-top: 1px solid #e0e0e0;
+  background: var(--mobile-nav-bg, #fff);
+  border-top: 1px solid var(--mobile-nav-border, #e0e0e0);
   padding: 8px 0;
   z-index: 1000;
   justify-content: space-around;
   align-items: center;
+}
+
+/* Theme Support */
+.mobile-nav[data-theme="light"] {
+  --mobile-nav-bg: #ffffff;
+  --mobile-nav-border: #e0e0e0;
+  --mobile-nav-text: #666666;
+  --mobile-nav-text-secondary: #666666;
+  --mobile-nav-hover: #f5f5f5;
+  --mobile-nav-active: #2e7d32;
+  --mobile-nav-active-bg: #e8f5e9;
+  --mobile-nav-icon-filter: none;
+  --mobile-nav-icon-active-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+  --admin-color: linear-gradient(135deg, #FFD700, #FFA500);
+}
+
+.mobile-nav[data-theme="dark"] {
+  --mobile-nav-bg: #1e1e1e;
+  --mobile-nav-border: #404040;
+  --mobile-nav-text: #e0e0e0;
+  --mobile-nav-text-secondary: #e0e0e0;
+  --mobile-nav-hover: #333333;
+  --mobile-nav-active: #4caf50;
+  --mobile-nav-active-bg: #2d4a2e;
+  --mobile-nav-icon-filter: brightness(0) saturate(100%) invert(100%);
+  --mobile-nav-icon-active-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+  --admin-color: linear-gradient(135deg, #FFD700, #FFA500);
 }
 
 .mobile-nav-item {
@@ -19,60 +46,75 @@
   justify-content: center;
   padding: 12px;
   text-decoration: none;
-  color: #666;
+  color: var(--mobile-nav-text, #666);
   transition: all 0.2s ease;
   border-radius: 12px;
   min-width: 48px;
   background: transparent;
   border: none;
   cursor: pointer;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
 }
 
 .mobile-nav-item:hover {
-  background: #f5f5f5;
+  background: var(--mobile-nav-hover, #f5f5f5);
 }
 
+/* Активная вкладка - ЗЕЛЕНАЯ */
 .mobile-nav-item.active {
-  color: #2e7d32;
+  color: var(--mobile-nav-active, #2e7d32);
+  background: var(--mobile-nav-active-bg, #e8f5e9);
 }
 
 .mobile-nav-item.active .mobile-nav-icon {
   transform: scale(1.1);
 }
 
+/* Индикатор активной вкладки (точка снизу) */
+.mobile-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: var(--mobile-nav-active, #2e7d32);
+  border-radius: 50%;
+}
+
 .mobile-nav-icon {
   font-size: 24px;
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .mobile-nav-icon-svg {
   width: 24px;
   height: 24px;
+  transition: filter 0.2s ease;
+  filter: var(--mobile-nav-icon-filter, none);
 }
 
-.mobile-nav-icon-svg path,
-.mobile-nav-icon-svg circle {
-  stroke: #718096;
-  transition: stroke 0.2s ease;
-}
-
-.mobile-nav-item.active .mobile-nav-icon-svg path,
-.mobile-nav-item.active .mobile-nav-icon-svg circle {
-  stroke: #4CAF50;
-}
-
-.mobile-menu-icon-svg {
-  width: 24px;
-  height: 24px;
-}
-
-.mobile-menu-icon-svg path,
-.mobile-menu-icon-svg circle {
-  stroke: #718096;
+/* Активные иконки - ЗЕЛЕНЫЕ через фильтр */
+.mobile-nav-item.active .mobile-nav-icon-svg {
+  filter: var(--mobile-nav-icon-active-filter, brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%)) !important;
 }
 
 .mobile-menu-btn {
   font-weight: bold;
+}
+
+/* Активная кнопка меню тоже зеленая */
+.mobile-menu-btn.active {
+  color: var(--mobile-nav-active, #2e7d32);
+  background: var(--mobile-nav-active-bg, #e8f5e9);
+}
+
+.mobile-menu-btn.active .mobile-nav-icon {
+  animation: gentlePulse 2s infinite ease-in-out;
+  filter: drop-shadow(0 0 8px rgba(46, 125, 50, 0.3));
 }
 
 /* Мобильное меню */
@@ -97,12 +139,42 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
+  background: var(--mobile-menu-bg, #fff);
   border-radius: 20px 20px 0 0;
   z-index: 1002;
   max-height: 70vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Theme for mobile menu */
+.mobile-menu[data-theme="light"] {
+  --mobile-menu-bg: #ffffff;
+  --mobile-menu-border: #e0e0e0;
+  --mobile-menu-text: #333333;
+  --mobile-menu-text-secondary: #666666;
+  --mobile-menu-hover: #f5f5f5;
+  --mobile-menu-active: #2e7d32;
+  --mobile-menu-active-bg: #e8f5e9;
+  --mobile-menu-icon-filter: none;
+  --mobile-menu-icon-active-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+  --mobile-menu-icon-hover-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+}
+
+.mobile-menu[data-theme="dark"] {
+  --mobile-menu-bg: #1e1e1e;
+  --mobile-menu-border: #404040;
+  --mobile-menu-text: #ffffff;
+  --mobile-menu-text-secondary: #e0e0e0;
+  --mobile-menu-hover: #333333;
+  --mobile-menu-active: #4caf50;
+  --mobile-menu-active-bg: #2d4a2e;
+  --mobile-menu-icon-filter: brightness(0) saturate(100%) invert(100%);
+  --mobile-menu-icon-active-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+  --mobile-menu-icon-hover-filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
 }
 
 @keyframes slideUp {
@@ -115,17 +187,17 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--mobile-menu-border, #e0e0e0);
   position: sticky;
   top: 0;
-  background: #fff;
+  background: var(--mobile-menu-bg, #fff);
   z-index: 1;
 }
 
 .mobile-menu-header h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--mobile-menu-text, #333);
   margin: 0;
 }
 
@@ -133,7 +205,7 @@
   background: transparent;
   border: none;
   font-size: 24px;
-  color: #666;
+  color: var(--mobile-menu-text-secondary, #666);
   cursor: pointer;
   padding: 4px;
   width: 32px;
@@ -142,15 +214,21 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .mobile-menu-close:hover {
-  background: #f5f5f5;
+  background: var(--mobile-menu-hover, #f5f5f5);
+  color: var(--mobile-menu-text, #333);
+}
+
+.mobile-menu-close:active {
+  transform: scale(0.95);
 }
 
 .mobile-menu-items {
   padding: 8px;
+  flex: 1;
 }
 
 .mobile-menu-item {
@@ -159,23 +237,133 @@
   gap: 16px;
   padding: 16px;
   text-decoration: none;
-  color: #333;
+  color: var(--mobile-menu-text, #333);
   border-radius: 12px;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
 }
 
 .mobile-menu-item:hover {
-  background: #f5f5f5;
+  background: var(--mobile-menu-hover, #f5f5f5);
+  transform: translateX(4px);
 }
 
-.mobile-menu-icon {
-  font-size: 24px;
-  min-width: 24px;
+.mobile-menu-item:active {
+  transform: translateX(4px) scale(0.98);
+}
+
+/* Активные пункты меню - ЗЕЛЕНЫЕ */
+.mobile-menu-item.active {
+  background: var(--mobile-menu-active-bg, #e8f5e9);
+  color: var(--mobile-menu-active, #2e7d32);
+  font-weight: 600;
+}
+
+/* Иконки для меню */
+.mobile-menu-icon-svg {
+  width: 24px;
+  height: 24px;
+  transition: filter 0.2s ease;
+  filter: var(--mobile-menu-icon-filter, none);
+}
+
+/* Ховер эффект для иконок в меню */
+.mobile-menu-item:hover .mobile-menu-icon-svg {
+  filter: var(--mobile-menu-icon-hover-filter);
+  transform: scale(1.1);
+}
+
+/* Активные иконки в меню - ЗЕЛЕНЫЕ через фильтр */
+.mobile-menu-item.active .mobile-menu-icon-svg {
+  filter: var(--mobile-menu-icon-active-filter) !important;
 }
 
 .mobile-menu-label {
   font-size: 16px;
   font-weight: 500;
+  transition: color 0.2s ease;
+  flex: 1;
+}
+
+.mobile-menu-item.active .mobile-menu-label {
+  color: var(--mobile-menu-active, #2e7d32);
+  font-weight: 600;
+}
+
+/* Бейдж для админского пункта - ЖЕЛТЫЙ/ЗОЛОТОЙ */
+.mobile-admin-badge {
+  background: var(--admin-color, linear-gradient(135deg, #FFD700, #FFA500));
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  animation: badgePulse 2s infinite ease-in-out;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+    box-shadow: 0 3px 12px rgba(255, 215, 0, 0.6);
+  }
+}
+
+/* Активный админский пункт - бейдж становится зеленым */
+.mobile-menu-item.active .mobile-admin-badge {
+  background: linear-gradient(135deg, #2e7d32, #4caf50);
+  color: white;
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.4);
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+/* Футер меню с информацией о пользователе */
+.mobile-menu-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--mobile-menu-border, #e0e0e0);
+  margin-top: auto;
+  background: var(--mobile-menu-bg);
+  border-radius: 0 0 20px 20px;
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--mobile-menu-active, #2e7d32);
+}
+
+.mobile-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-user-name {
+  font-weight: 600;
+  color: var(--mobile-menu-text, #333);
+  font-size: 14px;
+}
+
+.mobile-user-role {
+  font-size: 12px;
+  color: var(--mobile-menu-text-secondary, #666);
 }
 
 /* Показываем только на мобильных */
@@ -185,71 +373,86 @@
   }
 }
 
-/* Темная тема для .mobile-nav */
-.mobile-nav[data-theme="dark"] {
-  background: #1e1e1e;
-  border-top-color: #404040;
+/* Делаем overlay темнее в темной теме */
+[data-theme="dark"] .mobile-menu-overlay {
+  background: rgba(0, 0, 0, 0.7);
 }
 
-.mobile-nav[data-theme="dark"] .mobile-nav-item {
-  color: #fff;
+/* Анимация hover для всех элементов */
+.mobile-nav-item,
+.mobile-menu-item,
+.mobile-menu-close {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.mobile-nav[data-theme="dark"] .mobile-nav-item:hover {
-  background: #333;
+/* Улучшаем отзывчивость на тапы */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-nav-item:active,
+  .mobile-menu-item:active,
+  .mobile-menu-close:active {
+    background: var(--mobile-nav-hover, #f0f0f0);
+    transform: scale(0.95);
+  }
 }
 
-.mobile-nav[data-theme="dark"] .mobile-nav-item.active {
-  color: #4caf50;
+/* Эффект свечения для активных иконок в навигации */
+.mobile-nav-item.active .mobile-nav-icon {
+  filter: drop-shadow(0 0 8px rgba(46, 125, 50, 0.3));
 }
 
-/* Темная тема для иконок SVG в навигации */
-.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg {
+.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon {
+  filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.5));
+}
+
+/* Плавное изменение размера активной иконки в навигации */
+.mobile-nav-item.active .mobile-nav-icon {
+  animation: gentlePulse 2s infinite ease-in-out;
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    transform: scale(1.1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+/* Анимация вращения для кнопки меню при нажатии */
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(90deg); }
+}
+
+.mobile-menu-btn:active .mobile-nav-icon {
+  animation: rotate 0.2s ease;
+}
+
+/* Для темной темы - темный текст на желтом бейдже */
+[data-theme="dark"] .mobile-admin-badge {
+  color: #000;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Гарантируем, что фильтры работают для всех иконок */
+.mobile-nav[data-theme="light"] .mobile-nav-icon-svg,
+.mobile-nav[data-theme="light"] .mobile-menu-icon-svg {
+  filter: none;
+}
+
+.mobile-nav[data-theme="dark"] .mobile-nav-icon-svg,
+.mobile-menu[data-theme="dark"] .mobile-menu-icon-svg {
   filter: brightness(0) saturate(100%) invert(100%);
 }
 
-.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg {
-  filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%);
+/* Активные иконки в светлой теме */
+.mobile-nav[data-theme="light"] .mobile-nav-item.active .mobile-nav-icon-svg,
+.mobile-menu[data-theme="light"] .mobile-menu-item.active .mobile-menu-icon-svg {
+  filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%) !important;
 }
 
-/* Темная тема для .mobile-menu - ОСНОВНОЙ СЕЛЕКТОР */
-[data-theme="dark"] .mobile-menu,
-.mobile-menu[data-theme="dark"] {
-  background: #1e1e1e !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-header,
-.mobile-menu[data-theme="dark"] .mobile-menu-header {
-  background: #1e1e1e !important;
-  border-bottom-color: #404040 !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-header h3,
-.mobile-menu[data-theme="dark"] .mobile-menu-header h3 {
-  color: #fff !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-close,
-.mobile-menu[data-theme="dark"] .mobile-menu-close {
-  color: #fff !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-close:hover,
-.mobile-menu[data-theme="dark"] .mobile-menu-close:hover {
-  background: #333 !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-item,
-.mobile-menu[data-theme="dark"] .mobile-menu-item {
-  color: #fff !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-item:hover,
-.mobile-menu[data-theme="dark"] .mobile-menu-item:hover {
-  background: #333 !important;
-}
-
-[data-theme="dark"] .mobile-menu .mobile-menu-icon-svg,
-.mobile-menu[data-theme="dark"] .mobile-menu-icon-svg {
-  filter: brightness(0) saturate(100%) invert(100%) !important;
+/* Активные иконки в темной теме */
+.mobile-nav[data-theme="dark"] .mobile-nav-item.active .mobile-nav-icon-svg,
+.mobile-menu[data-theme="dark"] .mobile-menu-item.active .mobile-menu-icon-svg {
+  filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%) !important;
 }

@@ -22,7 +22,7 @@
   text-align: center;
 }
 
-/* Вкладки - единый стиль закругления */
+/* Вкладки */
 .settings-tabs {
   display: flex;
   gap: 12px;
@@ -39,7 +39,7 @@
   gap: 10px;
   padding: 10px 24px;
   border: 2px solid #e0e0e0;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   background: #fff;
   color: #333;
   font-size: 15px;
@@ -83,11 +83,14 @@
   min-height: 400px;
 }
 
+/* ЗАГОЛОВКИ СЕКЦИЙ h2 - ИЗМЕНЕНО НА ЧЕРНЫЙ/БЕЛЫЙ */
 .settings-section h2 {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: #333; /* ЧЕРНЫЙ цвет заголовков секций */
   margin-bottom: 20px;
+  border-bottom: 2px solid #e8f5e9;
+  padding-bottom: 8px;
 }
 
 .setting-group {
@@ -100,10 +103,11 @@
   border-bottom: none;
 }
 
+/* ПОДЗАГОЛОВКИ НАСТРОЕК h3 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ КАК БЫЛИ */
 .setting-group h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: #2e7d32; /* Зеленый цвет подзаголовков */
   margin-bottom: 8px;
 }
 
@@ -114,7 +118,7 @@
   line-height: 1.4;
 }
 
-/* Блоки тем - КОМПАКТНЫЙ стиль с близким расположением элементов */
+/* Блоки тем */
 .theme-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -127,13 +131,13 @@
   align-items: center;
   padding: 16px 20px;
   border: 2px solid #e0e0e0;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   background: #fff;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
   min-height: 150px;
-  justify-content: center; /* Полное центрирование по вертикали */
+  justify-content: center;
   box-sizing: border-box;
   width: 100%;
 }
@@ -157,7 +161,7 @@
   align-items: center;
   justify-content: center;
   height: 40px;
-  margin-bottom: 6px; /* ОЧЕНЬ маленький отступ под иконкой */
+  margin-bottom: 6px;
 }
 
 .theme-name {
@@ -186,7 +190,6 @@
   min-height: 36px;
 }
 
-/* Цветные иконки для тем */
 .light-theme-icon {
   color: #ff9800 !important;
   text-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
@@ -209,7 +212,7 @@
   justify-content: center;
   padding: 12px 20px;
   border: 2px solid #e0e0e0;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   background: #fff;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -236,10 +239,10 @@
 .setting-item {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   padding: 20px;
   background: #f8f9fa;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   margin-bottom: 16px;
   border: 1px solid #e0e0e0;
   transition: all 0.3s ease;
@@ -255,14 +258,18 @@
 .setting-info {
   flex: 1;
   margin-right: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 70px;
 }
 
+/* ЗАГОЛОВКИ В НАСТРОЙКАХ h3 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ КАК БЫЛИ */
 .setting-info h3 {
-  margin: 0 0 6px 0;
-  color: #333;
+  margin: 0 0 8px 0;
+  color: #2e7d32; /* Зеленый цвет */
   font-size: 16px;
   font-weight: 600;
-  min-height: 24px;
 }
 
 .setting-info p {
@@ -270,7 +277,6 @@
   color: #666;
   font-size: 14px;
   line-height: 1.5;
-  min-height: 42px;
 }
 
 /* Переключатель */
@@ -321,7 +327,7 @@ input:checked + .toggle-slider:before {
   transform: translateX(22px);
 }
 
-/* Элементы контента с единым закруглением */
+/* Элементы настроек */
 .privacy-item,
 .account-item,
 .support-item {
@@ -330,7 +336,7 @@ input:checked + .toggle-slider:before {
   gap: 20px;
   padding: 20px;
   background: #f8f9fa;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   margin-bottom: 16px;
   border: 1px solid #e0e0e0;
   transition: all 0.3s ease;
@@ -355,7 +361,7 @@ input:checked + .toggle-slider:before {
   align-items: center;
   justify-content: center;
   background: #e8f5e9;
-  border-radius: 8px; /* Немного меньше для иконок */
+  border-radius: 8px;
   color: #4caf50;
 }
 
@@ -371,11 +377,12 @@ input:checked + .toggle-slider:before {
   flex: 1;
 }
 
+/* ЗАГОЛОВКИ В ПРИВАТНОСТИ/АККАУНТЕ/ПОДДЕРЖКЕ h3 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 .privacy-content h3,
 .account-content h3,
 .support-content h3 {
   margin: 0 0 6px 0;
-  color: #333;
+  color: #2e7d32; /* Зеленый цвет */
   font-size: 16px;
   font-weight: 600;
   min-height: 24px;
@@ -396,7 +403,7 @@ input:checked + .toggle-slider:before {
   background: #fff5f5;
 }
 
-/* Кнопки действий с единым закруглением */
+/* Кнопки действий */
 .settings-page .action-btn,
 .privacy-content .action-btn,
 .account-content .action-btn,
@@ -406,7 +413,7 @@ input:checked + .toggle-slider:before {
   gap: 6px;
   padding: 8px 16px !important;
   border: 1px solid #e0e0e0 !important;
-  border-radius: 8px !important; /* Увеличили с 4px до 8px */
+  border-radius: 8px !important;
   background: #fff !important;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -460,7 +467,7 @@ input:checked + .toggle-slider:before {
   font-size: 16px !important;
 }
 
-/* Бейджи безопасности с единым закруглением */
+/* Бейджи безопасности */
 .security-badges {
   display: flex;
   gap: 8px;
@@ -475,7 +482,7 @@ input:checked + .toggle-slider:before {
   background: #e8f5e9;
   color: #2e7d32;
   padding: 4px 12px;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
   min-width: 140px;
@@ -485,103 +492,6 @@ input:checked + .toggle-slider:before {
 
 .security-badge .material-icons {
   font-size: 14px;
-}
-
-/* Превью уведомлений */
-.notification-preview {
-  margin-top: 24px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f0f8f0 0%, #e8f5e9 100%);
-  border-radius: 16px; /* Немного больше для превью */
-  border-left: 4px solid #4caf50;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1);
-  min-height: 180px;
-}
-
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  height: 40px;
-}
-
-.preview-header h3 {
-  margin: 0;
-  color: #2e7d32;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.refresh-tip-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #4caf50;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 12px; /* Единый радиус закругления */
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  min-width: 220px;
-  justify-content: center;
-  height: 36px;
-}
-
-.refresh-tip-btn:hover:not(:disabled) {
-  background: #45a049;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-}
-
-.refresh-tip-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.refresh-tip-btn .material-icons {
-  font-size: 16px;
-}
-
-.tip-placeholder {
-  text-align: center;
-  padding: 32px 20px;
-  color: #666;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.placeholder-icon .material-icons {
-  font-size: 56px;
-  opacity: 0.6;
-  color: #4caf50;
-  margin-bottom: 12px;
-}
-
-.retry-btn {
-  background: #4caf50;
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 8px; /* Единый радиус закругления */
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 12px;
-  transition: all 0.3s ease;
-  min-width: 160px;
-  height: 40px;
-}
-
-.retry-btn:hover {
-  background: #45a049;
-  transform: translateY(-2px);
 }
 
 /* Модальные окна */
@@ -602,7 +512,7 @@ input:checked + .toggle-slider:before {
   left: 50%;
   transform: translate(-50%, -50%);
   background: #fff;
-  border-radius: 12px; /* Единый радиус закругления */
+  border-radius: 12px;
   width: 90%;
   max-width: 600px;
   z-index: 2001;
@@ -613,6 +523,10 @@ input:checked + .toggle-slider:before {
 .modal.large {
   max-width: 700px;
   width: 95%;
+}
+
+.modal.notification-modal {
+  max-width: 400px;
 }
 
 @keyframes fadeIn {
@@ -634,9 +548,10 @@ input:checked + .toggle-slider:before {
   height: 60px;
 }
 
+/* ЗАГОЛОВКИ МОДАЛЬНЫХ ОКОН h3 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 .modal-header h3 {
   margin: 0;
-  color: #333;
+  color: #2e7d32; /* Зеленый цвет для заголовков */
   font-size: 18px;
   font-weight: 600;
 }
@@ -667,6 +582,8 @@ input:checked + .toggle-slider:before {
 
 .modal-body {
   padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .modal-body p {
@@ -693,22 +610,27 @@ input:checked + .toggle-slider:before {
   justify-content: flex-end;
   padding: 20px;
   border-top: 1px solid #e0e0e0;
-  height: 80px;
+  min-height: 80px;
+  align-items: center;
 }
 
-/* Кнопки модальных окон с единым закруглением */
+/* Кнопки модальных окон */
 .btn-secondary,
 .btn-danger,
-.btn-primary {
+.btn-primary,
+.btn-close {
   padding: 10px 20px;
   border: none;
-  border-radius: 8px; /* Увеличили с 6px до 8px */
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 140px;
+  min-width: 100px;
   height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-secondary {
@@ -739,6 +661,30 @@ input:checked + .toggle-slider:before {
   background: #d32f2f;
 }
 
+/* Новая кнопка закрыть - заметная, оранжево-красная */
+.btn-close {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.btn-close:hover {
+  background: linear-gradient(135deg, #ff5252, #ff7b47);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.btn-close:active {
+  transform: translateY(0);
+}
+
+.btn-close .material-icons {
+  margin-right: 6px;
+  font-size: 18px;
+}
+
 /* FAQ стили */
 .faq-list {
   max-height: 300px;
@@ -755,9 +701,10 @@ input:checked + .toggle-slider:before {
   border-bottom: none;
 }
 
+/* ЗАГОЛОВКИ FAQ h4 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 .faq-item h4 {
   margin: 0 0 8px 0;
-  color: #2e7d32;
+  color: #2e7d32; /* Зеленый цвет */
   font-size: 14px;
   font-weight: 600;
   min-height: 20px;
@@ -776,11 +723,12 @@ input:checked + .toggle-slider:before {
   margin-bottom: 16px;
 }
 
+/* ЛЕЙБЛЫ ФОРМ - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 .form-group label {
   display: block;
   margin-bottom: 6px;
   font-weight: 500;
-  color: #333;
+  color: #2e7d32; /* Зеленый цвет для лейблов */
   font-size: 14px;
   min-height: 20px;
 }
@@ -791,7 +739,7 @@ input:checked + .toggle-slider:before {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #e0e0e0;
-  border-radius: 8px; /* Единый радиус закругления */
+  border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.2s ease;
   background: #fff;
@@ -805,13 +753,284 @@ input:checked + .toggle-slider:before {
 .form-textarea:focus {
   outline: none;
   border-color: #4caf50;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
 }
 
 .form-textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
   font-family: inherit;
   height: auto;
+  line-height: 1.5;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Стили для списка вопросов */
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.question-item {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.question-item:hover {
+  border-color: #4caf50;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+  cursor: pointer;
+}
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.question-number {
+  font-family: monospace;
+  font-size: 12px;
+  color: #666;
+  background: #e0e0e0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.question-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ТЕМА ВОПРОСА - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
+.question-subject {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2e7d32; /* Зеленый цвет для темы */
+  margin-bottom: 10px;
+  line-height: 1.3;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e8f5e9;
+}
+
+.question-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #888;
+}
+
+.question-category {
+  background: #e3f2fd;
+  color: #1565c0;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.question-date {
+  color: #666;
+  font-size: 11px;
+}
+
+.question-message-preview {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  border-left: 3px solid #4caf50;
+}
+
+.question-has-response {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #4caf50;
+  font-weight: 500;
+  background: #e8f5e9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  align-self: flex-start;
+}
+
+.question-has-response .material-icons {
+  font-size: 14px;
+}
+
+/* Стили для деталей вопроса */
+.question-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #4caf50;
+}
+
+.details-id {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.details-id strong {
+  color: #2e7d32;
+}
+
+.details-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.details-date {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e8f5e9;
+}
+
+.details-date strong {
+  color: #2e7d32; /* Зеленый цвет */
+  font-weight: 600;
+}
+
+.details-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #e8f5e9;
+}
+
+/* ЗАГОЛОВКИ В ДЕТАЛЯХ h4 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
+.details-section h4 {
+  margin: 0 0 12px 0;
+  color: #2e7d32; /* Зеленый цвет */
+  font-size: 15px;
+  font-weight: 600;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #e8f5e9;
+}
+
+.details-message,
+.details-response {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.details-response {
+  background: #e8f5e9;
+  padding: 16px;
+  border-radius: 6px;
+  border-left: 4px solid #4caf50;
+  margin-top: 8px;
+}
+
+.details-response h4 {
+  color: #2e7d32;
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 10px;
+}
+
+/* Загрузка */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #4caf50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Пустое состояние */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  gap: 16px;
+}
+
+.empty-state .material-icons {
+  font-size: 48px;
+  color: #bdbdbd;
+  margin-bottom: 8px;
+}
+
+.empty-state h4 {
+  margin: 0;
+  color: #2e7d32; /* Зеленый цвет */
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+  max-width: 300px;
+  line-height: 1.4;
 }
 
 /* Темная тема */
@@ -846,20 +1065,22 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
 }
 
+/* ЗАГОЛОВКИ СЕКЦИЙ h2 В ТЕМНОЙ ТЕМЕ - ИЗМЕНЕНО НА БЕЛЫЙ */
 [data-theme="dark"] .settings-section h2 {
-  color: #fff;
+  color: #ffffff; /* БЕЛЫЙ цвет в темной теме */
 }
 
 [data-theme="dark"] .setting-group {
   border-bottom-color: #404040;
 }
 
+/* ПОДЗАГОЛОВКИ НАСТРОЕК h3 В ТЕМНОЙ ТЕМЕ - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 [data-theme="dark"] .setting-group h3 {
-  color: #fff;
+  color: #4caf50; /* Зеленый в темной теме */
 }
 
 [data-theme="dark"] .setting-description {
-  color: #fff;
+  color: #ccc;
 }
 
 /* Тематические карточки в темной теме */
@@ -886,7 +1107,7 @@ input:checked + .toggle-slider:before {
 }
 
 [data-theme="dark"] .theme-description {
-  color: #fff;
+  color: #ccc;
 }
 
 [data-theme="dark"] .light-theme-icon {
@@ -926,18 +1147,19 @@ input:checked + .toggle-slider:before {
   color: #fff;
 }
 
+/* ЗАГОЛОВКИ В НАСТРОЙКАХ ТЕМНОЙ ТЕМЫ h3 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 [data-theme="dark"] .setting-info h3,
 [data-theme="dark"] .privacy-content h3,
 [data-theme="dark"] .account-content h3,
 [data-theme="dark"] .support-content h3 {
-  color: #fff;
+  color: #4caf50; /* Зеленый в темной теме */
 }
 
 [data-theme="dark"] .setting-info p,
 [data-theme="dark"] .privacy-content p,
 [data-theme="dark"] .account-content p,
 [data-theme="dark"] .support-content p {
-  color: #fff;
+  color: #ccc;
 }
 
 [data-theme="dark"] .privacy-icon,
@@ -951,19 +1173,6 @@ input:checked + .toggle-slider:before {
   color: #ffffff;
 }
 
-[data-theme="dark"] .notification-preview {
-  background: linear-gradient(135deg, #2d2d2d 0%, #2d4a2e 100%);
-  border-left-color: #4caf50;
-}
-
-[data-theme="dark"] .preview-header h3 {
-  color: #ffffff;
-}
-
-[data-theme="dark"] .tip-placeholder {
-  color: #fff;
-}
-
 [data-theme="dark"] .modal {
   background: #1e1e1e;
   color: #fff;
@@ -973,17 +1182,23 @@ input:checked + .toggle-slider:before {
   border-bottom-color: #404040;
 }
 
+/* ЗАГОЛОВКИ МОДАЛЬНЫХ ОКОН В ТЕМНОЙ ТЕМЕ h3 - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 [data-theme="dark"] .modal-header h3 {
-  color: #fff;
+  color: #4caf50; /* Зеленый в темной теме */
 }
 
 [data-theme="dark"] .modal-body p,
 [data-theme="dark"] .modal-body li {
-  color: #fff;
+  color: #ccc;
 }
 
 [data-theme="dark"] .modal-footer {
   border-top-color: #404040;
+}
+
+/* FAQ В ТЕМНОЙ ТЕМЕ - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
+[data-theme="dark"] .faq-list {
+  border-color: #404040;
 }
 
 [data-theme="dark"] .faq-item {
@@ -991,11 +1206,12 @@ input:checked + .toggle-slider:before {
 }
 
 [data-theme="dark"] .faq-item h4 {
-  color: #ffffff;
+  color: #4caf50 !important;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .faq-item p {
-  color: #fff;
+  color: #ccc;
 }
 
 [data-theme="dark"] .form-select,
@@ -1006,8 +1222,13 @@ input:checked + .toggle-slider:before {
   color: #fff;
 }
 
+/* ЛЕЙБЛЫ ФОРМ В ТЕМНОЙ ТЕМЕ - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
 [data-theme="dark"] .form-group label {
-  color: #fff;
+  color: #4caf50; /* Зеленый в темной теме */
+}
+
+[data-theme="dark"] .form-hint {
+  color: #aaa;
 }
 
 /* Кнопки действий в темной теме */
@@ -1038,7 +1259,7 @@ input:checked + .toggle-slider:before {
   background: #4a2c2c;
 }
 
-/* Темная тема - кнопки "Читать условия" и "Читать политику" */
+/* Кнопки в темной теме */
 [data-theme="dark"] .action-btn.secondary {
   background: #2d2d2d !important;
   color: #ffffff !important;
@@ -1051,123 +1272,762 @@ input:checked + .toggle-slider:before {
   color: #ffffff !important;
 }
 
-/* Адаптивность */
+/* Новые элементы в темной теме */
+[data-theme="dark"] .question-item {
+  background: #2d2d2d;
+  border-color: #404040;
+}
+
+[data-theme="dark"] .question-number {
+  background: #404040;
+  color: #aaa;
+}
+
+/* ТЕМА ВОПРОСА В ТЕМНОЙ ТЕМЕ - ОСТАВЛЯЕМ ЗЕЛЕНЫМИ */
+[data-theme="dark"] .question-subject {
+  color: #4caf50; /* Зеленый в темной теме */
+}
+
+[data-theme="dark"] .question-message-preview {
+  color: #ccc;
+  background: #2d2d2d;
+  border-left-color: #4caf50;
+}
+
+[data-theme="dark"] .details-section {
+  background: #2d2d2d;
+}
+
+[data-theme="dark"] .details-message {
+  color: #fff;
+}
+
+[data-theme="dark"] .details-response {
+  background: #2d4a2e;
+  border-left-color: #4caf50;
+  color: #fff;
+}
+
+[data-theme="dark"] .empty-state .material-icons {
+  color: #666;
+}
+
+[data-theme="dark"] .empty-state h4 {
+  color: #4caf50; /* Зеленый в темной теме */
+}
+
+[data-theme="dark"] .empty-state p {
+  color: #aaa;
+}
+
+/* Кнопка закрыть в темной теме */
+[data-theme="dark"] .btn-close {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  color: #fff;
+}
+
+[data-theme="dark"] .btn-close:hover {
+  background: linear-gradient(135deg, #ff5252, #ff7b47);
+}
+
+/* Стили для успешного сообщения */
+.success-message {
+  text-align: center;
+  padding: 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.success-icon {
+  margin-bottom: 20px;
+  animation: scaleIn 0.5s ease-out;
+}
+
+.success-message h4 {
+  color: #2e7d32;
+  margin-bottom: 16px;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.success-message p {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.success-info-box {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border-left: 3px solid #0369a1;
+}
+
+.success-info-box p {
+  margin: 0;
+  color: #0369a1;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Прогресс-бар и таймер */
+.countdown {
+  margin-top: 24px;
+  text-align: center;
+  color: #666;
+}
+
+.countdown p {
+  margin-bottom: 8px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.progress-container {
+  width: 100%;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 100%;
+  background: #4caf50;
+  transform: scaleX(1);
+  transform-origin: left;
+  animation: progressCountdown 5s linear forwards;
+}
+
+/* Анимации */
+@keyframes progressCountdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Кнопки с иконками слева - фикс */
+.btn-primary .material-icons,
+.btn-secondary .material-icons,
+.btn-danger .material-icons,
+.btn-close .material-icons {
+  font-size: 18px !important;
+  margin-right: 8px;
+  margin-left: 0;
+}
+
+/* Состояния отключенных кнопок */
+.btn-primary:disabled {
+  background-color: #4caf50;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Плавное скрытие формы */
+.form-input:disabled,
+.form-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+}
+
+/* Адаптивность - УЛУЧШЕННЫЕ СТИЛИ ДЛЯ МОБИЛЬНЫХ */
 @media (max-width: 768px) {
   .settings-page {
-    padding: 12px;
+    padding: 16px 8px;
   }
 
   .settings-container {
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: none;
+    padding: 20px 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
+  .settings-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+    padding: 0 8px;
+  }
+
+  /* ВКЛАДКИ НА МОБИЛЬНЫХ - ПРОСТО В ОДНУ КОЛОНКУ */
   .settings-tabs {
-    flex-wrap: wrap;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    overflow-x: visible;
+    padding: 0;
+    margin-bottom: 24px;
+    border-bottom: none;
     gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 12px;
   }
 
   .tab-btn {
-    padding: 10px 16px;
-    font-size: 14px;
-    min-width: 160px;
-    min-height: 46px;
-    flex-shrink: 0;
-    gap: 8px;
-    border-radius: 8px;
+    width: 100%;
+    min-width: 100%;
+    max-width: 100%;
+    min-height: 52px;
+    padding: 14px 20px;
+    font-size: 15px;
+    border-radius: 10px;
+    margin-bottom: 0;
+    justify-content: flex-start;
+    border: 2px solid #e0e0e0;
+  }
+
+  .tab-btn.active {
+    border-color: #4caf50;
+    background: #e8f5e9;
+    color: #2e7d32;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
   }
 
   .tab-icon {
+    font-size: 20px;
+    width: 24px;
+    flex-shrink: 0;
+  }
+
+  .tab-label {
+    font-size: 15px;
+    text-align: left;
+    flex-grow: 1;
+    padding-left: 8px;
+  }
+
+  /* ЗАГОЛОВКИ СЕКЦИЙ НА МОБИЛЬНЫХ */
+  .settings-section h2 {
     font-size: 18px;
+    margin-bottom: 16px;
+    padding-bottom: 6px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .setting-group {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+  }
+
+  .setting-group h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .setting-description {
+    font-size: 13px;
+    margin-bottom: 14px;
+    line-height: 1.4;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  /* КАРТОЧКИ ТЕМ НА МОБИЛЬНЫХ - УЛУЧШЕННЫЙ ВАРИАНТ */
+  .theme-options {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 4px;
+  }
+
+  .theme-card {
+    min-height: 120px;
+    padding: 16px;
+    border-radius: 10px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 16px;
+  }
+
+  .theme-icon {
+    font-size: 32px !important;
+    height: 32px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .theme-name {
+    font-size: 16px;
+    justify-content: flex-start;
+    text-align: left;
+    margin-bottom: 4px;
+  }
+
+  .theme-description {
+    font-size: 12px;
+    justify-content: flex-start;
+    text-align: left;
+    min-height: auto;
+    line-height: 1.3;
+  }
+
+  /* ЯЗЫКОВЫЕ КНОПКИ НА МОБИЛЬНЫХ */
+  .language-options {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 4px;
+  }
+
+  .language-btn {
+    width: 100%;
+    min-width: 100%;
+    min-height: 56px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+
+  /* НАСТРОЙКИ С ПЕРЕКЛЮЧАТЕЛЯМИ НА МОБИЛЬНЫХ */
+  .setting-item {
+    flex-direction: row;
+    align-items: center;
+    padding: 18px 16px;
+    min-height: auto;
+    text-align: left;
+    margin-bottom: 12px;
+    border-radius: 10px;
+  }
+
+  .setting-info {
+    margin-right: 16px;
+    margin-bottom: 0;
+    min-height: auto;
+  }
+
+  .setting-info h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .setting-info p {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .toggle-switch {
+    align-self: center;
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+
+  /* ЭЛЕМЕНТЫ ПРИВАТНОСТИ/АККАУНТА/ПОДДЕРЖКИ НА МОБИЛЬНЫХ */
+  .privacy-item,
+  .account-item,
+  .support-item {
+    flex-direction: row;
+    text-align: left;
+    gap: 16px;
+    padding: 18px 16px;
+    border-radius: 10px;
+    min-height: auto;
+    align-items: flex-start;
+  }
+
+  .privacy-icon,
+  .account-icon,
+  .support-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .privacy-content h3,
+  .account-content h3,
+  .support-content h3 {
+    text-align: left;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .privacy-content p,
+  .account-content p,
+  .support-content p {
+    text-align: left;
+    font-size: 13px;
+    min-height: auto;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+
+  /* КНОПКИ ДЕЙСТВИЙ НА МОБИЛЬНЫХ */
+  .settings-page .action-btn,
+  .privacy-content .action-btn,
+  .account-content .action-btn,
+  .support-content .action-btn {
+    width: 100%;
+    min-width: 100%;
+    padding: 12px 20px !important;
+    justify-content: center;
+    font-size: 14px !important;
+    min-height: 48px;
+    border-radius: 10px;
+    margin-top: 8px;
+  }
+
+  .settings-page .action-btn .material-icons,
+  .privacy-content .action-btn .material-icons,
+  .account-content .action-btn .material-icons,
+  .support-content .action-btn .material-icons {
+    font-size: 18px !important;
+    margin-right: 8px;
+  }
+
+  /* БЕЙДЖИ БЕЗОПАСНОСТИ НА МОБИЛЬНЫХ */
+  .security-badges {
+    justify-content: flex-start;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .security-badge {
+    min-width: auto;
+    padding: 6px 10px;
+    font-size: 10px;
+    height: 26px;
+    flex: 1;
+    min-width: 120px;
+    max-width: 140px;
+  }
+
+  /* МОДАЛЬНЫЕ ОКНА НА МОБИЛЬНЫХ */
+  .modal {
+    width: 92%;
+    margin: 20px auto;
+    border-radius: 12px;
+    max-height: 85vh;
+  }
+
+  .modal.large {
+    width: 94%;
+  }
+
+  .modal-header {
+    padding: 18px 20px;
+    height: auto;
+    min-height: 60px;
+  }
+
+  .modal-header h3 {
+    font-size: 17px;
+  }
+
+  .modal-body {
+    padding: 20px;
+    max-height: calc(85vh - 140px);
+  }
+
+  .modal-footer {
+    padding: 18px 20px;
+    min-height: auto;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modal-footer button {
+    width: 100%;
+    min-width: 100%;
+    margin: 0;
+    height: 48px;
+    font-size: 15px;
+  }
+
+  /* ВОПРОСЫ И FAQ НА МОБИЛЬНЫХ */
+  .question-item {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .question-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .question-subject {
+    font-size: 15px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+
+  .question-meta {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .question-message-preview {
+    font-size: 13px;
+    padding: 12px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .details-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding-bottom: 16px;
+  }
+
+  /* ФОРМЫ НА МОБИЛЬНЫХ */
+  .form-group {
+    margin-bottom: 20px;
+  }
+
+  .form-group label {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .form-select,
+  .form-input,
+  .form-textarea {
+    padding: 14px 16px;
+    font-size: 15px;
+    height: 48px;
+    border-radius: 10px;
+  }
+
+  .form-textarea {
+    min-height: 120px;
+  }
+
+  /* ПУСТЫЕ СОСТОЯНИЯ НА МОБИЛЬНЫХ */
+  .empty-state {
+    padding: 40px 20px;
+  }
+
+  .empty-state h4 {
+    font-size: 17px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    max-width: 280px;
+  }
+
+  /* УСПЕШНЫЕ СООБЩЕНИЯ НА МОБИЛЬНЫХ */
+  .success-message {
+    padding: 24px 16px;
+  }
+
+  .success-message h4 {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .success-message p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .success-info-box {
+    padding: 14px;
+    margin-top: 18px;
+  }
+
+  /* ЗАГРУЗКА НА МОБИЛЬНЫХ */
+  .loading-container {
+    padding: 40px 20px;
+  }
+}
+
+/* ДЛЯ ОЧЕНЬ МАЛЕНЬКИХ УСТРОЙСТВ (менее 480px) */
+@media (max-width: 480px) {
+  .settings-page {
+    padding: 12px 6px;
+  }
+
+  .settings-container {
+    padding: 18px 14px;
+    border-radius: 8px;
+  }
+
+  .settings-title {
+    font-size: 22px;
+    margin-bottom: 18px;
+  }
+
+  /* ВКЛАДКИ НА ОЧЕНЬ МАЛЕНЬКИХ УСТРОЙСТВАХ */
+  .tab-btn {
+    min-height: 50px;
+    padding: 13px 18px;
+    font-size: 14px;
+  }
+
+  .tab-icon {
+    font-size: 19px;
+    width: 22px;
   }
 
   .tab-label {
     font-size: 14px;
   }
 
-  .theme-options {
-    grid-template-columns: 1fr;
+  .settings-section h2 {
+    font-size: 17px;
+    margin-bottom: 14px;
   }
 
   .theme-card {
-    width: 100%;
-    min-height: 140px;
+    min-height: 110px;
     padding: 14px;
-    border-radius: 8px;
+    gap: 12px;
   }
 
   .theme-icon {
-    font-size: 36px;
-    height: 36px;
-    margin-bottom: 4px; /* Еще меньше на мобильных */
+    font-size: 28px !important;
+    height: 28px;
   }
 
   .theme-name {
-    font-size: 16px;
-    min-height: 22px;
-    margin-bottom: 2px; /* Минимальный отступ */
+    font-size: 15px;
   }
 
   .theme-description {
-    font-size: 12px;
-    min-height: 34px;
-    line-height: 1.2;
-    padding-top: 2px;
-  }
-
-  .language-options {
-    grid-template-columns: 1fr;
+    font-size: 11px;
   }
 
   .language-btn {
-    min-width: 200px;
-    min-height: 55px;
-    padding: 10px 16px;
-    border-radius: 8px;
+    min-height: 52px;
+    padding: 12px 16px;
   }
 
+  .setting-item,
   .privacy-item,
   .account-item,
   .support-item {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-    border-radius: 8px;
+    padding: 16px 14px;
   }
 
-  .security-badges {
-    justify-content: center;
-  }
-
-  .modal {
-    width: 95%;
-    margin: 12px;
-    border-radius: 8px;
-  }
-
-  .modal-header,
-  .modal-body,
-  .modal-footer {
-    padding: 16px;
-  }
-  
-  .modal-header {
-    height: 50px;
-  }
-  
-  .modal-footer {
-    height: 70px;
-  }
-  
   .settings-page .action-btn,
   .privacy-content .action-btn,
   .account-content .action-btn,
   .support-content .action-btn {
-    border-radius: 6px !important;
-    padding: 8px 14px !important;
-    min-width: 180px;
+    padding: 12px 16px !important;
+    min-height: 46px;
+  }
+
+  .security-badge {
+    min-width: 110px;
+    font-size: 9px;
+    padding: 5px 8px;
+  }
+
+  .modal {
+    width: 94%;
+    margin: 16px auto;
+  }
+
+  .modal-header {
+    padding: 16px 18px;
+  }
+
+  .modal-body {
+    padding: 18px;
+  }
+
+  .modal-footer {
+    padding: 16px 18px;
+  }
+}
+
+/* ДЛЯ САМЫХ МАЛЕНЬКИХ УСТРОЙСТВ (менее 360px) */
+@media (max-width: 360px) {
+  .settings-page {
+    padding: 10px 4px;
+  }
+
+  .settings-container {
+    padding: 16px 12px;
+  }
+
+  .settings-title {
+    font-size: 20px;
+  }
+
+  /* ВКЛАДКИ НА САМЫХ МАЛЕНЬКИХ УСТРОЙСТВАХ */
+  .tab-btn {
+    min-height: 48px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  .tab-icon {
+    font-size: 18px;
+    width: 20px;
+  }
+
+  .tab-label {
+    font-size: 13px;
+  }
+
+  .theme-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .theme-icon {
+    margin-bottom: 4px;
+  }
+
+  .theme-name,
+  .theme-description {
+    text-align: center;
+    justify-content: center;
+  }
+
+  .language-btn {
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+
+  .setting-item,
+  .privacy-item,
+  .account-item,
+  .support-item {
+    padding: 14px 12px;
+  }
+
+  .privacy-icon,
+  .account-icon,
+  .support-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .security-badge {
+    min-width: 100px;
+    font-size: 8px;
+    padding: 4px 6px;
   }
 }

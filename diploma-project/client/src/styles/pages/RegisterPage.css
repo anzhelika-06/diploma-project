@@ -1532,5 +1532,88 @@
     gap: 8px;
   }
 }
+/* Модальное окно успешной регистрации в темной теме */
+[data-theme="dark"] .success-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
 
+[data-theme="dark"] .success-modal {
+  background: #2a2a2a;
+  border-top: 4px solid #7cb342;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .success-modal-header {
+  border-bottom: 1px solid #444444;
+}
+
+[data-theme="dark"] .success-modal-header h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .success-modal-body p {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .success-modal-button {
+  background: transparent;
+  color: #7cb342;
+  border: 2px solid #7cb342;
+}
+
+[data-theme="dark"] .success-modal-button:hover {
+  border-color: #689f38;
+  color: #689f38;
+  background: transparent;
+  box-shadow: 0 0 10px rgba(124, 179, 66, 0.3);
+}
+
+[data-theme="dark"] .success-modal-button:active {
+  background: transparent;
+}
+
+/* Также добавьте стили для модального окна ошибки в темной теме */
+[data-theme="dark"] .error-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .error-modal {
+  background: #2a2a2a;
+  border-top: 4px solid #e74c3c;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .error-modal-header {
+  border-bottom: 1px solid #444444;
+}
+
+[data-theme="dark"] .error-modal-header h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .error-modal-close {
+  color: #999;
+}
+
+[data-theme="dark"] .error-modal-close:hover {
+  background-color: #444444;
+  color: #cccccc;
+}
+
+[data-theme="dark"] .error-modal-body p {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .error-modal-button {
+  background: transparent;
+  color: #e74c3c;
+  border: 2px solid #e74c3c;
+}
+
+[data-theme="dark"] .error-modal-button:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+  background: transparent;
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+}
 

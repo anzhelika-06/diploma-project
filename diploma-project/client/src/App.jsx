@@ -1,39 +1,40 @@
-import { useState, useEffect, useCallback } from 'react' // ДОБАВЬТЕ useCallback
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import MainLayout from './pages/MainLayout'
-import AuthPage from './pages/AuthPage'
-import RegisterPage from './pages/RegisterPage'
-import TermsPage from './pages/TermsPage'
-import PrivacyPage from './pages/PrivacyPage'
-import AboutPage from './pages/AboutPage'
-import DashboardLayout from './layouts/DashboardLayout'
-import FeedPage from './pages/FeedPage'
-import PetPage from './pages/PetPage'
-import TeamsPage from './pages/TeamsPage'
-import MessagesPage from './pages/MessagesPage'
-import FriendsPage from './pages/FriendsPage'
-import NotificationsPage from './pages/NotificationsPage'
-import CreatePostPage from './pages/CreatePostPage'
-import AchievementsPage from './pages/AchievementsPage'
-import StatisticsPage from './pages/StatisticsPage'
-import LeaderboardPage from './pages/LeaderboardPage'
-import ContributionPage from './pages/ContributionPage'
-import ReviewsPage from './pages/ReviewsPage'
-import ProfilePage from './pages/ProfilePage'
-import SettingsPage from './pages/SettingsPage'
-import SearchPage from './pages/SearchPage'
-import TestSettingsPage from './pages/TestSettingsPage'
-import NotificationSystem from './components/NotificationSystem'
-import { LanguageProvider } from './contexts/LanguageContext'
-import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager'
-import './styles/variables.css'
+import { useState, useEffect, useCallback } from 'react'; // useCallback теперь добавлен
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './pages/MainLayout';
+import AuthPage from './pages/AuthPage';
+import RegisterPage from './pages/RegisterPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
+import AboutPage from './pages/AboutPage';
+import DashboardLayout from './layouts/DashboardLayout';
+import FeedPage from './pages/FeedPage';
+import PetPage from './pages/PetPage';
+import TeamsPage from './pages/TeamsPage';
+import MessagesPage from './pages/MessagesPage';
+import FriendsPage from './pages/FriendsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import CreatePostPage from './pages/CreatePostPage';
+import AchievementsPage from './pages/AchievementsPage';
+import StatisticsPage from './pages/StatisticsPage';
+import LeaderboardPage from './pages/LeaderboardPage';
+import ContributionPage from './pages/ContributionPage';
+import ReviewsPage from './pages/ReviewsPage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import SearchPage from './pages/SearchPage';
+import TestSettingsPage from './pages/TestSettingsPage';
+import NotificationSystem from './components/NotificationSystem';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
+import './styles/variables.css';
+import loadingGif from './assets/videos/loading-tree.gif';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [showNotifications, setShowNotifications] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  // Функция для показа уведомлений
+  // Функция для показа уведомлений - теперь с useCallback
   const showAppNotification = useCallback((title, body, type = 'success') => {
     if (window.showNotification) {
       window.showNotification({
@@ -60,45 +61,53 @@ function App() {
       // Показываем alert как fallback
       alert(`${title}: ${body}`);
     }
-  }, []);
+  }, []); // Пустой массив зависимостей, так как функция не зависит от состояния компонента
 
   useEffect(() => {
+    // Делаем функцию доступной глобально для других компонентов
+    window.showAppNotification = showAppNotification;
+    
     // Инициализируем тему при загрузке приложения
     const initApp = async () => {
       try {
         // Сначала инициализируем тему синхронно с skipSave: true
-        const savedTheme = getSavedTheme()
-        applyTheme(savedTheme, { skipSave: true })
+        const savedTheme = getSavedTheme();
+        applyTheme(savedTheme, { skipSave: true });
         
         // Проверяем авторизацию
-        const user = localStorage.getItem('user')
-        const token = localStorage.getItem('token') // Проверяем токен
+        const user = localStorage.getItem('user');
+        const token = localStorage.getItem('token'); // Проверяем токен
         
         if (user && token) {
           try {
-            const userData = JSON.parse(user)
+            const userData = JSON.parse(user);
             if (userData && userData.id) {
-              setIsAuthenticated(true)
+              setIsAuthenticated(true);
               // Если пользователь авторизован, синхронизируем тему с БД асинхронно
               syncTheme().catch(error => {
-                console.warn('Ошибка синхронизации темы:', error)
-              })
+                console.warn('Ошибка синхронизации темы:', error);
+              });
             }
           } catch (error) {
-            console.error('Ошибка парсинга данных пользователя:', error)
-            localStorage.removeItem('user')
-            localStorage.removeItem('token')
+            console.error('Ошибка парсинга данных пользователя:', error);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
           }
         }
       } catch (error) {
-        console.error('Ошибка инициализации приложения:', error)
+        console.error('Ошибка инициализации приложения:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
     
-    initApp()
-  }, [])
+    initApp();
+    
+    // Очистка при размонтировании
+    return () => {
+      delete window.showAppNotification;
+    };
+  }, [showAppNotification]); // Добавляем showAppNotification в зависимости
 
   if (isLoading) {
     return (
@@ -107,11 +116,17 @@ function App() {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        fontSize: '24px'
+        flexDirection: 'column',
+        gap: '20px'
       }}>
-        🌱 Загрузка...
+        <img 
+          src={loadingGif} 
+          alt="Загрузка..." 
+          style={{ width: '150px', height: '150px' }}
+        />
+        <div style={{ fontSize: '24px' }}>Загрузка...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -165,7 +180,7 @@ function App() {
         </Router>
       </div>
     </LanguageProvider>
-  )
+  );
 }
 
-export default App
+export default App;

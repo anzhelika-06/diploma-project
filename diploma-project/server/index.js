@@ -8,6 +8,16 @@ const sessionManager = require('./utils/sessionManager');
 const { requestLogger } = require('./utils/logger');
 const { generalLimiter, authLimiter, calculatorLimiter } = require('./middleware/rateLimiter');
 
+// Подключаем маршруты
+const authRoutes = require('./routes/auth');
+const storiesRoutes = require('./routes/stories');
+const rankingsRoutes = require('./routes/rankings');
+const teamsRoutes = require('./routes/teams');
+const achievementsRoutes = require('./routes/achievements');
+const leaderboardRoutes = require('./routes/leaderboard');
+const userSettingsRoutes = require('./routes/user-settings');
+const supportRoutes = require('./routes/support');
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -17,7 +27,7 @@ const io = new Server(server, {
   }
 });
 
-// Настраиваем Redis adapter для Socket.IO (для multi-server support)
+// Настраиваем Redis adapter для Socket.IO
 const pubClient = redisClient.duplicate();
 const subClient = redisClient.duplicate();
 
@@ -32,13 +42,13 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Ограничиваем размер запроса
-app.use(requestLogger); // Логирование запросов
+app.use(express.json({ limit: '10mb' }));
+app.use(requestLogger);
 
 // Rate limiting
-app.use('/api/', generalLimiter); // Общий лимит для всех API
-app.use('/api/auth/', authLimiter); // Строгий лимит для авторизации
-app.use('/api/calculator/', calculatorLimiter); // Лимит для калькулятора
+app.use('/api/', generalLimiter);
+app.use('/api/auth/', authLimiter);
+app.use('/api/calculator/', calculatorLimiter);
 
 // Делаем io доступным для роутов
 app.set('io', io);
@@ -87,7 +97,7 @@ io.on('connection', (socket) => {
     });
   });
   
-  // Присоединение к комнате (например, команда)
+  // Присоединение к комнате
   socket.on('join:room', (roomId) => {
     socket.join(roomId);
     console.log(`📍 Socket ${socket.id} присоединился к комнате: ${roomId}`);
@@ -131,7 +141,6 @@ io.on('connection', (socket) => {
   
   // Отключение
   socket.on('disconnect', async () => {
-    // Получаем сессию ДО удаления
     const session = await sessionManager.getSession(socket.id);
     const result = await sessionManager.deleteSession(socket.id);
     
@@ -162,15 +171,6 @@ io.on('connection', (socket) => {
 app.set('sessionManager', sessionManager);
 
 // Подключаем маршруты
-const authRoutes = require('./routes/auth');
-const storiesRoutes = require('./routes/stories');
-const rankingsRoutes = require('./routes/rankings');
-const teamsRoutes = require('./routes/teams');
-const achievementsRoutes = require('./routes/achievements');
-const leaderboardRoutes = require('./routes/leaderboard');
-const userSettingsRoutes = require('./routes/user-settings');
-// const ecoTipsRoutes = require('./routes/eco-tips');
-
 app.use('/api/auth', authRoutes);
 app.use('/api/stories', storiesRoutes);
 app.use('/api/rankings', rankingsRoutes);
@@ -178,20 +178,36 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/achievements', achievementsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/user-settings', userSettingsRoutes);
-// app.use('/api/eco-tips', ecoTipsRoutes);
+app.use('/api/support', supportRoutes);
 
-// Временный роут для эко-советов
+// Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {
-  const testTip = {
-    id: 1,
-    title: 'Замените лампочки на LED',
-    content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.',
-    category: 'Энергия',
-    difficulty: 'easy',
-    co2_impact: 40000,
-    day_of_year: 1
-  };
-  res.json(testTip);
+  console.log('GET /api/eco-tips/daily');
+  
+  try {
+    const today = new Date();
+    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    
+    const testTip = {
+      id: 1,
+      title: 'Замените лампочки на LED',
+      content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.',
+      category: 'Энергия',
+      difficulty: 'easy',
+      co2_impact: 40000,
+      day_of_year: dayOfYear,
+      date: today.toISOString()
+    };
+    
+    res.json(testTip);
+  } catch (error) {
+    console.error('Ошибка в /api/eco-tips/daily:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Ошибка при получении эко-совета'
+    });
+  }
 });
 
 app.get('/api/eco-tips/random', (req, res) => {
@@ -261,6 +277,7 @@ app.get('/api/stats', async (req, res) => {
     });
   }
 });
+
 app.post('/api/calculator/calculate', (req, res) => {
   const { nutrition, transport } = req.body;
   const recommendations = [];
@@ -329,6 +346,44 @@ app.get('/api/online-users', async (req, res) => {
     success: true,
     users: onlineUsers,
     total: onlineUsers.length
+  });
+});
+
+// Тестовый маршрут для поддержки
+app.post('/api/support/debug', (req, res) => {
+  console.log('=== DEBUG SUPPORT REQUEST ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('============================');
+  
+  res.json({
+    success: true,
+    message: 'Тестовый запрос получен',
+    headers: req.headers,
+    body: req.body,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/support/my-questions/debug', (req, res) => {
+  console.log('=== DEBUG GET MY QUESTIONS ===');
+  console.log('Headers:', req.headers);
+  console.log('==============================');
+  
+  res.json({
+    success: true,
+    message: 'Тестовый запрос на получение вопросов',
+    headers: req.headers,
+    tickets: [
+      {
+        id: 1,
+        ticket_number: 'TEST-001',
+        subject: 'Тестовый вопрос',
+        message: 'Это тестовое сообщение',
+        status: 'pending',
+        created_at: new Date().toISOString()
+      }
+    ]
   });
 });
 

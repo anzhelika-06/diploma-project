@@ -187,7 +187,7 @@
 /* Footer */
 .sidebar-footer {
   margin-top: auto;
-  padding: 3rem 0 1.25rem 0;
+  padding: 0.9rem 0 1.25rem 0;
   position: relative;
   display: flex;
   justify-content: center;
@@ -197,7 +197,7 @@
 .sidebar-footer::before {
   content: '';
   position: absolute;
-  top: 2.8rem;
+  top: 2.86rem;
   left: 0;
   right: 0;
   height: 1px;
@@ -210,10 +210,12 @@
 
 .eco-vacation {
   color: #ff6b6b;
+  transform: translateY(2.1rem);
 }
 
 .eco-vacation:hover {
   background: #fff5f5;
+  transform: translateY(2.1rem) scale(1.02); 
 }
 
 /* Мобильная версия - скрываем sidebar */

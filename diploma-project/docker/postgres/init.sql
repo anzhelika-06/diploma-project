@@ -2,6 +2,8 @@
 -- БАЗА ДАННЫХ ДЛЯ ПРОЕКТА EcoSteps
 -- ============================================
 
+-- ============ ТАБЛИЦЫ ============
+
 -- ============ СПРАВОЧНИК ПОЛОВ ============
 CREATE TABLE IF NOT EXISTS genders (
     id SERIAL PRIMARY KEY,
@@ -111,23 +113,6 @@ CREATE TABLE IF NOT EXISTS story_likes (
     UNIQUE(story_id, user_id)
 );
 
--- Индексы
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_nickname ON users(nickname);
-CREATE INDEX idx_users_gender ON users(gender_id);
-CREATE INDEX idx_users_birthdate ON users(date_of_birth);
-CREATE INDEX idx_users_carbon_saved ON users(carbon_saved);
-CREATE INDEX idx_user_settings_user ON user_settings(user_id);
-CREATE INDEX idx_user_settings_theme ON user_settings(theme);
-CREATE INDEX idx_user_settings_language ON user_settings(language);
-CREATE INDEX idx_teams_carbon_saved ON teams(carbon_saved);
-CREATE INDEX idx_stories_user ON success_stories(user_id);
-CREATE INDEX idx_stories_created ON success_stories(created_at);
-CREATE INDEX idx_story_likes_story ON story_likes(story_id);
-CREATE INDEX idx_story_likes_user ON story_likes(user_id);
-CREATE INDEX idx_team_members_team ON team_members(team_id);
-CREATE INDEX idx_team_members_user ON team_members(user_id);
-
 -- ============ ДОСТИЖЕНИЯ ============
 CREATE TABLE IF NOT EXISTS achievements (
     id SERIAL PRIMARY KEY,
@@ -155,32 +140,544 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     UNIQUE(user_id, achievement_id)
 );
 
+-- ============ ВОПРОСЫ В ПОДДЕРЖКУ ============
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    ticket_number VARCHAR(50) UNIQUE NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'answered', 'closed')),
+    admin_response TEXT,
+    responded_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ АКТИВНОСТЬ ПОЛЬЗОВАТЕЛЕЙ ============
+CREATE TABLE IF NOT EXISTS user_activities (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    activity_type VARCHAR(50) NOT NULL,
+    description TEXT NOT NULL,
+    related_id INTEGER,
+    carbon_saved INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ ЕЖЕДНЕВНЫЕ ЭКО-СОВЕТЫ ============
+CREATE TABLE IF NOT EXISTS eco_tips (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    difficulty VARCHAR(20) DEFAULT 'easy' CHECK (difficulty IN ('easy', 'medium', 'hard')),
+    co2_impact INTEGER DEFAULT 0,
+    day_of_year INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ ПРОСМОТРЕННЫЕ ЭКО-СОВЕТЫ ============
+CREATE TABLE IF NOT EXISTS user_eco_tips (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    tip_id INTEGER REFERENCES eco_tips(id) ON DELETE CASCADE,
+    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    liked BOOLEAN DEFAULT FALSE,
+    UNIQUE(user_id, tip_id)
+);
+
+-- ============ ИНДЕКСЫ ============
+
+-- Индексы для пользователей
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
+CREATE INDEX IF NOT EXISTS idx_users_gender ON users(gender_id);
+CREATE INDEX IF NOT EXISTS idx_users_birthdate ON users(date_of_birth);
+CREATE INDEX IF NOT EXISTS idx_users_carbon_saved ON users(carbon_saved);
+CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
+CREATE INDEX IF NOT EXISTS idx_users_carbon_saved_desc ON users(carbon_saved DESC);
+
+-- Индексы для настроек
+CREATE INDEX IF NOT EXISTS idx_user_settings_user ON user_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_settings_theme ON user_settings(theme);
+CREATE INDEX IF NOT EXISTS idx_user_settings_language ON user_settings(language);
+
+-- Индексы для команд
+CREATE INDEX IF NOT EXISTS idx_teams_carbon_saved ON teams(carbon_saved);
+CREATE INDEX IF NOT EXISTS idx_teams_carbon_saved_desc ON teams(carbon_saved DESC);
+
+-- Индексы для участников команд
+CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
+
+-- Индексы для историй успеха
+CREATE INDEX IF NOT EXISTS idx_stories_user ON success_stories(user_id);
+CREATE INDEX IF NOT EXISTS idx_stories_created ON success_stories(created_at);
+CREATE INDEX IF NOT EXISTS idx_stories_category_date ON success_stories(category, created_at);
+CREATE INDEX IF NOT EXISTS idx_stories_likes_desc ON success_stories(likes_count DESC);
+CREATE INDEX IF NOT EXISTS idx_stories_carbon_saved ON success_stories(carbon_saved DESC);
+CREATE INDEX IF NOT EXISTS idx_stories_carbon_saved_desc ON success_stories(carbon_saved DESC);
+
+-- Индексы для лайков историй
+CREATE INDEX IF NOT EXISTS idx_story_likes_story ON story_likes(story_id);
+CREATE INDEX IF NOT EXISTS idx_story_likes_user ON story_likes(user_id);
+CREATE INDEX IF NOT EXISTS idx_story_likes_composite ON story_likes(story_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_story_likes_story_id ON story_likes(story_id);
+CREATE INDEX IF NOT EXISTS idx_story_likes_user_id ON story_likes(user_id);
+
 -- Индексы для достижений
-CREATE INDEX idx_user_achievements_user ON user_achievements(user_id);
-CREATE INDEX idx_user_achievements_achievement ON user_achievements(achievement_id);
-CREATE INDEX idx_user_achievements_completed ON user_achievements(completed);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement ON user_achievements(achievement_id);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_completed ON user_achievements(completed);
 
--- Дополнительные индексы для продакшена
-CREATE INDEX idx_stories_category_date ON success_stories(category, created_at);
-CREATE INDEX idx_stories_likes_desc ON success_stories(likes_count DESC);
-CREATE INDEX idx_story_likes_composite ON story_likes(story_id, user_id);
-CREATE INDEX idx_stories_carbon_saved ON success_stories(carbon_saved DESC);
-CREATE INDEX idx_users_carbon_saved_desc ON users(carbon_saved DESC);
-CREATE INDEX idx_teams_carbon_saved_desc ON teams(carbon_saved DESC);
+-- Индексы для поддержки
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_ticket_number ON support_tickets(ticket_number);
 
--- ============ ЗАПОЛНЯЕМ СПРАВОЧНИК ПОЛОВ ============
+-- Индексы для активности
+CREATE INDEX IF NOT EXISTS idx_user_activities_user_id ON user_activities(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_activities_created_at ON user_activities(created_at);
+
+-- Индексы для эко-советов
+CREATE INDEX IF NOT EXISTS idx_eco_tips_day_of_year ON eco_tips(day_of_year);
+CREATE INDEX IF NOT EXISTS idx_eco_tips_category ON eco_tips(category);
+CREATE INDEX IF NOT EXISTS idx_eco_tips_difficulty ON eco_tips(difficulty);
+CREATE INDEX IF NOT EXISTS idx_user_eco_tips_user_id ON user_eco_tips(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_eco_tips_viewed_at ON user_eco_tips(viewed_at);
+
+-- ============ ПРЕДСТАВЛЕНИЯ ============
+
+-- Пользователи с полом
+CREATE OR REPLACE VIEW users_view AS
+SELECT 
+    u.id,
+    u.email,
+    u.nickname as display_name,
+    u.date_of_birth,
+    g.code as gender_code,
+    u.gender_id,
+    u.carbon_saved,
+    u.eco_level,
+    u.avatar_emoji,
+    u.created_at,
+    u.updated_at
+FROM users u
+LEFT JOIN genders g ON u.gender_id = g.id;
+
+-- Рейтинг пользователей
+CREATE OR REPLACE VIEW user_rankings AS
+SELECT 
+    u.id,
+    u.nickname,
+    u.carbon_saved,
+    u.eco_level,
+    u.avatar_emoji,
+    ROW_NUMBER() OVER (ORDER BY u.carbon_saved DESC) as rank
+FROM users u
+ORDER BY u.carbon_saved DESC;
+
+-- Рейтинг команд
+CREATE OR REPLACE VIEW team_rankings AS
+SELECT 
+    t.id,
+    t.name,
+    t.carbon_saved,
+    t.member_count,
+    t.avatar_emoji,
+    ROW_NUMBER() OVER (ORDER BY t.carbon_saved DESC) as rank
+FROM teams t
+ORDER BY t.carbon_saved DESC;
+
+-- Истории с пользователями
+CREATE OR REPLACE VIEW stories_with_user AS
+SELECT 
+    s.id,
+    s.title,
+    s.content,
+    s.carbon_saved,
+    s.likes_count,
+    s.created_at,
+    u.nickname as user_nickname,
+    u.avatar_emoji as user_avatar
+FROM success_stories s
+JOIN users u ON s.user_id = u.id
+ORDER BY s.created_at DESC;
+
+-- Вопросы в поддержку с пользователями
+CREATE OR REPLACE VIEW support_tickets_view AS
+SELECT 
+    st.*,
+    u.nickname,
+    u.avatar_emoji,
+    u.email,
+    CASE 
+        WHEN st.status = 'pending' THEN 'Ожидает ответа'
+        WHEN st.status = 'answered' THEN 'Отвечено'
+        WHEN st.status = 'closed' THEN 'Закрыто'
+        ELSE st.status
+    END as status_display
+FROM support_tickets st
+JOIN users u ON st.user_id = u.id;
+
+-- ============ ФУНКЦИИ И ПРОЦЕДУРЫ ============
+
+-- Функция обновления updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Функция для генерации номера заявки
+CREATE OR REPLACE FUNCTION generate_ticket_number()
+RETURNS VARCHAR(20) AS $$
+DECLARE
+    date_part VARCHAR(8);
+    seq_part VARCHAR(4);
+    today_count INTEGER;
+BEGIN
+    date_part := TO_CHAR(CURRENT_DATE, 'YYYYMMDD');
+    
+    SELECT COALESCE(COUNT(*), 0) + 1 INTO today_count 
+    FROM support_tickets 
+    WHERE DATE(created_at) = CURRENT_DATE;
+    
+    seq_part := LPAD(today_count::VARCHAR, 4, '0');
+    
+    RETURN 'TICKET-' || date_part || '-' || seq_part;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для создания настроек пользователя
+CREATE OR REPLACE FUNCTION create_user_settings()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO user_settings (user_id) VALUES (NEW.id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для обновления количества участников в команде
+CREATE OR REPLACE FUNCTION update_team_member_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE teams 
+        SET member_count = (
+            SELECT COUNT(*) 
+            FROM team_members 
+            WHERE team_id = NEW.team_id
+        )
+        WHERE id = NEW.team_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE teams 
+        SET member_count = (
+            SELECT COUNT(*) 
+            FROM team_members 
+            WHERE team_id = OLD.team_id
+        )
+        WHERE id = OLD.team_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для логирования активности пользователя
+CREATE OR REPLACE FUNCTION log_user_activity(
+    p_user_id INTEGER,
+    p_activity_type VARCHAR(50),
+    p_description TEXT,
+    p_related_id INTEGER DEFAULT NULL,
+    p_carbon_saved INTEGER DEFAULT 0
+) RETURNS VOID AS $$
+BEGIN
+    INSERT INTO user_activities (user_id, activity_type, description, related_id, carbon_saved)
+    VALUES (p_user_id, p_activity_type, p_description, p_related_id, p_carbon_saved);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для получения статистики пользователя
+CREATE OR REPLACE FUNCTION get_user_stats(p_user_id INTEGER)
+RETURNS TABLE(
+    carbon_saved INTEGER,
+    eco_level VARCHAR,
+    achievements_count INTEGER,
+    achievements_completed INTEGER,
+    team_count INTEGER,
+    stories_count INTEGER,
+    total_likes INTEGER,
+    support_tickets_count INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        COALESCE(u.carbon_saved, 0)::INTEGER,
+        COALESCE(u.eco_level, 'Эко-новичок'),
+        COUNT(DISTINCT ua.id)::INTEGER,
+        COUNT(DISTINCT CASE WHEN ua.completed = true THEN ua.id END)::INTEGER,
+        COUNT(DISTINCT tm.team_id)::INTEGER,
+        COUNT(DISTINCT ss.id)::INTEGER,
+        COALESCE(SUM(ss.likes_count), 0)::INTEGER,
+        COUNT(DISTINCT st.id)::INTEGER
+    FROM users u
+    LEFT JOIN user_achievements ua ON u.id = ua.user_id
+    LEFT JOIN team_members tm ON u.id = tm.user_id
+    LEFT JOIN success_stories ss ON u.id = ss.user_id
+    LEFT JOIN support_tickets st ON u.id = st.user_id
+    WHERE u.id = p_user_id
+    GROUP BY u.id, u.carbon_saved, u.eco_level;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для получения активности пользователя
+CREATE OR REPLACE FUNCTION get_user_activity(
+    p_user_id INTEGER,
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0
+) RETURNS TABLE(
+    id INTEGER,
+    activity_type VARCHAR,
+    description TEXT,
+    created_at TIMESTAMP,
+    carbon_saved INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        ua.id,
+        ua.activity_type,
+        ua.description,
+        ua.created_at,
+        ua.carbon_saved
+    FROM user_activities ua
+    WHERE ua.user_id = p_user_id
+    ORDER BY ua.created_at DESC
+    LIMIT p_limit
+    OFFSET p_offset;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция для получения вопросов пользователя
+CREATE OR REPLACE FUNCTION get_user_support_tickets(
+    p_user_id INTEGER,
+    p_status VARCHAR DEFAULT NULL
+) RETURNS TABLE(
+    id INTEGER,
+    ticket_number VARCHAR,
+    subject VARCHAR,
+    message TEXT,
+    status VARCHAR,
+    admin_response TEXT,
+    responded_at TIMESTAMP,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        st.id,
+        st.ticket_number,
+        st.subject,
+        st.message,
+        st.status,
+        st.admin_response,
+        st.responded_at,
+        st.created_at,
+        st.updated_at
+    FROM support_tickets st
+    WHERE st.user_id = p_user_id
+    AND (p_status IS NULL OR st.status = p_status)
+    ORDER BY st.created_at DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============ ТРИГГЕРЫ ============
+
+-- Триггер для обновления updated_at в users
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at 
+    BEFORE UPDATE ON users 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Триггер для обновления updated_at в user_settings
+DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
+CREATE TRIGGER update_user_settings_updated_at 
+    BEFORE UPDATE ON user_settings 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Триггер для обновления updated_at в teams
+DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
+CREATE TRIGGER update_teams_updated_at 
+    BEFORE UPDATE ON teams 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Триггер для обновления updated_at в success_stories
+DROP TRIGGER IF EXISTS update_success_stories_updated_at ON success_stories;
+CREATE TRIGGER update_success_stories_updated_at 
+    BEFORE UPDATE ON success_stories 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Триггер для обновления updated_at в support_tickets
+DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
+CREATE TRIGGER update_support_tickets_updated_at
+    BEFORE UPDATE ON support_tickets
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Триггер для создания настроек при регистрации нового пользователя
+DROP TRIGGER IF EXISTS trigger_create_user_settings ON users;
+CREATE TRIGGER trigger_create_user_settings
+    AFTER INSERT ON users
+    FOR EACH ROW EXECUTE FUNCTION create_user_settings();
+
+-- Триггер для обновления количества участников команд
+DROP TRIGGER IF EXISTS trigger_update_team_member_count_insert ON team_members;
+CREATE TRIGGER trigger_update_team_member_count_insert
+    AFTER INSERT ON team_members
+    FOR EACH ROW EXECUTE FUNCTION update_team_member_count();
+
+DROP TRIGGER IF EXISTS trigger_update_team_member_count_delete ON team_members;
+CREATE TRIGGER trigger_update_team_member_count_delete
+    AFTER DELETE ON team_members
+    FOR EACH ROW EXECUTE FUNCTION update_team_member_count();
+
+-- Триггер для установки номера заявки
+CREATE OR REPLACE FUNCTION set_ticket_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.ticket_number IS NULL THEN
+        NEW.ticket_number := generate_ticket_number();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_set_ticket_number ON support_tickets;
+CREATE TRIGGER trigger_set_ticket_number
+    BEFORE INSERT ON support_tickets
+    FOR EACH ROW
+    EXECUTE FUNCTION set_ticket_number();
+
+-- Триггер для логирования создания истории
+CREATE OR REPLACE FUNCTION log_story_creation()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM log_user_activity(
+        NEW.user_id,
+        'story_created',
+        'Создана новая история: ' || NEW.title,
+        NEW.id,
+        NEW.carbon_saved
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_log_story_creation ON success_stories;
+CREATE TRIGGER trigger_log_story_creation
+    AFTER INSERT ON success_stories
+    FOR EACH ROW
+    EXECUTE FUNCTION log_story_creation();
+
+-- Триггер для логирования получения достижения
+CREATE OR REPLACE FUNCTION log_achievement_completion()
+RETURNS TRIGGER AS $$
+DECLARE
+    achievement_name VARCHAR;
+BEGIN
+    IF NEW.completed = TRUE AND (OLD.completed IS NULL OR OLD.completed = FALSE) THEN
+        SELECT name INTO achievement_name 
+        FROM achievements 
+        WHERE id = NEW.achievement_id;
+        
+        PERFORM log_user_activity(
+            NEW.user_id,
+            'achievement_completed',
+            'Получено достижение: ' || achievement_name,
+            NEW.achievement_id,
+            0
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_log_achievement_completion ON user_achievements;
+CREATE TRIGGER trigger_log_achievement_completion
+    AFTER UPDATE ON user_achievements
+    FOR EACH ROW
+    EXECUTE FUNCTION log_achievement_completion();
+
+-- Триггер для логирования вступления в команду
+CREATE OR REPLACE FUNCTION log_team_join()
+RETURNS TRIGGER AS $$
+DECLARE
+    team_name VARCHAR;
+BEGIN
+    SELECT name INTO team_name 
+    FROM teams 
+    WHERE id = NEW.team_id;
+    
+    PERFORM log_user_activity(
+        NEW.user_id,
+        'team_joined',
+        'Вступил в команду: ' || team_name,
+        NEW.team_id,
+        0
+    );
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_log_team_join ON team_members;
+CREATE TRIGGER trigger_log_team_join
+    AFTER INSERT ON team_members
+    FOR EACH ROW
+    EXECUTE FUNCTION log_team_join();
+
+-- Триггер для логирования отправки вопроса в поддержку
+CREATE OR REPLACE FUNCTION log_support_ticket()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM log_user_activity(
+        NEW.user_id,
+        'support_ticket',
+        'Отправлен вопрос в поддержку: ' || NEW.subject,
+        NEW.id,
+        0
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_log_support_ticket ON support_tickets;
+CREATE TRIGGER trigger_log_support_ticket
+    AFTER INSERT ON support_tickets
+    FOR EACH ROW
+    EXECUTE FUNCTION log_support_ticket();
+
+-- ============ ЗАПОЛНЕНИЕ ДАННЫМИ ============
+
+-- Заполняем справочник полов
 INSERT INTO genders (code) VALUES
     ('male'),
     ('female')
 ON CONFLICT (code) DO NOTHING;
 
--- ============ УДАЛЯЕМ СТАРЫХ ПОЛЬЗОВАТЕЛЕЙ ============
+-- Удаляем старых пользователей
 DELETE FROM users;
 ALTER SEQUENCE users_id_seq RESTART WITH 1;
 
--- ============ СОЗДАЕМ 35 ПОЛЬЗОВАТЕЛЕЙ С АНГЛИЙСКИМИ НИКНЕЙМАМИ ============
--- Пароли: admin123, user123, test123 (все содержат буквы и цифры, минимум 6 символов)
-
+-- Создаем пользователей
 -- Администратор
 INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, is_admin, email_verified) 
 SELECT 
@@ -226,7 +723,7 @@ SELECT
 FROM genders g WHERE g.code = 'male'
 ON CONFLICT (email) DO NOTHING;
 
--- Дополнительные пользователи (32 человека) - все с паролем test123
+-- Дополнительные пользователи (32 человека)
 INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, carbon_saved, eco_level, avatar_emoji, email_verified) VALUES 
 ('alex.green@test.com', 'alex_green', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1988-03-15', 1, 2300, 'Эко-активист', '🌲', TRUE),
 ('sarah.eco@test.com', 'sarah_eco', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1995-07-22', 2, 1950, 'Эко-энтузиаст', '🌸', TRUE),
@@ -262,7 +759,7 @@ INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, car
 ('ella.kind@test.com', 'ella_kind', '$2b$10$W1Lj9DfGUuv9VKgs6twu1.BLmNRW.fXAGupsaRICroTbH4cHFta/i', '1992-10-18', 2, 1750, 'Эко-энтузиаст', '💝', TRUE)
 ON CONFLICT (email) DO NOTHING;
 
--- ============ КОМАНДЫ ============
+-- Создаем команды
 DELETE FROM teams;
 ALTER SEQUENCE teams_id_seq RESTART WITH 1;
 
@@ -274,8 +771,7 @@ INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_targe
 ('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000, 11800, 11800, 4)
 ON CONFLICT (name) DO NOTHING;
 
--- ============ ДОСТИЖЕНИЯ ============
--- Транспорт
+-- Создаем достижения
 INSERT INTO achievements (code, name, description, category, icon, requirement_type, requirement_value, points, rarity) VALUES
     ('bike_10km', 'Первые 10 км', 'Проехать 10 км на велосипеде', 'transport', '🚴', 'distance', 10, 10, 'common'),
     ('bike_50km', 'Велосипедист', 'Проехать 50 км на велосипеде', 'transport', '🚴', 'distance', 50, 25, 'common'),
@@ -288,14 +784,12 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('walk_50km', 'Марафонец', 'Пройти 50 км пешком', 'transport', '🚶', 'distance', 50, 50, 'rare'),
     ('carpool_10', 'Попутчик', 'Использовать карпулинг 10 раз', 'transport', '🚗', 'count', 10, 20, 'common'),
 
--- Энергия
     ('solar_install', 'Солнечная энергия', 'Установить солнечные панели', 'energy', '☀️', 'count', 1, 100, 'epic'),
     ('led_bulbs_10', 'LED освещение', 'Заменить 10 ламп на LED', 'energy', '💡', 'count', 10, 20, 'common'),
     ('energy_save_100', 'Энергосбережение', 'Сэкономить 100 кВт⋅ч', 'energy', '⚡', 'count', 100, 30, 'rare'),
     ('energy_save_500', 'Энергомастер', 'Сэкономить 500 кВт⋅ч', 'energy', '⚡', 'count', 500, 75, 'epic'),
     ('renewable_30days', 'Месяц на возобновляемой энергии', 'Использовать только возобновляемую энергию 30 дней', 'energy', '🔋', 'days', 30, 100, 'epic'),
 
--- Отходы
     ('recycle_first', 'Первая сортировка', 'Начать раздельный сбор мусора', 'waste', '♻️', 'count', 1, 10, 'common'),
     ('recycle_30days', 'Месяц сортировки', 'Сортировать мусор 30 дней подряд', 'waste', '♻️', 'days', 30, 30, 'common'),
     ('recycle_100days', '100 дней сортировки', 'Сортировать мусор 100 дней подряд', 'waste', '♻️', 'days', 100, 75, 'rare'),
@@ -306,7 +800,6 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('plastic_free_30', 'Месяц без пластика', 'Не использовать пластик 30 дней', 'waste', '🚫', 'days', 30, 100, 'epic'),
     ('reusable_bags_30', 'Многоразовые сумки', 'Использовать многоразовые сумки 30 раз', 'waste', '👜', 'count', 30, 20, 'common'),
 
--- Питание
     ('vegan_7', 'Неделя веганства', 'Питаться веганской пищей 7 дней', 'food', '🥗', 'days', 7, 25, 'common'),
     ('vegan_30', 'Месяц веганства', 'Питаться веганской пищей 30 дней', 'food', '🥗', 'days', 30, 75, 'rare'),
     ('vegetarian_30', 'Месяц вегетарианства', 'Питаться вегетарианской пищей 30 дней', 'food', '🥕', 'days', 30, 50, 'common'),
@@ -315,13 +808,11 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('no_meat_7', 'Неделя без мяса', 'Не есть мясо 7 дней', 'food', '🥦', 'days', 7, 15, 'common'),
     ('grow_food', 'Свой огород', 'Вырастить свои овощи', 'food', '🌱', 'count', 1, 30, 'common'),
 
--- Вода
     ('water_save_100', 'Экономия воды', 'Сэкономить 100 литров воды', 'water', '💧', 'count', 100, 20, 'common'),
     ('water_save_1000', 'Водосбережение', 'Сэкономить 1000 литров воды', 'water', '💧', 'count', 1000, 50, 'rare'),
     ('shower_5min_30', 'Быстрый душ', 'Принимать душ не более 5 минут 30 дней подряд', 'water', '🚿', 'days', 30, 40, 'common'),
     ('rainwater_collect', 'Сбор дождевой воды', 'Начать собирать дождевую воду', 'water', '🌧️', 'count', 1, 30, 'common'),
 
--- Социальные
     ('invite_friend', 'Пригласи друга', 'Пригласить друга в EcoSteps', 'social', '👥', 'count', 1, 15, 'common'),
     ('invite_5friends', 'Эко-амбассадор', 'Пригласить 5 друзей в EcoSteps', 'social', '👥', 'count', 5, 50, 'rare'),
     ('invite_10friends', 'Эко-евангелист', 'Пригласить 10 друзей в EcoSteps', 'social', '👥', 'count', 10, 100, 'epic'),
@@ -334,7 +825,6 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('like_10stories', 'Поддержка', 'Поставить лайк 10 историям', 'social', '❤️', 'count', 10, 10, 'common'),
     ('like_50stories', 'Вдохновитель', 'Поставить лайк 50 историям', 'social', '❤️', 'count', 50, 30, 'common'),
 
--- Общие достижения
     ('first_day', 'Первый день', 'Зарегистрироваться в EcoSteps', 'general', '🌱', 'count', 1, 5, 'common'),
     ('week_active', 'Неделя активности', 'Быть активным 7 дней подряд', 'general', '📅', 'days', 7, 20, 'common'),
     ('month_active', 'Месяц активности', 'Быть активным 30 дней подряд', 'general', '📅', 'days', 30, 75, 'rare'),
@@ -350,7 +840,7 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('night_owl', 'Сова', 'Войти в систему после 23:00', 'general', '🦉', 'count', 1, 10, 'common')
 ON CONFLICT (code) DO NOTHING;
 
--- ============ ИСТОРИИ УСПЕХА ============
+-- Создаем истории успеха
 DELETE FROM success_stories;
 ALTER SEQUENCE success_stories_id_seq RESTART WITH 1;
 
@@ -382,218 +872,56 @@ INSERT INTO success_stories (user_id, title, content, category, carbon_saved, li
     (25, 'grace_pure за чистоту', 'Создала линейку натуральной косметики и моющих средств из растительных компонентов.', 'Быт', 1650, 36)
 ON CONFLICT DO NOTHING;
 
--- ============ УЧАСТНИКИ КОМАНД ============
+-- Создаем участников команд
 DELETE FROM team_members;
 
 INSERT INTO team_members (team_id, user_id, role) VALUES 
--- Зеленые Минска (команда 1) - 8 участников
-(1, 1, 'admin'),   -- admin
-(1, 2, 'member'),  -- user
-(1, 3, 'member'),  -- test
-(1, 4, 'member'),  -- alex_green
-(1, 5, 'member'),  -- sarah_eco
-(1, 6, 'member'),  -- mike_nature
-(1, 7, 'member'),  -- emma_clean
-(1, 8, 'member'),  -- david_solar
+(1, 1, 'admin'),
+(1, 2, 'member'),
+(1, 3, 'member'),
+(1, 4, 'member'),
+(1, 5, 'member'),
+(1, 6, 'member'),
+(1, 7, 'member'),
+(1, 8, 'member'),
 
--- Эко-студенты МГКЦТ (команда 2) - 6 участников
-(2, 9, 'admin'),   -- lisa_bike
-(2, 10, 'member'), -- john_water
-(2, 11, 'member'), -- anna_forest
-(2, 12, 'member'), -- tom_ocean
-(2, 13, 'member'), -- kate_wind
-(2, 14, 'member'), -- peter_recycle
+(2, 9, 'admin'),
+(2, 10, 'member'),
+(2, 11, 'member'),
+(2, 12, 'member'),
+(2, 13, 'member'),
+(2, 14, 'member'),
 
--- Велосипедисты Гомеля (команда 3) - 4 участника
-(3, 15, 'admin'),  -- maria_garden
-(3, 16, 'member'), -- james_energy
-(3, 17, 'member'), -- nina_earth
-(3, 18, 'member'), -- ryan_transport
+(3, 15, 'admin'),
+(3, 16, 'member'),
+(3, 17, 'member'),
+(3, 18, 'member'),
 
--- Солнечная энергия (команда 4) - 3 участника
-(4, 8, 'admin'),   -- david_solar
-(4, 16, 'member'), -- james_energy
-(4, 19, 'member'), -- sophie_waste
+(4, 8, 'admin'),
+(4, 16, 'member'),
+(4, 19, 'member'),
 
--- Ноль отходов (команда 5) - 4 участника
-(5, 7, 'admin'),   -- emma_clean
-(5, 14, 'member'), -- peter_recycle
-(5, 19, 'member'), -- sophie_waste
-(5, 20, 'member')  -- lucas_food
+(5, 7, 'admin'),
+(5, 14, 'member'),
+(5, 19, 'member'),
+(5, 20, 'member')
 ON CONFLICT (team_id, user_id) DO NOTHING;
-
--- ============ ПРЕДСТАВЛЕНИЯ ДЛЯ УДОБСТВА ============
-CREATE OR REPLACE VIEW users_view AS
-SELECT 
-    u.id,
-    u.email,
-    u.nickname as display_name,
-    u.date_of_birth,
-    g.code as gender_code,
-    u.gender_id,
-    u.carbon_saved,
-    u.eco_level,
-    u.avatar_emoji,
-    u.created_at,
-    u.updated_at
-FROM users u
-LEFT JOIN genders g ON u.gender_id = g.id;
-
-CREATE OR REPLACE VIEW user_rankings AS
-SELECT 
-    u.id,
-    u.nickname,
-    u.carbon_saved,
-    u.eco_level,
-    u.avatar_emoji,
-    ROW_NUMBER() OVER (ORDER BY u.carbon_saved DESC) as rank
-FROM users u
-ORDER BY u.carbon_saved DESC;
-
-CREATE OR REPLACE VIEW team_rankings AS
-SELECT 
-    t.id,
-    t.name,
-    t.carbon_saved,
-    t.member_count,
-    t.avatar_emoji,
-    ROW_NUMBER() OVER (ORDER BY t.carbon_saved DESC) as rank
-FROM teams t
-ORDER BY t.carbon_saved DESC;
-
-CREATE OR REPLACE VIEW stories_with_user AS
-SELECT 
-    s.id,
-    s.title,
-    s.content,
-    s.carbon_saved,
-    s.likes_count,
-    s.created_at,
-    u.nickname as user_nickname,
-    u.avatar_emoji as user_avatar
-FROM success_stories s
-JOIN users u ON s.user_id = u.id
-ORDER BY s.created_at DESC;
-
--- ============ ФУНКЦИИ ДЛЯ АВТОМАТИЧЕСКОГО ОБНОВЛЕНИЯ ============
--- Функция для обновления количества участников в команде
-CREATE OR REPLACE FUNCTION update_team_member_count()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE teams 
-        SET member_count = (
-            SELECT COUNT(*) 
-            FROM team_members 
-            WHERE team_id = NEW.team_id
-        )
-        WHERE id = NEW.team_id;
-        RETURN NEW;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE teams 
-        SET member_count = (
-            SELECT COUNT(*) 
-            FROM team_members 
-            WHERE team_id = OLD.team_id
-        )
-        WHERE id = OLD.team_id;
-        RETURN OLD;
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для автоматического создания настроек пользователя
-CREATE OR REPLACE FUNCTION create_user_settings()
-RETURNS TRIGGER AS $$
-BEGIN
-    INSERT INTO user_settings (user_id) VALUES (NEW.id);
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция обновления updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Триггеры для автоматического обновления количества участников
-DROP TRIGGER IF EXISTS trigger_update_team_member_count_insert ON team_members;
-CREATE TRIGGER trigger_update_team_member_count_insert
-    AFTER INSERT ON team_members
-    FOR EACH ROW EXECUTE FUNCTION update_team_member_count();
-
-DROP TRIGGER IF EXISTS trigger_update_team_member_count_delete ON team_members;
-CREATE TRIGGER trigger_update_team_member_count_delete
-    AFTER DELETE ON team_members
-    FOR EACH ROW EXECUTE FUNCTION update_team_member_count();
-
--- Триггер для создания настроек при регистрации нового пользователя
-DROP TRIGGER IF EXISTS trigger_create_user_settings ON users;
-CREATE TRIGGER trigger_create_user_settings
-    AFTER INSERT ON users
-    FOR EACH ROW EXECUTE FUNCTION create_user_settings();
-
--- Триггер для обновления updated_at в user_settings
-DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
-CREATE TRIGGER update_user_settings_updated_at 
-    BEFORE UPDATE ON user_settings 
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ============================================
--- ЗАПОЛНЕНИЕ ДАННЫМИ
--- ============================================
-
--- ============ ПОЛЫ ============
-INSERT INTO genders (code) VALUES 
-('male'), 
-('female')
-ON CONFLICT (code) DO NOTHING;
-
--- ============ ПОЛЬЗОВАТЕЛИ УЖЕ СОЗДАНЫ ============
--- Все пользователи созданы выше с правильными английскими никнеймами
-
--- ============ КОМАНДЫ ОБНОВЛЕНЫ ============
--- Команды уже созданы выше с правильными данными
-
--- ============ УЧАСТНИКИ КОМАНД ОБНОВЛЕНЫ ============
--- Участники команд уже созданы выше с правильными ID пользователей
-
--- ============ ИСТОРИИ УСПЕХА ОБНОВЛЕНЫ ============
--- Истории успеха уже созданы выше с правильными ID пользователей
-
--- ============ ЛАЙКИ ИСТОРИЙ ============
-DELETE FROM story_likes;
-
--- Создаем лайки для историй (распределяем лайки между пользователями)
-INSERT INTO story_likes (story_id, user_id) VALUES 
--- Лайки для истории администратора (story_id=1, 45 лайков)
-(1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20), (1, 21), (1, 22), (1, 23), (1, 24), (1, 25), (1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31), (1, 32), (1, 33), (1, 34), (1, 35), (1, 4), (1, 6), (1, 8), (1, 10), (1, 12), (1, 14), (1, 16), (1, 18), (1, 20), (1, 22), (1, 24),
-
--- Лайки для популярной истории Сары (story_id=5, 78 лайков)
-(5, 1), (5, 3), (5, 4), (5, 6), (5, 7), (5, 8), (5, 9), (5, 10), (5, 11), (5, 12), (5, 13), (5, 14), (5, 15), (5, 16), (5, 17), (5, 18), (5, 19), (5, 20), (5, 21), (5, 22), (5, 23), (5, 24), (5, 25), (5, 26), (5, 27), (5, 28), (5, 29), (5, 30), (5, 31), (5, 32), (5, 33), (5, 34), (5, 35), (5, 2), (5, 4), (5, 6), (5, 8), (5, 10), (5, 12), (5, 14), (5, 16), (5, 18), (5, 20), (5, 22), (5, 24), (5, 26), (5, 28), (5, 30), (5, 32), (5, 34), (5, 1), (5, 3), (5, 7), (5, 9), (5, 11), (5, 13), (5, 15), (5, 17), (5, 19), (5, 21), (5, 23), (5, 25), (5, 27), (5, 29), (5, 31), (5, 33), (5, 35), (5, 2), (5, 4), (5, 6), (5, 8), (5, 10), (5, 12), (5, 14), (5, 16), (5, 18), (5, 20), (5, 22),
-
--- Лайки для истории Дэвида (story_id=8, 67 лайков)
-(8, 1), (8, 2), (8, 3), (8, 4), (8, 5), (8, 6), (8, 7), (8, 9), (8, 10), (8, 11), (8, 12), (8, 13), (8, 14), (8, 15), (8, 16), (8, 17), (8, 18), (8, 19), (8, 20), (8, 21), (8, 22), (8, 23), (8, 24), (8, 25), (8, 26), (8, 27), (8, 28), (8, 29), (8, 30), (8, 31), (8, 32), (8, 33), (8, 34), (8, 35), (8, 1), (8, 3), (8, 5), (8, 7), (8, 9), (8, 11), (8, 13), (8, 15), (8, 17), (8, 19), (8, 21), (8, 23), (8, 25), (8, 27), (8, 29), (8, 31), (8, 33), (8, 35), (8, 2), (8, 4), (8, 6), (8, 10), (8, 12), (8, 14), (8, 16), (8, 18), (8, 20), (8, 22), (8, 24), (8, 26), (8, 28)
-
-ON CONFLICT (story_id, user_id) DO NOTHING;
 
 -- Обновляем счетчики участников команд
 UPDATE teams SET member_count = (
     SELECT COUNT(*) FROM team_members WHERE team_id = teams.id
 );
 
--- Создаем индексы для оптимизации
-CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
-CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON team_members(team_id);
-CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON team_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_success_stories_user_id ON success_stories(user_id);
-CREATE INDEX IF NOT EXISTS idx_story_likes_story_id ON story_likes(story_id);
-CREATE INDEX IF NOT EXISTS idx_story_likes_user_id ON story_likes(user_id);
+-- Создаем настройки для всех пользователей
+DO $$
+BEGIN
+    INSERT INTO user_settings (user_id)
+    SELECT id FROM users 
+    WHERE id NOT IN (SELECT user_id FROM user_settings WHERE user_id IS NOT NULL)
+    ON CONFLICT (user_id) DO NOTHING;
+    
+    RAISE NOTICE 'Создано настроек пользователей: %', (SELECT COUNT(*) FROM user_settings);
+END $$;
 
 -- Выводим информацию о созданных данных
 DO $$
@@ -603,130 +931,4 @@ BEGIN
     RAISE NOTICE 'Создано команд: %', (SELECT COUNT(*) FROM teams);
     RAISE NOTICE 'Создано историй: %', (SELECT COUNT(*) FROM success_stories);
     RAISE NOTICE 'Администратор: admin@test.com / admin (пароль: admin123)';
-END $$;
-
--- ============ ЕЖЕДНЕВНЫЕ ЭКО-СОВЕТЫ ============
-CREATE TABLE IF NOT EXISTS eco_tips (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    content TEXT NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    difficulty VARCHAR(20) DEFAULT 'easy' CHECK (difficulty IN ('easy', 'medium', 'hard')),
-    co2_impact INTEGER DEFAULT 0, -- Потенциальная экономия CO₂ в граммах
-    day_of_year INTEGER, -- День года (1-365), NULL для случайных советов
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Заполняем советы на весь год (365+ советов)
-INSERT INTO eco_tips (title, content, category, difficulty, co2_impact, day_of_year) VALUES 
--- Январь (31 день)
-('Начните год с эко-целей', 'Поставьте себе цель на год: сократить потребление пластика, экономить воду или использовать общественный транспорт. Запишите свои цели и отслеживайте прогресс.', 'Планирование', 'easy', 0, 1),
-('Замените лампочки на LED', 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.', 'Энергия', 'easy', 40000, 2),
-('Отключайте приборы от сети', 'Электроприборы в режиме ожидания потребляют до 10% электроэнергии дома. Используйте удлинители с выключателями.', 'Энергия', 'easy', 15000, 3),
-('Сократите время душа', 'Сокращение времени душа на 2 минуты экономит до 37 литров воды и 2 кг CO₂ ежедневно.', 'Вода', 'easy', 2000, 4),
-('Используйте многоразовые пакеты', 'Один многоразовый пакет заменяет до 1000 пластиковых за свою жизнь. Всегда носите складной пакет с собой.', 'Отходы', 'easy', 5000, 5),
-('Покупайте местные продукты', 'Местные продукты не требуют длительной транспортировки, что сокращает выбросы CO₂ на 50-90%.', 'Питание', 'medium', 8000, 6),
-('Настройте термостат правильно', 'Снижение температуры на 1°C экономит до 7% энергии на отопление. Оптимально: 20°C днем, 16°C ночью.', 'Энергия', 'easy', 25000, 7),
-('Ремонтируйте вместо выбрасывания', 'Ремонт одежды, обуви и техники продлевает их жизнь и сокращает отходы. Изучите базовые навыки ремонта.', 'Отходы', 'medium', 12000, 8),
-('Используйте холодную воду для стирки', 'Стирка в холодной воде экономит до 90% энергии и лучше сохраняет ткани. Современные порошки эффективны и в холодной воде.', 'Энергия', 'easy', 18000, 9),
-('Планируйте маршруты эффективно', 'Объединяйте поездки и планируйте оптимальные маршруты. Это экономит топливо и время.', 'Транспорт', 'easy', 10000, 10),
-
--- Февраль (28 дней)
-('Попробуйте безмясный понедельник', 'Один день без мяса в неделю экономит 15 кг CO₂ и 1800 литров воды еженедельно.', 'Питание', 'easy', 15000, 32),
-('Утеплите окна', 'Утепление окон пленкой или уплотнителями сокращает потери тепла на 30% и экономит энергию.', 'Энергия', 'medium', 35000, 33),
-('Собирайте дождевую воду', 'Дождевая вода отлично подходит для полива растений. Установите простую систему сбора.', 'Вода', 'medium', 5000, 34),
-('Покупайте б/у вещи', 'Покупка подержанных вещей сокращает производство новых товаров и экономит ресурсы.', 'Потребление', 'easy', 20000, 35),
-('Компостируйте органические отходы', 'Компостирование сокращает объем мусора на 30% и создает полезное удобрение.', 'Отходы', 'medium', 8000, 36),
-
--- Март (31 день) 
-('Выращивайте зелень дома', 'Домашняя зелень сокращает упаковку и транспортировку. Начните с петрушки, укропа или базилика.', 'Питание', 'easy', 3000, 60),
-('Используйте велосипед', 'Поездка на велосипеде вместо автомобиля экономит 2.6 кг CO₂ на каждые 10 км.', 'Транспорт', 'medium', 26000, 61),
-('Сушите белье на воздухе', 'Сушка белья на воздухе вместо сушильной машины экономит 2.3 кг CO₂ за загрузку.', 'Энергия', 'easy', 23000, 62),
-
--- Апрель (30 дней)
-('Посадите дерево', 'Одно дерево поглощает 22 кг CO₂ в год и производит кислород для двух человек.', 'Природа', 'medium', 22000, 91),
-('Используйте экологичную косметику', 'Натуральная косметика без химии безопаснее для вас и окружающей среды.', 'Быт', 'easy', 2000, 92),
-
--- Май (31 день)
-('Создайте сад на балконе', 'Даже небольшой балконный сад улучшает воздух и дает свежие овощи и травы.', 'Природа', 'medium', 5000, 121),
-('Переходите на цифровые чеки', 'Цифровые чеки сокращают использование бумаги и химических веществ для печати.', 'Отходы', 'easy', 1000, 122),
-
--- Июнь (30 дней)
-('Используйте солнечную энергию', 'Солнечные зарядки для телефонов и небольших устройств - простой способ использовать возобновляемую энергию.', 'Энергия', 'medium', 15000, 152),
-('Покупайте сезонные продукты', 'Сезонные продукты вкуснее, дешевле и требуют меньше энергии для выращивания.', 'Питание', 'easy', 6000, 153),
-
--- Июль (31 день)
-('Экономьте воду в саду', 'Поливайте растения рано утром или вечером, используйте мульчу для сохранения влаги.', 'Вода', 'easy', 8000, 182),
-('Организуйте обмен вещами', 'Обменивайтесь одеждой, книгами и вещами с друзьями вместо покупки новых.', 'Потребление', 'easy', 15000, 183),
-
--- Август (31 день)
-('Сохраняйте урожай', 'Консервирование, заморозка и сушка продуктов сокращают пищевые отходы и экономят деньги.', 'Питание', 'medium', 10000, 213),
-('Используйте натуральные освежители', 'Эфирные масла и растения освежают воздух без химических аэрозолей.', 'Быт', 'easy', 2000, 214),
-
--- Сентябрь (30 дней)
-('Утеплитесь к зиме', 'Проверьте утепление дома, замените уплотнители, подготовьте теплую одежду.', 'Энергия', 'medium', 40000, 244),
-('Собирайте семена', 'Собирайте семена цветов и овощей для посадки в следующем году.', 'Природа', 'easy', 3000, 245),
-
--- Октябрь (31 день)
-('Используйте листья как мульчу', 'Опавшие листья - отличная мульча для сада и компоста.', 'Природа', 'easy', 4000, 274),
-('Готовьте дома чаще', 'Домашняя еда здоровее и экологичнее готовой пищи из магазина.', 'Питание', 'easy', 8000, 275),
-
--- Ноябрь (30 дней)
-('Сократите отопление', 'Носите теплую одежду дома и снизьте температуру на 2-3 градуса.', 'Энергия', 'easy', 30000, 305),
-('Покупайте подарки осознанно', 'Выбирайте качественные, полезные подарки или дарите впечатления вместо вещей.', 'Потребление', 'medium', 20000, 306),
-
--- Декабрь (31 день)
-('Украшайте дом экологично', 'Используйте натуральные материалы для украшений: шишки, ветки, самодельные игрушки.', 'Быт', 'easy', 5000, 335),
-('Планируйте экологичный Новый год', 'Минимум упаковки, местные продукты, многоразовая посуда для празднования.', 'Планирование', 'medium', 15000, 365),
-
--- Дополнительные советы для разнообразия (случайные)
-('Выключайте свет', 'Выключение света в пустых комнатах - простая привычка, которая экономит энергию.', 'Энергия', 'easy', 5000, NULL),
-('Пейте воду из-под крана', 'Фильтрованная вода из-под крана экологичнее бутилированной и экономит деньги.', 'Вода', 'easy', 3000, NULL),
-('Читайте электронные книги', 'Электронные книги сокращают использование бумаги и место для хранения.', 'Потребление', 'easy', 2000, NULL),
-('Делитесь инструментами', 'Делитесь редко используемыми инструментами с соседями вместо покупки собственных.', 'Потребление', 'medium', 10000, NULL),
-('Используйте общественный транспорт', 'Общественный транспорт сокращает выбросы CO₂ в 4-5 раз по сравнению с личным автомобилем.', 'Транспорт', 'easy', 20000, NULL),
-('Покупайте качественные вещи', 'Качественные вещи служат дольше и в итоге экономят деньги и ресурсы.', 'Потребление', 'medium', 25000, NULL),
-('Изучайте этикетки', 'Выбирайте продукты с экологичной упаковкой и сертификатами устойчивого производства.', 'Потребление', 'easy', 5000, NULL),
-('Ходите пешком больше', 'Пешие прогулки полезны для здоровья и не производят выбросов.', 'Транспорт', 'easy', 8000, NULL),
-('Используйте меньше бумаги', 'Печатайте с двух сторон, используйте электронные документы, сдавайте бумагу на переработку.', 'Отходы', 'easy', 4000, NULL),
-('Выбирайте экологичные материалы', 'При ремонте выбирайте натуральные и переработанные материалы.', 'Быт', 'hard', 50000, NULL)
-ON CONFLICT DO NOTHING;
-
--- Создаем индексы для быстрого поиска
-CREATE INDEX IF NOT EXISTS idx_eco_tips_day_of_year ON eco_tips(day_of_year);
-CREATE INDEX IF NOT EXISTS idx_eco_tips_category ON eco_tips(category);
-CREATE INDEX IF NOT EXISTS idx_eco_tips_difficulty ON eco_tips(difficulty);
-
--- Таблица для отслеживания просмотренных советов пользователями
-CREATE TABLE IF NOT EXISTS user_eco_tips (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    tip_id INTEGER REFERENCES eco_tips(id) ON DELETE CASCADE,
-    viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    liked BOOLEAN DEFAULT FALSE,
-    UNIQUE(user_id, tip_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_user_eco_tips_user_id ON user_eco_tips(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_eco_tips_viewed_at ON user_eco_tips(viewed_at);
-
--- Выводим информацию о созданных советах
-DO $$
-BEGIN
-    RAISE NOTICE 'Создано эко-советов: %', (SELECT COUNT(*) FROM eco_tips);
-    RAISE NOTICE 'Советы на каждый день года готовы!';
-END $$;
-
--- ============ СОЗДАНИЕ НАСТРОЕК ДЛЯ СУЩЕСТВУЮЩИХ ПОЛЬЗОВАТЕЛЕЙ ============
-DO $$
-BEGIN
-    -- Создаем настройки для всех существующих пользователей
-    INSERT INTO user_settings (user_id)
-    SELECT id FROM users 
-    WHERE id NOT IN (SELECT user_id FROM user_settings WHERE user_id IS NOT NULL)
-    ON CONFLICT (user_id) DO NOTHING;
-    
-    RAISE NOTICE '=== НАСТРОЙКИ ПОЛЬЗОВАТЕЛЕЙ ===';
-    RAISE NOTICE 'Создано настроек пользователей: %', (SELECT COUNT(*) FROM user_settings);
-    RAISE NOTICE 'Настройки будут автоматически создаваться для новых пользователей';
 END $$;

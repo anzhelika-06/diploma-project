@@ -17,13 +17,27 @@ import profileIcon from '../assets/icons/profile.svg'
 import settingsIcon from '../assets/icons/settings.svg'
 import vacationIcon from '../assets/icons/vacation.svg'
 import logoIcon from '../assets/images/logo-icon.png'
+import { getUserInfo } from '../utils/authUtils';
+import adminIcon from '../assets/icons/admin.svg'
+
+const adminIconSrc = adminIcon || settingsIcon
 
 const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const location = useLocation()
   const { t } = useLanguage()
   const [currentTheme, setCurrentTheme] = useState('light')
+  const [user, setUser] = useState(null)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
+    // Проверяем размер экрана
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
     // Получаем текущую тему из localStorage
     const savedSettings = localStorage.getItem('appSettings')
     if (savedSettings) {
@@ -31,12 +45,22 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
       setCurrentTheme(settings.theme || 'light')
     }
 
-    // Слушаем изменения темы
+    // Получаем данные пользователя
+    const userData = getUserInfo()
+    setUser(userData)
+    
+    // Слушаем изменения темы и данных пользователя
     const handleStorageChange = () => {
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
         const settings = JSON.parse(savedSettings)
         setCurrentTheme(settings.theme || 'light')
+      }
+      
+      // Обновляем данные пользователя при изменениях
+      const updatedUser = getUserInfo()
+      if (updatedUser && JSON.stringify(updatedUser) !== JSON.stringify(user)) {
+        setUser(updatedUser)
       }
     }
 
@@ -47,16 +71,18 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('resize', checkMobile)
       clearInterval(interval)
     }
   }, [])
 
-  const menuItems = [
+  // Основные пункты меню ДЛЯ ДЕСКТОПА (без уведомлений)
+  const mainMenuItems = [
     { id: 'pet', label: t('menuPet'), path: '/pet', icon: petIcon },
     { id: 'teams', label: t('menuTeams'), path: '/teams', icon: teamIcon },
     { id: 'messages', label: t('menuMessages'), path: '/messages', icon: messageIcon },
     { id: 'friends', label: t('menuFriends'), path: '/friends', icon: friendsIcon },
-    { id: 'notifications', label: t('menuNotifications'), path: '/notifications', icon: notificationIcon },
+    // Уведомления удалены из десктопного меню
     { id: 'achievements', label: t('menuAchievements'), path: '/achievements', icon: achievementsIcon },
     { id: 'statistics', label: t('menuStatistics'), path: '/statistics', icon: statisticIcon },
     { id: 'leaderboard', label: t('menuLeaderboard'), path: '/leaderboard', icon: leaderboardIcon },
@@ -66,6 +92,63 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     { id: 'settings', label: t('menuSettings'), path: '/settings', icon: settingsIcon },
   ]
 
+  // Добавляем вкладку "Управление" только для админа
+  const adminMenuItem = user?.isAdmin ? [
+    { id: 'admin', label: 'Управление', path: '/admin', icon: adminIconSrc }
+  ] : []
+
+  // Объединяем все пункты меню
+  const allMenuItems = [...mainMenuItems, ...adminMenuItem]
+
+  // Если мобилка - показываем сайдбар с уведомлениями
+  if (isMobile) {
+    return (
+      <aside 
+        className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
+        data-theme={currentTheme}
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+      >
+        <div className="sidebar-content">
+          <Link to="/feed" className="sidebar-logo">
+            <img src={logoIcon} alt="EcoSteps" className="logo-icon-svg" />
+            {isExpanded && <span className="logo-text">EcoSteps</span>}
+          </Link>
+
+          <nav className="sidebar-nav">
+            {[
+              ...mainMenuItems.slice(0, 4), // pet, teams, messages, friends
+              { id: 'notifications', label: t('menuNotifications'), path: '/notifications', icon: notificationIcon }, // Уведомления только в мобилке
+              ...mainMenuItems.slice(4), // остальные пункты
+              ...adminMenuItem
+            ].map(item => (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`sidebar-item ${location.pathname === item.path ? 'active' : ''} ${item.id === 'admin' ? 'admin-item' : ''}`}
+              >
+                <img src={item.icon} alt={item.label} className="sidebar-icon-svg" />
+                {isExpanded && <span className="sidebar-label">{item.label}</span>}
+                
+                {item.id === 'admin' && isExpanded && (
+                  <span className="admin-badge">ADMIN</span>
+                )}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="sidebar-footer">
+            <button className="sidebar-item eco-vacation">
+              <img src={vacationIcon} alt={t('menuEcoVacation')} className="sidebar-icon-svg" />
+              {isExpanded && <span className="sidebar-label">{t('menuEcoVacation')}</span>}
+            </button>
+          </div>
+        </div>
+      </aside>
+    )
+  }
+
+  // Десктопная версия (без уведомлений)
   return (
     <aside 
       className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
@@ -74,27 +157,28 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
       onMouseLeave={() => setIsExpanded(false)}
     >
       <div className="sidebar-content">
-        {/* Логотип */}
         <Link to="/feed" className="sidebar-logo">
           <img src={logoIcon} alt="EcoSteps" className="logo-icon-svg" />
           {isExpanded && <span className="logo-text">EcoSteps</span>}
         </Link>
 
-        {/* Меню */}
         <nav className="sidebar-nav">
-          {menuItems.map(item => (
+          {allMenuItems.map(item => (
             <Link
               key={item.id}
               to={item.path}
-              className={`sidebar-item ${location.pathname === item.path ? 'active' : ''}`}
+              className={`sidebar-item ${location.pathname === item.path ? 'active' : ''} ${item.id === 'admin' ? 'admin-item' : ''}`}
             >
               <img src={item.icon} alt={item.label} className="sidebar-icon-svg" />
               {isExpanded && <span className="sidebar-label">{item.label}</span>}
+              
+              {item.id === 'admin' && isExpanded && (
+                <span className="admin-badge">ADMIN</span>
+              )}
             </Link>
           ))}
         </nav>
 
-        {/* Режим эко-отпуск */}
         <div className="sidebar-footer">
           <button className="sidebar-item eco-vacation">
             <img src={vacationIcon} alt={t('menuEcoVacation')} className="sidebar-icon-svg" />

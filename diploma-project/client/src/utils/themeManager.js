@@ -56,32 +56,31 @@ export const saveTheme = (theme) => {
 // Сохранить тему в базу данных
 export const saveThemeToDatabase = async (theme) => {
   try {
-    // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
-    const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
+    const token = localStorage.getItem('token')
     
-    if (!token || !userData) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Пользователь не авторизован, тема не сохранена в БД')
-      }
+    // ОБА параметра обязательны
+    if (!userData || !token) {
+      console.log('👤 Нет токена, тема сохраняется локально')
       return false
     }
 
     const user = JSON.parse(userData)
     
-    // ПРОВЕРЯЕМ ЧТО У ПОЛЬЗОВАТЕЛЯ ЕСТЬ ID
     if (!user || !user.id) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Неверные данные пользователя:', user)
-      }
+      console.log('❌ Нет ID пользователя')
       return false
     }
     
+    console.log(`💾 Сохранение темы "${theme}" в БД для пользователя ${user.id}`)
+    
+    // ОТПРАВЛЯЕМ ОБА ЗАГОЛОВКА
     const response = await fetch('/api/user-settings', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'X-User-Id': user.id.toString()
+        'X-User-Id': user.id.toString(),
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
         theme: theme
@@ -89,18 +88,20 @@ export const saveThemeToDatabase = async (theme) => {
     })
 
     if (response.ok) {
-      console.log('Тема сохранена в базу данных:', theme)
+      console.log('✅ Тема сохранена в БД')
       return true
+    } else if (response.status === 401) {
+      console.warn('🔒 Ошибка 401: Токен недействителен')
+      return false
     } else {
-      console.warn('Не удалось сохранить тему в БД:', response.statusText)
+      console.warn(`⚠️ Ошибка сервера: ${response.status}`)
       return false
     }
   } catch (error) {
-    console.warn('Ошибка при сохранении темы в БД:', error)
+    console.warn('⚠️ Ошибка при сохранении темы в БД:', error.message)
     return false
   }
 }
-
 export const loadThemeFromDatabase = async () => {
   try {
     // ДОБАВЛЯЕМ ПРОВЕРКУ НА ТОКЕН
