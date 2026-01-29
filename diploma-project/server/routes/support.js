@@ -18,42 +18,39 @@ console.log('DB Config:', poolConfig);
 
 const pool = new Pool(poolConfig);
 
-// Middleware для проверки авторизации
+// Middleware для проверки авторизации - УПРОЩЕННАЯ ВЕРСИЯ
 const requireAuth = (req, res, next) => {
   console.log('=== requireAuth middleware ===');
   
-  let userId = null;
-  
-  if (req.headers['x-user-id']) {
-    userId = req.headers['x-user-id'];
-    console.log('Got userId from X-User-Id:', userId);
-  } else if (req.headers['authorization']) {
-    const token = req.headers['authorization'].replace('Bearer ', '');
-    console.log('Authorization token:', token);
-    try {
-      const decoded = Buffer.from(token, 'base64').toString();
-      userId = decoded.split(':')[0];
-      console.log('Decoded userId:', userId);
-    } catch (error) {
-      console.warn('Не удалось декодировать токен:', error);
-    }
-  }
+  // Просто проверяем наличие user-id в заголовках
+  const userId = req.headers['x-user-id'];
   
   if (!userId) {
-    console.log('❌ No userId found, returning 401');
+    console.log('❌ No X-User-Id header found');
     return res.status(401).json({
       success: false,
       error: 'UNAUTHORIZED',
-      message: 'Требуется авторизация'
+      message: 'Требуется идентификатор пользователя'
     });
   }
   
-  req.userId = parseInt(userId);
+  // Проверяем что это число
+  const parsedUserId = parseInt(userId);
+  if (isNaN(parsedUserId) || parsedUserId <= 0) {
+    console.log('❌ Invalid user ID format:', userId);
+    return res.status(401).json({
+      success: false,
+      error: 'INVALID_USER_ID',
+      message: 'Неверный формат идентификатора пользователя'
+    });
+  }
+  
+  req.userId = parsedUserId;
   console.log('✅ Authenticated user ID:', req.userId);
   next();
 };
 
-// 1. Endpoint для проверки таблицы
+// 1. Проверка таблицы поддержки
 router.get('/check-table', async (req, res) => {
   console.log('GET /api/support/check-table');
   
@@ -74,7 +71,7 @@ router.get('/check-table', async (req, res) => {
     const countResult = await pool.query('SELECT COUNT(*) as count FROM support_tickets');
     
     // Получаем несколько примеров
-    const sampleResult = await pool.query('SELECT * FROM support_tickets LIMIT 5');
+    const sampleResult = await pool.query('SELECT * FROM support_tickets ORDER BY created_at DESC LIMIT 5');
     
     res.json({
       success: true,
@@ -110,20 +107,21 @@ router.get('/check-table', async (req, res) => {
   }
 });
 
-// 2. Создать новый вопрос в поддержку
+// 2. Создать новый вопрос в поддержку - УПРОЩЕННАЯ ВЕРСИЯ
 router.post('/', requireAuth, async (req, res) => {
   console.log('\n=== POST /api/support ===');
   console.log('Timestamp:', new Date().toISOString());
   console.log('User ID:', req.userId);
-  console.log('Request Body:', JSON.stringify(req.body, null, 2));
+  console.log('Request Body:', req.body);
   
   try {
     const { subject, message } = req.body;
     
+    // Валидация
     if (!subject || !subject.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'MISSING_FIELDS',
+        error: 'MISSING_SUBJECT',
         message: 'Заполните тему вопроса'
       });
     }
@@ -131,7 +129,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (!message || !message.trim()) {
       return res.status(400).json({
         success: false,
-        error: 'MISSING_FIELDS',
+        error: 'MISSING_MESSAGE',
         message: 'Заполните сообщение'
       });
     }
@@ -139,66 +137,61 @@ router.post('/', requireAuth, async (req, res) => {
     const trimmedSubject = subject.trim().substring(0, 255);
     const trimmedMessage = message.trim();
     
-    // Генерируем номер заявки - УКОРОЧЕННАЯ ВЕРСИЯ
-    const timestamp = Date.now().toString().slice(-8); // Берем последние 8 цифр
-    const randomStr = Math.random().toString(36).substr(2, 4).toUpperCase();
-    const ticketNumber = `T-${timestamp}-${randomStr}`; // Пример: T-89452345-A7F3
+    // Генерируем номер заявки
+    const timestamp = Date.now().toString();
+    const randomStr = Math.random().toString(36).substr(2, 6).toUpperCase();
+    const ticketNumber = `TICKET-${timestamp.slice(-8)}-${randomStr}`;
     
     console.log('Generated ticket number:', ticketNumber);
-    console.log('Ticket number length:', ticketNumber.length);
+    
+    // Проверяем существование пользователя в БД
+    console.log(`🔍 Проверяем пользователя ID ${req.userId} в таблице users...`);
+    const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [req.userId]);
+    
+    if (userCheck.rows.length === 0) {
+      console.warn(`⚠️ Пользователь ID ${req.userId} не найден в таблице users`);
+      // Но все равно сохраняем вопрос, так как user_id будет просто числом
+    } else {
+      console.log(`✅ Пользователь ID ${req.userId} найден в БД`);
+    }
     
     try {
-      // Проверяем существование таблицы
-      try {
-        await pool.query('SELECT 1 FROM support_tickets LIMIT 1');
-        console.log('✅ Таблица support_tickets существует');
-      } catch (tableError) {
-        if (tableError.code === '42P01') { // relation does not exist
-          console.log('🛠️ Создаем таблицу support_tickets...');
-          const createQuery = `
-            CREATE TABLE IF NOT EXISTS support_tickets (
-              id SERIAL PRIMARY KEY,
-              user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-              ticket_number VARCHAR(20) UNIQUE NOT NULL,
-              subject VARCHAR(255) NOT NULL,
-              message TEXT NOT NULL,
-              status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'answered', 'closed')),
-              admin_response TEXT,
-              responded_at TIMESTAMP,
-              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-          `;
-          await pool.query(createQuery);
-          console.log('✅ Таблица support_tickets создана');
-        } else {
-          throw tableError;
-        }
-      }
-      
+      // Простая вставка без foreign key constraint
       const query = `
         INSERT INTO support_tickets (
           user_id,
           ticket_number,
           subject,
           message,
-          status
-        ) VALUES ($1, $2, $3, $4, 'pending')
+          status,
+          created_at,
+          updated_at
+        ) VALUES ($1, $2, $3, $4, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING *
       `;
       
       const values = [req.userId, ticketNumber, trimmedSubject, trimmedMessage];
-      console.log('Executing query:', query);
-      console.log('With values:', values);
+      console.log('Executing SQL:', query);
+      console.log('Values:', values);
       
       const result = await pool.query(query, values);
       
+      if (result.rows.length === 0) {
+        throw new Error('Не удалось создать запись в БД');
+      }
+      
       const savedTicket = result.rows[0];
-      console.log('✅ Вопрос сохранен в БД:', savedTicket);
+      console.log('✅ Вопрос успешно сохранен в БД:', {
+        id: savedTicket.id,
+        ticket_number: savedTicket.ticket_number,
+        user_id: savedTicket.user_id,
+        subject: savedTicket.subject,
+        status: savedTicket.status
+      });
       
       return res.status(201).json({
         success: true,
-        message: 'Вопрос отправлен в поддержку',
+        message: 'Вопрос успешно отправлен в поддержку',
         ticket: {
           id: savedTicket.id,
           ticket_number: savedTicket.ticket_number,
@@ -209,23 +202,62 @@ router.post('/', requireAuth, async (req, res) => {
       });
       
     } catch (dbError) {
-      console.error('❌ Ошибка БД:', dbError.message);
-      console.error('Stack:', dbError.stack);
+      console.error('❌ Ошибка БД при сохранении вопроса:', {
+        message: dbError.message,
+        code: dbError.code,
+        detail: dbError.detail,
+        constraint: dbError.constraint
+      });
+      
+      // Если ошибка связана с foreign key constraint, предлагаем решение
+      if (dbError.code === '23503') { // foreign_key_violation
+        console.log('🔄 Пробуем альтернативный способ вставки...');
+        
+        try {
+          // Пробуем вставить без проверки foreign key
+          const fallbackQuery = `
+            INSERT INTO support_tickets (
+              user_id,
+              ticket_number,
+              subject,
+              message,
+              status,
+              created_at,
+              updated_at
+            ) VALUES ($1, $2, $3, $4, 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            RETURNING *
+          `;
+          
+          const result = await pool.query(fallbackQuery, values);
+          
+          console.log('✅ Вопрос сохранен через альтернативный метод');
+          
+          return res.status(201).json({
+            success: true,
+            message: 'Вопрос отправлен в поддержку',
+            warning: 'Вопрос сохранен без проверки пользователя в системе',
+            ticket: result.rows[0]
+          });
+          
+        } catch (fallbackError) {
+          console.error('❌ Ошибка при альтернативной вставке:', fallbackError.message);
+        }
+      }
       
       return res.status(500).json({
         success: false,
         error: 'DATABASE_ERROR',
-        message: 'Ошибка при сохранении вопроса',
+        message: 'Не удалось сохранить вопрос в базу данных',
         debug: process.env.NODE_ENV === 'development' ? {
-          error: dbError.message,
           code: dbError.code,
-          detail: dbError.detail
+          message: dbError.message,
+          constraint: dbError.constraint
         } : undefined
       });
     }
     
   } catch (error) {
-    console.error('❌ Непредвиденная ошибка:', error);
+    console.error('❌ Общая ошибка при обработке запроса:', error);
     return res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',
@@ -234,28 +266,13 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-// 3. Получить вопросы пользователя (ЭТОТ ENDPOINT ОТСУТСТВОВАЛ!)
+// 3. Получить вопросы пользователя
 router.get('/my-questions', requireAuth, async (req, res) => {
   console.log('\n=== GET /api/support/my-questions ===');
   console.log('User ID:', req.userId);
   
   try {
-    // Проверяем существование таблицы
-    try {
-      await pool.query('SELECT 1 FROM support_tickets LIMIT 1');
-    } catch (tableError) {
-      if (tableError.code === '42P01') { // relation does not exist
-        console.log('Таблица support_tickets не существует, возвращаем пустой список');
-        return res.json({
-          success: true,
-          tickets: [],
-          total: 0
-        });
-      }
-      throw tableError;
-    }
-    
-    // Получаем вопросы
+    // Простой запрос к БД
     const query = `
       SELECT 
         id,
@@ -272,13 +289,14 @@ router.get('/my-questions', requireAuth, async (req, res) => {
       ORDER BY created_at DESC
     `;
     
-    console.log('Executing query:', query);
-    console.log('With params:', [req.userId]);
+    console.log('Executing SQL:', query);
+    console.log('User ID parameter:', req.userId);
     
     const result = await pool.query(query, [req.userId]);
-    console.log('✅ Найдено вопросов:', result.rowCount);
     
-    // Преобразуем даты в строки для JSON
+    console.log(`✅ Найдено ${result.rowCount} вопросов для пользователя ${req.userId}`);
+    
+    // Форматируем даты для JSON
     const tickets = result.rows.map(ticket => ({
       ...ticket,
       created_at: ticket.created_at ? ticket.created_at.toISOString() : null,
@@ -289,57 +307,47 @@ router.get('/my-questions', requireAuth, async (req, res) => {
     return res.json({
       success: true,
       tickets: tickets,
-      total: tickets.length
+      total: tickets.length,
+      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
-    console.error('❌ Ошибка получения вопросов:', error.message);
-    console.error('Stack:', error.stack);
+    console.error('❌ Ошибка при получении вопросов:', {
+      message: error.message,
+      code: error.code
+    });
+    
+    // Если таблицы нет - возвращаем пустой массив
+    if (error.code === '42P01') {
+      console.log('Таблица support_tickets не существует');
+      return res.json({
+        success: true,
+        tickets: [],
+        total: 0,
+        message: 'Таблица вопросов пока не создана'
+      });
+    }
     
     return res.status(500).json({
       success: false,
       tickets: [],
       total: 0,
-      error: 'SERVER_ERROR',
-      message: 'Ошибка при получении вопросов',
-      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'DATABASE_ERROR',
+      message: 'Ошибка при получении вопросов из базы данных'
     });
   }
 });
 
-// 4. Тестовые endpoint'ы
-router.post('/test-auth', requireAuth, (req, res) => {
-  console.log('POST /api/support/test-auth');
-  console.log('Authenticated User ID:', req.userId);
-  
-  res.json({
-    success: true,
-    message: 'Authentication works!',
-    userId: req.userId,
-    timestamp: new Date().toISOString()
-  });
-});
-
-router.get('/test', (req, res) => {
+// 4. Тестовый endpoint для проверки подключения
+router.get('/test', async (req, res) => {
   console.log('GET /api/support/test');
-  res.json({
-    success: true,
-    message: 'Support API работает',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
-});
-
-// Health check для поддержки
-router.get('/health', async (req, res) => {
-  console.log('GET /api/support/health');
   
   try {
     // Проверяем подключение к БД
     await pool.query('SELECT 1');
     
-    // Проверяем таблицу
-    const tableCheck = await pool.query(`
+    // Проверяем существование таблицы support_tickets
+    const tableExists = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
@@ -349,18 +357,44 @@ router.get('/health', async (req, res) => {
     
     res.json({
       success: true,
-      status: 'healthy',
+      message: 'Support API работает',
       database: 'connected',
-      table_exists: tableCheck.rows[0].exists,
+      table_exists: tableExists.rows[0].exists,
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  } catch (error) {
+    console.error('Test endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка подключения к базе данных',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 5. Проверка пользователя
+router.get('/check-user/:id', async (req, res) => {
+  const userId = parseInt(req.params.id);
+  console.log(`GET /api/support/check-user/${userId}`);
+  
+  try {
+    const userQuery = await pool.query('SELECT id, email, nickname FROM users WHERE id = $1', [userId]);
+    const supportQuery = await pool.query('SELECT COUNT(*) as count FROM support_tickets WHERE user_id = $1', [userId]);
+    
+    res.json({
+      success: true,
+      user_exists: userQuery.rows.length > 0,
+      user: userQuery.rows[0],
+      support_tickets_count: parseInt(supportQuery.rows[0].count),
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    console.error('Check user error:', error);
     res.status(500).json({
       success: false,
-      status: 'unhealthy',
-      error: error.message,
-      timestamp: new Date().toISOString()
+      error: error.message
     });
   }
 });

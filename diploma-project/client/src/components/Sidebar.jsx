@@ -17,7 +17,7 @@ import profileIcon from '../assets/icons/profile.svg'
 import settingsIcon from '../assets/icons/settings.svg'
 import vacationIcon from '../assets/icons/vacation.svg'
 import logoIcon from '../assets/images/logo-icon.png'
-import { getUserInfo } from '../utils/authUtils';
+import { getUserInfo, isUserAdmin } from '../utils/authUtils';
 import adminIcon from '../assets/icons/admin.svg'
 
 const adminIconSrc = adminIcon || settingsIcon
@@ -28,6 +28,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const [currentTheme, setCurrentTheme] = useState('light')
   const [user, setUser] = useState(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     // Проверяем размер экрана
@@ -46,10 +47,15 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     }
 
     // Получаем данные пользователя
-    const userData = getUserInfo()
-    setUser(userData)
+    const updateUserData = () => {
+      const userData = getUserInfo()
+      setUser(userData)
+      setIsAdmin(isUserAdmin())
+    }
     
-    // Слушаем изменения темы и данных пользователя
+    updateUserData()
+    
+    // Слушаем изменения темы
     const handleStorageChange = () => {
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
@@ -58,10 +64,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
       }
       
       // Обновляем данные пользователя при изменениях
-      const updatedUser = getUserInfo()
-      if (updatedUser && JSON.stringify(updatedUser) !== JSON.stringify(user)) {
-        setUser(updatedUser)
-      }
+      updateUserData()
     }
 
     window.addEventListener('storage', handleStorageChange)
@@ -76,13 +79,12 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     }
   }, [])
 
-  // Основные пункты меню ДЛЯ ДЕСКТОПА (без уведомлений)
+  // Основные пункты меню
   const mainMenuItems = [
     { id: 'pet', label: t('menuPet'), path: '/pet', icon: petIcon },
     { id: 'teams', label: t('menuTeams'), path: '/teams', icon: teamIcon },
     { id: 'messages', label: t('menuMessages'), path: '/messages', icon: messageIcon },
     { id: 'friends', label: t('menuFriends'), path: '/friends', icon: friendsIcon },
-    // Уведомления удалены из десктопного меню
     { id: 'achievements', label: t('menuAchievements'), path: '/achievements', icon: achievementsIcon },
     { id: 'statistics', label: t('menuStatistics'), path: '/statistics', icon: statisticIcon },
     { id: 'leaderboard', label: t('menuLeaderboard'), path: '/leaderboard', icon: leaderboardIcon },
@@ -93,8 +95,8 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   ]
 
   // Добавляем вкладку "Управление" только для админа
-  const adminMenuItem = user?.isAdmin ? [
-    { id: 'admin', label: 'Управление', path: '/admin', icon: adminIconSrc }
+  const adminMenuItem = isAdmin ? [
+    { id: 'admin', label: t('menuAdmin') || 'Управление', path: '/admin', icon: adminIconSrc }
   ] : []
 
   // Объединяем все пункты меню
@@ -118,7 +120,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
           <nav className="sidebar-nav">
             {[
               ...mainMenuItems.slice(0, 4), // pet, teams, messages, friends
-              { id: 'notifications', label: t('menuNotifications'), path: '/notifications', icon: notificationIcon }, // Уведомления только в мобилке
+              { id: 'notifications', label: t('menuNotifications'), path: '/notifications', icon: notificationIcon },
               ...mainMenuItems.slice(4), // остальные пункты
               ...adminMenuItem
             ].map(item => (
@@ -148,7 +150,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     )
   }
 
-  // Десктопная версия (без уведомлений)
+  // Десктопная версия
   return (
     <aside 
       className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}

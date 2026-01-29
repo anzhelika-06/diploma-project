@@ -34,6 +34,16 @@ export const getEmojiByCarbon = (carbonSaved) => {
   return '🌾'                           // plant - Эко-новичок
 }
 
+// Функция для получения текстового уровня по количеству сэкономленного CO2
+export const getEcoLevelText = (carbonSaved) => {
+  if (carbonSaved >= 5000) return 'Эко-герой'
+  if (carbonSaved >= 4000) return 'Эко-мастер'
+  if (carbonSaved >= 3000) return 'Эко-активист'
+  if (carbonSaved >= 2000) return 'Эко-энтузиаст'
+  if (carbonSaved >= 1000) return 'Эко-стартер'
+  return 'Эко-новичок'
+}
+
 // Функция для получения всех доступных эмодзи для команд
 export const getAvailableTeamAvatars = () => {
   return [

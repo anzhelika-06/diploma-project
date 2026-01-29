@@ -155,69 +155,133 @@ const AuthPage = () => {
         password: formData.password
       }
       
+      console.log('Отправка запроса на авторизацию:', { 
+        ...loginData, 
+        password: '***' // Скрываем пароль в логах
+      })
+      
+      // Добавляем timeout для запроса
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 секунд
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(loginData)
+        body: JSON.stringify(loginData),
+        signal: controller.signal
       })
       
-      const data = await response.json()
+      clearTimeout(timeoutId)
       
-      console.log('Login response:', data) // Для отладки
+      console.log('Получен ответ:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
+      })
       
-      if (data.success) {
-        // ВАЖНО: Подготавливаем данные пользователя с isAdmin
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          nickname: data.user.nickname,
-          // Проверяем все возможные варианты названия поля
-          isAdmin: data.user.isAdmin !== undefined ? data.user.isAdmin : 
-                   (data.user.is_admin !== undefined ? data.user.is_admin : false)
+      // Пытаемся получить текст ответа для анализа
+      let responseText
+      try {
+        responseText = await response.text()
+        console.log('Текст ответа (первые 500 символов):', responseText.substring(0, 500))
+      } catch (textError) {
+        console.error('Ошибка при чтении текста ответа:', textError)
+        throw new Error('Не удалось прочитать ответ сервера')
+      }
+      
+      // Проверяем, что ответ не пустой
+      if (!responseText) {
+        console.error('Пустой ответ от сервера')
+        throw new Error('Сервер вернул пустой ответ')
+      }
+      
+      // Проверяем, является ли ответ JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log('Парсинг JSON успешен:', data)
+      } catch (parseError) {
+        console.error('Ошибка парсинга JSON:', parseError)
+        
+        // Если ответ не JSON, проверяем, может это HTML страница ошибки
+        if (responseText.includes('<!DOCTYPE html>') || 
+            responseText.includes('<html>') ||
+            responseText.includes('<body>')) {
+          console.error('Сервер вернул HTML вместо JSON')
+          throw new Error('Сервер вернул HTML страницу вместо JSON. Проверьте настройки сервера.')
         }
         
-        console.log('User data to save:', userData) // Для отладки
-        
-        // Сохраняем данные пользователя в localStorage
-        localStorage.setItem('user', JSON.stringify(userData))
-        localStorage.setItem('isAuthenticated', 'true')
-        
-        // Если сервер возвращает токен
-        if (data.token) {
-          localStorage.setItem('token', data.token)
+        // Показываем начало ответа для диагностики
+        console.error('Начало ответа:', responseText.substring(0, 200))
+        throw new Error('Сервер вернул не JSON ответ. Ответ начинается с: ' + responseText.substring(0, 100))
+      }
+      
+      // Обработка успешного ответа
+      if (response.ok) {
+        if (data.success) {
+          const userData = {
+            id: data.user.id,
+            email: data.user.email,
+            nickname: data.user.nickname,
+            isAdmin: data.user.isAdmin !== undefined ? data.user.isAdmin : 
+                     (data.user.is_admin !== undefined ? data.user.is_admin : false)
+          }
+          
+          console.log('Данные пользователя для сохранения:', userData)
+          
+          localStorage.setItem('user', JSON.stringify(userData))
+          localStorage.setItem('isAuthenticated', 'true')
+          
+          if (data.token) {
+            localStorage.setItem('token', data.token)
+          }
+          
+          // Проверяем сохранение
+          const savedUser = JSON.parse(localStorage.getItem('user'))
+          console.log('Сохранено в localStorage:', savedUser)
+          
+          // Редирект
+          navigate('/feed')
+        } else {
+          setErrors({ 
+            general: data.message || t('serverError')
+          })
         }
-        
-        // Проверяем что сохранилось
-        const savedUser = JSON.parse(localStorage.getItem('user'))
-        console.log('Saved user from localStorage:', savedUser) // Для отладки
-        console.log('Is admin saved?', savedUser?.isAdmin) // Для отладки
-        
-        // Редирект на страницу ленты
-        navigate('/feed')
       } else {
+        // HTTP ошибки
         let errorMessage = t('serverError')
         
-        switch (data.error) {
-          case 'USER_NOT_FOUND':
-            errorMessage = t('userNotFound')
-            break
-          case 'INVALID_CREDENTIALS':
-            errorMessage = t('invalidCredentials')
-            break
-          case 'MISSING_FIELDS':
-            errorMessage = t('serverError')
-            break
-          default:
-            errorMessage = t('serverError')
+        if (response.status === 400) {
+          errorMessage = data?.message || t('invalidRequest')
+        } else if (response.status === 401) {
+          errorMessage = data?.message || t('invalidCredentials')
+        } else if (response.status === 403) {
+          errorMessage = data?.message || t('accessDenied')
+        } else if (response.status === 404) {
+          errorMessage = data?.message || t('userNotFound')
+        } else if (response.status === 500) {
+          errorMessage = data?.message || t('serverError')
         }
         
         setErrors({ general: errorMessage })
       }
     } catch (error) {
       console.error('Ошибка при авторизации:', error)
-      setErrors({ general: t('networkError') })
+      
+      let errorMessage = t('networkError')
+      
+      if (error.name === 'AbortError') {
+        errorMessage = 'Превышено время ожидания ответа от сервера'
+      } else if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        errorMessage = 'Не удалось подключиться к серверу. Проверьте интернет-соединение.'
+      } else {
+        errorMessage = error.message || t('networkError')
+      }
+      
+      setErrors({ general: errorMessage })
     } finally {
       setIsLoading(false)
     }

@@ -7,7 +7,7 @@ const redisClient = require('./utils/redisClient');
 const sessionManager = require('./utils/sessionManager');
 const { requestLogger } = require('./utils/logger');
 const { generalLimiter, authLimiter, calculatorLimiter } = require('./middleware/rateLimiter');
-
+const adminRoutes = require('./routes/adminRoutes');
 // Подключаем маршруты
 const authRoutes = require('./routes/auth');
 const storiesRoutes = require('./routes/stories');
@@ -17,7 +17,6 @@ const achievementsRoutes = require('./routes/achievements');
 const leaderboardRoutes = require('./routes/leaderboard');
 const userSettingsRoutes = require('./routes/user-settings');
 const supportRoutes = require('./routes/support');
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -26,7 +25,19 @@ const io = new Server(server, {
     methods: ['GET', 'POST']
   }
 });
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  console.error('Stack trace:', error.stack);
+});
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 // Настраиваем Redis adapter для Socket.IO
 const pubClient = redisClient.duplicate();
 const subClient = redisClient.duplicate();
@@ -179,6 +190,7 @@ app.use('/api/achievements', achievementsRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/user-settings', userSettingsRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {

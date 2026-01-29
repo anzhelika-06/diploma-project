@@ -19,7 +19,9 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
   const [currentTheme, setCurrentTheme] = useState('light')
   const [isTranslatingRecommendations, setIsTranslatingRecommendations] = useState(false)
   const [translatedRecommendations, setTranslatedRecommendations] = useState([])
+  const [localShake, setLocalShake] = useState(false) // Локальное состояние для тряски
   const modalRef = useRef(null)
+  const overlayRef = useRef(null)
 
   // Функция для перевода рекомендаций
   const translateRecommendationsAsync = async (recommendations) => {
@@ -54,6 +56,7 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
       setTransportDropdownOpen(false)
       setShowError(false)
       setShowSuccess(false)
+      setLocalShake(false) // Сбрасываем тряску при открытии
       
       // Получаем текущую тему
       const savedTheme = getSavedTheme()
@@ -67,9 +70,25 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
     setSelectedTransport('')
   }, [currentLanguage])
 
+  // Функция для запуска тряски
+  const triggerShake = () => {
+    setLocalShake(true);
+    
+    // Если есть переданная функция onShake, вызываем её
+    if (onShake) {
+      onShake();
+    }
+    
+    // Через 500ms сбрасываем тряску (длительность анимации)
+    setTimeout(() => {
+      setLocalShake(false);
+    }, 500);
+  }
+
   // Обработка перетаскивания
   const handleMouseDown = (e) => {
-    if (e.target.closest('.modal-header')) {
+    // Изменено с '.modal-header' на '.demo-calc-header'
+    if (e.target.closest('.demo-calc-header')) {
       setIsDragging(true)
       setDragStart({
         x: e.clientX - position.x,
@@ -105,7 +124,8 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
   // Закрытие выпадающих списков при клике вне их
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.custom-dropdown')) {
+      // Изменено с '.custom-dropdown' на '.demo-calc-custom-dropdown'
+      if (!event.target.closest('.demo-calc-custom-dropdown')) {
         setNutritionDropdownOpen(false)
         setTransportDropdownOpen(false)
       }
@@ -115,58 +135,120 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [])
 
+  // Обработчик клика вне модального окна (для тряски)
+  const handleOverlayClick = (e) => {
+    // Запускаем тряску только если клик был на оверлей, а не на модальное окно
+    // И если нет открытых уведомлений
+    if (e.target === overlayRef.current && !showError && !showSuccess) {
+      triggerShake();
+    }
+  }
+
   const handleCalculate = async () => {
-    // Получаем текущие значения (выбранные или по умолчанию)
-    const nutritionOptions = t('nutritionOptions')
-    const transportOptions = t('transportOptions')
-    
-    const currentNutrition = selectedNutrition || Object.values(nutritionOptions)[0];
-    const currentTransport = selectedTransport || Object.values(transportOptions)[0];
-    
-    if (currentNutrition && currentTransport) {
-      try {
-        // Определяем ключи для отправки на сервер
-        const nutritionKey = Object.keys(nutritionOptions).find(
+    try {
+      // Всегда сбрасываем ошибку перед новым расчетом
+      setShowError(false);
+      setShowSuccess(false);
+      
+      // Получаем текущие значения (выбранные или по умолчанию)
+      const nutritionOptions = t('nutritionOptions')
+      const transportOptions = t('transportOptions')
+      
+      // ВАЖНО: nutritionOptions и transportOptions могут быть объектами или массивами
+      // Проверяем их тип
+      const nutritionValues = typeof nutritionOptions === 'object' && !Array.isArray(nutritionOptions) 
+        ? Object.values(nutritionOptions) 
+        : nutritionOptions;
+      
+      const transportValues = typeof transportOptions === 'object' && !Array.isArray(transportOptions)
+        ? Object.values(transportOptions)
+        : transportOptions;
+      
+      // Берем первое значение как дефолтное
+      const currentNutrition = selectedNutrition || (nutritionValues[0] ? nutritionValues[0] : '');
+      const currentTransport = selectedTransport || (transportValues[0] ? transportValues[0] : '');
+      
+      console.log('Расчет начат:', {
+        currentNutrition,
+        currentTransport,
+        nutritionOptionsType: typeof nutritionOptions,
+        transportOptionsType: typeof transportOptions
+      });
+      
+      // Если не удалось получить значения, показываем ошибку
+      if (!currentNutrition || !currentTransport) {
+        console.error('Не удалось определить значения для расчета');
+        setShowError(true);
+        return;
+      }
+      
+      // Определяем ключи для отправки на сервер
+      let nutritionKey, transportKey;
+      
+      // Если options - объект с ключами
+      if (typeof nutritionOptions === 'object' && !Array.isArray(nutritionOptions)) {
+        nutritionKey = Object.keys(nutritionOptions).find(
           key => nutritionOptions[key] === currentNutrition
         );
-        const transportKey = Object.keys(transportOptions).find(
+      } else {
+        // Если options - массив или что-то другое, используем значение как ключ
+        nutritionKey = currentNutrition;
+      }
+      
+      if (typeof transportOptions === 'object' && !Array.isArray(transportOptions)) {
+        transportKey = Object.keys(transportOptions).find(
           key => transportOptions[key] === currentTransport
         );
-
-        if (!nutritionKey || !transportKey) {
-          console.error('Не удалось найти ключи для отправки');
-          setShowError(true);
-          return;
-        }
-
-        // Отправляем запрос на сервер
-        const response = await fetch('/api/calculator/calculate', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            nutrition: nutritionKey,
-            transport: transportKey
-          })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          setCalculationResult(result.data)
-          setShowSuccess(true)
-          // Убрал автоматическое закрытие - пользователь сам решает когда закрыть
-        } else {
-          console.error('Сервер вернул ошибку:', result);
-          setShowError(true)
-        }
-      } catch (error) {
-        console.error('Ошибка при расчете:', error);
-        setShowError(true)
+      } else {
+        transportKey = currentTransport;
       }
-    } else {
-      setShowError(true)
+      
+      console.log('Ключи для сервера:', {
+        nutritionKey,
+        transportKey,
+        hasNutritionKey: !!nutritionKey,
+        hasTransportKey: !!transportKey
+      });
+      
+      // Если не удалось определить ключи, отправляем значения напрямую
+      const requestData = {
+        nutrition: nutritionKey || currentNutrition,
+        transport: transportKey || currentTransport
+      };
+      
+      console.log('Отправка данных на сервер:', requestData);
+      
+      // Отправляем запрос на сервер
+      const response = await fetch('/api/calculator/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      const result = await response.json();
+      
+      console.log('Ответ сервера:', {
+        success: result.success,
+        data: result.data
+      });
+      
+      if (result.success) {
+        setCalculationResult(result.data);
+        setShowSuccess(true);
+        
+        // Переводим рекомендации асинхронно
+        if (result.data.recommendations && result.data.recommendations.length > 0) {
+          await translateRecommendationsAsync(result.data.recommendations);
+        }
+      } else {
+        console.error('Сервер вернул ошибку:', result);
+        setShowError(true);
+      }
+    } catch (error) {
+      console.error('Ошибка при расчете:', error);
+      setShowError(true);
     }
   }
 
@@ -185,40 +267,36 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
   return (
     <>
       <div 
-        className="modal-overlay"
-        data-theme={currentTheme}
-        onClick={(e) => {
-          // Если кликнули по overlay (не по калькулятору), дергаем калькулятор
-          if (e.target === e.currentTarget) {
-            if (shake) return;
-            if (onShake) onShake();
-          }
-        }}
+        className="calc-overlay" 
+        ref={overlayRef}
+        onClick={handleOverlayClick}
       >
         <div 
-          className={`modal-content ${shake ? 'shake' : ''}`}
+          className={`demo-calc-modal ${localShake ? 'shake' : ''}`} // Используем localShake
           ref={modalRef}
           style={{
-            transform: `translate(${position.x}px, ${position.y}px)`, // возвращаем обычное позиционирование
-            pointerEvents: (showError || showSuccess) ? 'none' : 'all' // блокируем взаимодействие при показе уведомлений
+            transform: `translate(${position.x}px, ${position.y}px)`,
+            '--pos-x': `${position.x}px`,
+            '--pos-y': `${position.y}px`,
+            pointerEvents: (showError || showSuccess) ? 'none' : 'all'
           }}
           onMouseDown={handleMouseDown}
         >
-          <div className="modal-header">
-            <h2 className="modal-title">{t('calculatorTitle')}</h2>
-            <button className="close-button" onClick={onClose}>×</button>
+          <div className="demo-calc-header">
+            <h2 className="demo-calc-title">{t('calculatorTitle')}</h2>
+            <button className="demo-calc-close" onClick={onClose}>×</button>
           </div>
           
-          <div className="modal-body">
-            <p className="modal-subtitle">{t('calculatorSubtitle')}</p>
+          <div className="demo-calc-body">
+            <p className="demo-calc-subtitle">{t('calculatorSubtitle')}</p>
             
-            <div className="form-section">
-              <h3 className="section-title">{t('nutritionTitle')}</h3>
-              <div className="custom-dropdown">
+            <div className="demo-calc-form-section">
+              <h3 className="demo-calc-section-title">{t('nutritionTitle')}</h3>
+              <div className="demo-calc-custom-dropdown">
                 <div 
-                  className={`dropdown-trigger ${nutritionDropdownOpen ? 'active' : ''}`}
+                  className={`demo-calc-dropdown-trigger ${nutritionDropdownOpen ? 'active' : ''}`}
                   onClick={() => {
-                    if (!showError && !showSuccess) { // блокируем если показано уведомление
+                    if (!showError && !showSuccess) {
                       setNutritionDropdownOpen(!nutritionDropdownOpen)
                       setTransportDropdownOpen(false)
                     }
@@ -226,18 +304,18 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
                 >
                   <span>{selectedNutrition || Object.values(t('nutritionOptions'))[0]}</span>
                   <svg 
-                    className={`dropdown-arrow-calc ${nutritionDropdownOpen ? 'rotated' : ''}`}
+                    className={`demo-calc-dropdown-arrow ${nutritionDropdownOpen ? 'rotated' : ''}`}
                     width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
                   >
                     <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" fill="#666"/>
                   </svg>
                 </div>
                 {nutritionDropdownOpen && !showError && !showSuccess && (
-                  <div className="dropdown-options-calc">
+                  <div className="demo-calc-dropdown-options">
                     {Object.entries(t('nutritionOptions')).map(([key, value]) => (
                       <div
                         key={key}
-                        className="dropdown-option-calc"
+                        className="demo-calc-dropdown-option"
                         onClick={() => handleNutritionSelect(value)}
                       >
                         {value}
@@ -248,13 +326,13 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
               </div>
             </div>
 
-            <div className="form-section">
-              <h3 className="section-title">{t('transportTitle')}</h3>
-              <div className="custom-dropdown">
+            <div className="demo-calc-form-section">
+              <h3 className="demo-calc-section-title">{t('transportTitle')}</h3>
+              <div className="demo-calc-custom-dropdown">
                 <div 
-                  className={`dropdown-trigger ${transportDropdownOpen ? 'active' : ''}`}
+                  className={`demo-calc-dropdown-trigger ${transportDropdownOpen ? 'active' : ''}`}
                   onClick={() => {
-                    if (!showError && !showSuccess) { // блокируем если показано уведомление
+                    if (!showError && !showSuccess) {
                       setTransportDropdownOpen(!transportDropdownOpen)
                       setNutritionDropdownOpen(false)
                     }
@@ -262,18 +340,18 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
                 >
                   <span>{selectedTransport || Object.values(t('transportOptions'))[0]}</span>
                   <svg 
-                    className={`dropdown-arrow-calc ${transportDropdownOpen ? 'rotated' : ''}`}
+                    className={`demo-calc-dropdown-arrow ${transportDropdownOpen ? 'rotated' : ''}`}
                     width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
                   >
                     <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" fill="#666"/>
                   </svg>
                 </div>
                 {transportDropdownOpen && !showError && !showSuccess && (
-                  <div className="dropdown-options-calc">
+                  <div className="demo-calc-dropdown-options">
                     {Object.entries(t('transportOptions')).map(([key, value]) => (
                       <div
                         key={key}
-                        className="dropdown-option-calc"
+                        className="demo-calc-dropdown-option"
                         onClick={() => handleTransportSelect(value)}
                       >
                         {value}
@@ -285,9 +363,9 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
             </div>
 
             <button 
-              className="calculate-button" 
+              className="demo-calc-button" 
               onClick={handleCalculate}
-              disabled={showError || showSuccess} // блокируем кнопку при показе уведомлений
+              disabled={showError || showSuccess}
             >
               {t('calculateButton')}
             </button>
@@ -295,7 +373,7 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
         </div>
       </div>
 
-      {/* Модальное окно ошибки - вынесено наружу */}
+      {/* Модальное окно ошибки */}
       {showError && (
         <div 
           className="notification-overlay" 
@@ -309,7 +387,7 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
               e.stopPropagation()
             }}
           >
-            <div className="notification-header">
+            <div className="calculator-notification-header">
               <h3>{t('calculatorError')}</h3>
               <button 
                 className="notification-close" 
@@ -335,7 +413,7 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
         </div>
       )}
 
-      {/* Модальное окно успеха - вынесено наружу */}
+      {/* Модальное окно успеха */}
       {showSuccess && (
         <div 
           className="notification-overlay" 
@@ -349,7 +427,7 @@ const DemoCalculator = ({ isOpen, onClose, shake, onShake }) => {
               e.stopPropagation()
             }}
           >
-            <div className="notification-header">
+            <div className="calculator-notification-header">
               <h3>{t('resultTitle')}</h3>
               <button 
                 className="notification-close" 

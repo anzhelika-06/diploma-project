@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'; // useCallback теперь добавлен
+import { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './pages/MainLayout';
 import AuthPage from './pages/AuthPage';
@@ -23,9 +23,11 @@ import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import SearchPage from './pages/SearchPage';
 import TestSettingsPage from './pages/TestSettingsPage';
+import AdminPage from './pages/AdminPage';
 import NotificationSystem from './components/NotificationSystem';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
+import { isUserAdmin } from './utils/authUtils';
 import './styles/variables.css';
 import loadingGif from './assets/videos/loading-tree.gif';
 
@@ -34,7 +36,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Функция для показа уведомлений - теперь с useCallback
+  // Функция для показа уведомлений
   const showAppNotification = useCallback((title, body, type = 'success') => {
     if (window.showNotification) {
       window.showNotification({
@@ -43,7 +45,6 @@ function App() {
         type
       });
     } else {
-      // Если NotificationSystem еще не загружен, сохраняем в localStorage
       const notification = {
         id: `app-notif-${Date.now()}`,
         type,
@@ -53,45 +54,46 @@ function App() {
         autoHide: true
       };
       
-      // Сохраняем во временное хранилище
       const pendingNotifications = JSON.parse(localStorage.getItem('pendingNotifications') || '[]');
       pendingNotifications.push(notification);
       localStorage.setItem('pendingNotifications', JSON.stringify(pendingNotifications));
       
-      // Показываем alert как fallback
       alert(`${title}: ${body}`);
     }
-  }, []); // Пустой массив зависимостей, так как функция не зависит от состояния компонента
+  }, []);
 
   useEffect(() => {
-    // Делаем функцию доступной глобально для других компонентов
     window.showAppNotification = showAppNotification;
     
-    // Инициализируем тему при загрузке приложения
     const initApp = async () => {
       try {
-        // Сначала инициализируем тему синхронно с skipSave: true
+        // Инициализируем тему
         const savedTheme = getSavedTheme();
         applyTheme(savedTheme, { skipSave: true });
         
         // Проверяем авторизацию
-        const user = localStorage.getItem('user');
-        const token = localStorage.getItem('token'); // Проверяем токен
+        const token = localStorage.getItem('token');
         
-        if (user && token) {
+        if (token) {
           try {
-            const userData = JSON.parse(user);
-            if (userData && userData.id) {
-              setIsAuthenticated(true);
-              // Если пользователь авторизован, синхронизируем тему с БД асинхронно
-              syncTheme().catch(error => {
-                console.warn('Ошибка синхронизации темы:', error);
-              });
+            // Простая проверка токена
+            const parts = token.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+              
+              if (payload.userId) {
+                setIsAuthenticated(true);
+                
+                // Синхронизируем тему
+                syncTheme().catch(error => {
+                  console.warn('Ошибка синхронизации темы:', error);
+                });
+              }
             }
           } catch (error) {
-            console.error('Ошибка парсинга данных пользователя:', error);
-            localStorage.removeItem('user');
+            console.error('Ошибка проверки токена:', error);
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
           }
         }
       } catch (error) {
@@ -103,11 +105,10 @@ function App() {
     
     initApp();
     
-    // Очистка при размонтировании
     return () => {
       delete window.showAppNotification;
     };
-  }, [showAppNotification]); // Добавляем showAppNotification в зависимости
+  }, [showAppNotification]);
 
   if (isLoading) {
     return (
@@ -134,7 +135,7 @@ function App() {
       <div className="page-container">
         <Router>
           <Routes>
-            {/* Главная страница - редирект в зависимости от авторизации */}
+            {/* Главная страница */}
             <Route 
               path="/" 
               element={
@@ -145,6 +146,8 @@ function App() {
                 )
               } 
             />
+            
+            {/* Публичные страницы */}
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/terms" element={<TermsPage />} />
@@ -152,7 +155,7 @@ function App() {
             <Route path="/test-settings" element={<TestSettingsPage />} />
             <Route path="/about" element={<AboutPage />} />
 
-            {/* Защищенные страницы с Dashboard Layout */}
+            {/* Защищенные страницы */}
             <Route element={<DashboardLayout />}>
               <Route path="/feed" element={<FeedPage />} />
               <Route path="/pet" element={<PetPage />} />
@@ -169,10 +172,13 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/search" element={<SearchPage />} />
+              
+              {/* Админ-панель - проверка внутри компонента AdminPage */}
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Routes>
           
-          {/* Система уведомлений (всегда висит внизу иерархии) */}
+          {/* Система уведомлений */}
           <NotificationSystem 
             isVisible={showNotifications} 
             onClose={() => setShowNotifications(false)}

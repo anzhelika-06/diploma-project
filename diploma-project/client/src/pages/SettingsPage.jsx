@@ -23,6 +23,10 @@ const SettingsPage = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [deleteEmailConfirmation, setDeleteEmailConfirmation] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+  const [accountDeleted, setAccountDeleted] = useState(false)
   const [showFaqModal, setShowFaqModal] = useState(false)
   const [showClearCacheModal, setShowClearCacheModal] = useState(false)
   
@@ -37,7 +41,8 @@ const SettingsPage = () => {
   const [questionsLoading, setQuestionsLoading] = useState(false)
   const [selectedQuestion, setSelectedQuestion] = useState(null)
   const [showQuestionDetailsModal, setShowQuestionDetailsModal] = useState(false)
-const [supportSuccess, setSupportSuccess] = useState(false)
+  const [supportSuccess, setSupportSuccess] = useState(false)
+  
   useEffect(() => {
     loadUserData()
     loadUserSettings()
@@ -55,15 +60,8 @@ const [supportSuccess, setSupportSuccess] = useState(false)
       const userData = localStorage.getItem('user')
       const token = localStorage.getItem('token')
       
-      console.log('🔐 Проверка авторизации:', {
-        hasUser: !!userData,
-        hasToken: !!token,
-        userId: userData ? JSON.parse(userData).id : 'none'
-      })
-      
       // Если нет токена, используем локальные настройки
       if (!userData || !token) {
-        console.log('👤 Нет авторизации, локальные настройки')
         const savedSettings = localStorage.getItem('appSettings')
         if (savedSettings) {
           const localSettings = JSON.parse(savedSettings)
@@ -80,40 +78,28 @@ const [supportSuccess, setSupportSuccess] = useState(false)
         return
       }
       
-      console.log(`👤 Загрузка настроек для пользователя ID: ${userId}`)
-      
-      // ОТПРАВЛЯЕМ ОБА ЗАГОЛОВКА
       const headers = {
         'Content-Type': 'application/json',
         'X-User-Id': userId.toString(),
         'Authorization': `Bearer ${token}`
       }
       
-      console.log('📤 Заголовки запроса:', headers)
-      
       const response = await fetch('/api/user-settings', {
         headers: headers
       })
   
-      console.log('📡 Ответ сервера:', response.status, response.statusText)
-      
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.settings) {
-          console.log('✅ Настройки загружены из БД')
           setSettings(data.settings)
           applyTheme(data.settings.theme)
         }
       } else if (response.status === 404) {
-        console.log('📝 Настроек нет, создаем по умолчанию')
         await createDefaultSettings(userId)
         setTimeout(() => loadUserSettings(), 1000)
       } else if (response.status === 401) {
-        console.warn('🔒 Ошибка 401: Требуется авторизация')
-        // Возможно токен истек
         localStorage.removeItem('token')
       } else {
-        console.warn(`⚠️ Ошибка сервера ${response.status}`)
         const savedSettings = localStorage.getItem('appSettings')
         if (savedSettings) {
           const localSettings = JSON.parse(savedSettings)
@@ -121,7 +107,6 @@ const [supportSuccess, setSupportSuccess] = useState(false)
         }
       }
     } catch (error) {
-      console.warn('🌐 Сетевая ошибка:', error.message)
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
         const localSettings = JSON.parse(savedSettings)
@@ -129,10 +114,9 @@ const [supportSuccess, setSupportSuccess] = useState(false)
       }
     }
   }
+  
   const createDefaultSettings = async (userId) => {
     try {
-      console.log(`📝 Создание настроек по умолчанию для пользователя: ${userId}`)
-      
       const response = await fetch('/api/user-settings', {
         method: 'POST',
         headers: {
@@ -149,14 +133,6 @@ const [supportSuccess, setSupportSuccess] = useState(false)
           privacyLevel: 1
         })
       })
-      
-      console.log('📡 Ответ сервера при создании:', response.status)
-      
-      if (!response.ok) {
-        console.warn(`⚠️ Ошибка создания настроек: ${response.status}`)
-      } else {
-        console.log('✅ Настройки созданы')
-      }
     } catch (error) {
       console.error('❌ Ошибка создания настроек:', error)
     }
@@ -167,29 +143,16 @@ const [supportSuccess, setSupportSuccess] = useState(false)
       const userData = localStorage.getItem('user')
       const token = localStorage.getItem('token')
       
-      console.log('💾 Сохранение настроек...', {
-        hasUser: !!userData,
-        hasToken: !!token
-      })
-      
-      // ВСЕГДА сохраняем локально
       localStorage.setItem('appSettings', JSON.stringify(newSettings))
       setSettings(newSettings)
   
-      // Сохраняем на сервере только если есть токен
       if (userData && token) {
         try {
           const user = JSON.parse(userData)
           const userId = user.id
           
-          if (!userId) {
-            console.warn('⚠️ У пользователя нет ID')
-            return
-          }
+          if (!userId) return
           
-          console.log(`👤 Сохранение в БД для пользователя ID: ${userId}`)
-          
-          // ОТПРАВЛЯЕМ ОБА ЗАГОЛОВКА
           const headers = {
             'Content-Type': 'application/json',
             'X-User-Id': userId.toString(),
@@ -201,27 +164,13 @@ const [supportSuccess, setSupportSuccess] = useState(false)
             headers: headers,
             body: JSON.stringify(newSettings)
           })
-  
-          console.log('📡 Ответ сервера:', response.status, response.statusText)
-          
-          if (response.ok) {
-            console.log('✅ Настройки сохранены в БД')
-          } else if (response.status === 401) {
-            console.warn('🔒 Ошибка 401: Недействительный токен')
-          } else {
-            console.warn(`⚠️ Ошибка сервера: ${response.status}`)
-          }
-        } catch (error) {
-          console.warn('⚠️ Ошибка отправки на сервер:', error.message)
-        }
-      } else {
-        console.log('👤 Нет токена, сохраняем только локально')
+        } catch (error) {}
       }
-      
     } catch (error) {
       console.error('❌ Ошибка сохранения настроек:', error)
     }
   }
+  
   const handleThemeChange = (theme) => {
     const newSettings = { ...settings, theme }
     setSettings(newSettings)
@@ -255,7 +204,6 @@ const [supportSuccess, setSupportSuccess] = useState(false)
     localStorage.removeItem('user')
     localStorage.removeItem('token')
     
-    // Сохраняем только основные настройки без привязки к пользователю
     const settingsToKeep = {
       theme: currentTheme,
       language: settings.language || 'RU',
@@ -274,14 +222,88 @@ const [supportSuccess, setSupportSuccess] = useState(false)
 
   const handleDeleteAccount = async () => {
     try {
-      alert('Функция удаления аккаунта будет реализована позже')
-      setShowDeleteModal(false)
+      const userData = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (!userData || !token) {
+        setDeleteError(t('authRequired') || 'Требуется авторизация');
+        return;
+      }
+      
+      const user = JSON.parse(userData);
+      
+      if (deleteEmailConfirmation.trim() !== user.email) {
+        setDeleteError(t('emailDoesNotMatch') || 'Email не совпадает');
+        return;
+      }
+      
+      setIsDeleting(true);
+      setDeleteError('');
+      
+      const response = await fetch('/api/user-settings/account', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': user.id.toString(),
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setAccountDeleted(true);
+        setIsDeleting(false);
+        
+        setTimeout(() => {
+          const resetSettings = data.settings || {
+            theme: 'light',
+            language: 'RU',
+            notifications: true,
+            ecoTips: true,
+            emailNotifications: true,
+            pushNotifications: false,
+            privacyLevel: 1
+          };
+          
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          
+          localStorage.setItem('appSettings', JSON.stringify(resetSettings));
+          
+          if (resetSettings.theme) {
+            applyTheme(resetSettings.theme);
+          }
+          
+          setShowDeleteModal(false);
+          
+          showSuccess(
+            t('accountDeletedSuccess') || 'Аккаунт успешно удален!',
+            t('redirectedToHome') || 'Вы перенаправлены на главную страницу'
+          );
+          
+          window.location.href = '/';
+        }, 2000);
+        
+      } else {
+        let errorMessage = t('deleteAccountError') || 'Ошибка при удалении аккаунта';
+        if (data.message) {
+          errorMessage += `: ${data.message}`;
+        }
+        
+        setDeleteError(errorMessage);
+        setIsDeleting(false);
+      }
+      
     } catch (error) {
-      console.error('Ошибка удаления аккаунта:', error)
-      alert('Ошибка при удалении аккаунта')
+      setDeleteError(
+        (t('deleteAccountError') || 'Ошибка при удалении аккаунта') + 
+        `: ${error.message}`
+      );
+      setIsDeleting(false);
     }
-  }
-
+  };
+  
   const handleResetPassword = async () => {
     try {
       alert('Ссылка для сброса пароля отправлена на ваш email')
@@ -293,35 +315,20 @@ const [supportSuccess, setSupportSuccess] = useState(false)
   }
 
   const handleClearCache = () => {
-    console.log('=== handleClearCache вызван ===');
-    
     const userData = localStorage.getItem('user')
     const token = localStorage.getItem('token')
     const appSettings = localStorage.getItem('appSettings')
     
-    console.log('Данные до очистки:', { userData: !!userData, token: !!token, appSettings: !!appSettings });
-    
     localStorage.clear()
     
-    if (userData) {
-      localStorage.setItem('user', userData)
-      console.log('user восстановлен');
-    }
-    if (token) {
-      localStorage.setItem('token', token)
-      console.log('token восстановлен');
-    }
-    if (appSettings) {
-      localStorage.setItem('appSettings', appSettings)
-      console.log('appSettings восстановлены');
-    }
+    if (userData) localStorage.setItem('user', userData)
+    if (token) localStorage.setItem('token', token)
+    if (appSettings) localStorage.setItem('appSettings', appSettings)
     
     sessionStorage.clear()
-    console.log('sessionStorage очищен');
     
     if ('caches' in window) {
       caches.keys().then(names => {
-        console.log('Удаляем кэши:', names);
         names.forEach(name => {
           caches.delete(name)
         })
@@ -341,25 +348,20 @@ const [supportSuccess, setSupportSuccess] = useState(false)
     }, 3000);
   };
 
-  // ====== ФУНКЦИИ ДЛЯ ПОДДЕРЖКИ ======
-
+  // Функции для поддержки
   const loadMyQuestions = async () => {
     try {
-      console.log('=== Загрузка вопросов пользователя ===');
       setQuestionsLoading(true);
       
       const userData = localStorage.getItem('user');
-      const token = localStorage.getItem('token');
       
-      if (!userData || !token) {
-        console.warn('Пользователь не авторизован');
+      if (!userData) {
         setMyQuestions([]);
         showError(t('authRequired'), t('needToLogin'));
         return;
       }
       
       const user = JSON.parse(userData);
-      console.log('Загружаем вопросы для пользователя ID:', user.id);
       
       const response = await fetch('/api/support/my-questions', {
         headers: {
@@ -368,27 +370,19 @@ const [supportSuccess, setSupportSuccess] = useState(false)
         }
       });
       
-      console.log('Ответ сервера:', response.status, response.statusText);
-      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log('Данные от сервера:', data);
       
       if (data.success && data.tickets) {
-        console.log(`Получено ${data.tickets.length} вопросов`);
         setMyQuestions(data.tickets);
         
         if (data.tickets.length === 0) {
           showSuccess(t('noQuestionsFound'), t('createFirstQuestionDesc'));
         }
-      } else if (data.success && !data.tickets) {
-        console.warn('Сервер вернул success, но нет поля tickets:', data);
-        setMyQuestions([]);
       } else {
-        console.error('Ошибка от сервера:', data);
         setMyQuestions([]);
         showError(
           t('errorLoadingQuestions'), 
@@ -397,33 +391,28 @@ const [supportSuccess, setSupportSuccess] = useState(false)
       }
       
     } catch (error) {
-      console.error('Ошибка загрузки вопросов:', error);
       setMyQuestions([]);
       showError(
         t('errorLoadingQuestions'), 
-        t('checkInternetConnection')
+        t('checkInternetConnection') + `: ${error.message}`
       );
     } finally {
       setQuestionsLoading(false);
     }
   };
+  
   const handleSupportSubmit = async (e) => {
     e.preventDefault();
     
     try {
-      console.log('=== Отправка вопроса в поддержку ===');
-      
       const userData = localStorage.getItem('user');
-      const token = localStorage.getItem('token');
       
-      if (!userData || !token) {
+      if (!userData) {
         showError(t('authRequired'), t('needToLogin'));
         return;
       }
       
       const user = JSON.parse(userData);
-      console.log('Отправка от пользователя ID:', user.id);
-      console.log('Данные формы:', supportForm);
       
       if (!supportForm.subject?.trim() || !supportForm.message?.trim()) {
         showError(t('fillRequiredFields'), t('subjectAndMessageRequired'));
@@ -442,49 +431,39 @@ const [supportSuccess, setSupportSuccess] = useState(false)
         })
       });
       
-      console.log('Ответ сервера:', response.status);
-      
       const data = await response.json();
-      console.log('Данные ответа:', data);
       
-      if (data.success) {
-        // Показываем успешное уведомление
+      if (response.ok && data.success) {
         setSupportSuccess(true);
         
-        // Используем переводы в уведомлении
         showSuccess(
           t('supportRequestSent'), 
           t('supportWillRespond') + (data.ticket?.ticket_number ? ` (${data.ticket.ticket_number})` : '')
         );
         
-        // Сбрасываем форму
         setSupportForm({ subject: '', message: '' });
         
-        // Через 5 секунд закрываем модалку и сбрасываем состояние
         setTimeout(() => {
           setShowSupportModal(false);
           setSupportSuccess(false);
-        }, 5000); // 5000 мс = 5 секунд
+        }, 5000);
         
-        // Обновляем список вопросов
         await loadMyQuestions();
       } else {
-        console.error('Ошибка от сервера:', data);
         showError(
           t('errorSendingRequest'), 
-          data.message || t('unknownError')
+          data.message || t('unknownError') + ` (Код ошибки: ${data.error || 'неизвестен'})`
         );
       }
       
     } catch (error) {
-      console.error('Ошибка отправки вопроса:', error);
       showError(
         t('errorSendingRequest'), 
-        t('checkInternetConnection')
+        t('checkInternetConnection') + `: ${error.message}`
       );
     }
   };
-
+  
   const handleViewQuestionDetails = (question) => {
     setSelectedQuestion(question)
     setShowQuestionDetailsModal(true)
@@ -809,7 +788,13 @@ const [supportSuccess, setSupportSuccess] = useState(false)
                     <p>{t('deleteAccountDesc')}</p>
                     <button 
                       className="action-btn danger"
-                      onClick={() => setShowDeleteModal(true)}
+                      onClick={() => {
+                        setShowDeleteModal(true);
+                        setDeleteEmailConfirmation('');
+                        setDeleteError('');
+                        setAccountDeleted(false);
+                        setIsDeleting(false);
+                      }}
                     >
                       <span className="material-icons">delete_forever</span>
                       {t('deleteAccount')}
@@ -820,85 +805,81 @@ const [supportSuccess, setSupportSuccess] = useState(false)
             </div>
           )}
 
-{activeTab === 'support' && (
-  <div className="settings-section">
-    <h2>{t('supportTitle')}</h2>
-    
-    <div className="setting-group">
-      {/* 1. FAQ */}
-<div className="support-item">
-  <div className="support-icon">
-    <span className="material-icons">help</span>
-  </div>
-  <div className="support-content">
-    <h3>{t('faqTitle')}</h3>
-    <p>{t('faqDesc')}</p>
-    <button 
-      className="action-btn secondary"
-      onClick={() => setShowFaqModal(true)}
-    >
-      <span className="material-icons">help</span>
-      {t('openFAQ')}
-    </button>
-  </div>
-</div>
+          {activeTab === 'support' && (
+            <div className="settings-section">
+              <h2>{t('supportTitle')}</h2>
+              
+              <div className="setting-group">
+                <div className="support-item">
+                  <div className="support-icon">
+                    <span className="material-icons">help</span>
+                  </div>
+                  <div className="support-content">
+                    <h3>{t('faqTitle')}</h3>
+                    <p>{t('faqDesc')}</p>
+                    <button 
+                      className="action-btn secondary"
+                      onClick={() => setShowFaqModal(true)}
+                    >
+                      <span className="material-icons">help</span>
+                      {t('openFAQ')}
+                    </button>
+                  </div>
+                </div>
 
-      {/* 2. Написать в поддержку */}
-      <div className="support-item">
-        <div className="support-icon">
-          <span className="material-icons">headset</span>
-        </div>
-        <div className="support-content">
-          <h3>{t('contactSupport')}</h3>
-          <p>{t('contactSupportDesc')}</p>
-          <button 
-            className="action-btn secondary"
-            onClick={() => setShowSupportModal(true)}
-          >
-            <span className="material-icons">headset</span>
-            {t('writeToSupport')}
-          </button>
-        </div>
-      </div>
+                <div className="support-item">
+                  <div className="support-icon">
+                    <span className="material-icons">headset</span>
+                  </div>
+                  <div className="support-content">
+                    <h3>{t('contactSupport')}</h3>
+                    <p>{t('contactSupportDesc')}</p>
+                    <button 
+                      className="action-btn secondary"
+                      onClick={() => setShowSupportModal(true)}
+                    >
+                      <span className="material-icons">headset</span>
+                      {t('writeToSupport')}
+                    </button>
+                  </div>
+                </div>
 
-      {/* 3. Мои обращения */}
-      <div className="support-item">
-        <div className="support-icon">
-          <span className="material-icons">question_answer</span>
-        </div>
-        <div className="support-content">
-          <h3>{t('mySupportRequests')}</h3>
-          <p>{t('mySupportRequestsDesc')}</p>
-          <button 
-            className="action-btn secondary"
-            onClick={() => {
-              loadMyQuestions()
-              setShowMyQuestionsModal(true)
-            }}
-          >
-            <span className="material-icons">list</span>
-            {t('viewMyRequests')}
-          </button>
-        </div>
-      </div>
+                <div className="support-item">
+                  <div className="support-icon">
+                    <span className="material-icons">question_answer</span>
+                  </div>
+                  <div className="support-content">
+                    <h3>{t('mySupportRequests')}</h3>
+                    <p>{t('mySupportRequestsDesc')}</p>
+                    <button 
+                      className="action-btn secondary"
+                      onClick={() => {
+                        loadMyQuestions()
+                        setShowMyQuestionsModal(true)
+                      }}
+                    >
+                      <span className="material-icons">list</span>
+                      {t('viewMyRequests')}
+                    </button>
+                  </div>
+                </div>
 
-      {/* 4. О приложении */}
-      <div className="support-item">
-        <div className="support-icon">
-          <span className="material-icons">info</span>
-        </div>
-        <div className="support-content">
-          <h3>{t('aboutApp')}</h3>
-          <p>{t('aboutAppDesc')}</p>
-          <Link to="/about" className="action-btn secondary">
-            <span className="material-icons">info</span>
-            {t('aboutApp')}
-          </Link>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+                <div className="support-item">
+                  <div className="support-icon">
+                    <span className="material-icons">info</span>
+                  </div>
+                  <div className="support-content">
+                    <h3>{t('aboutApp')}</h3>
+                    <p>{t('aboutAppDesc')}</p>
+                    <Link to="/about" className="action-btn secondary">
+                      <span className="material-icons">info</span>
+                      {t('aboutApp')}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -922,13 +903,13 @@ const [supportSuccess, setSupportSuccess] = useState(false)
             </div>
             <div className="modal-footer">
               <button 
-                className="btn-secondary"
+                className="modal-btn secondary"
                 onClick={() => setShowLogoutModal(false)}
               >
                 {t('cancel')}
               </button>
               <button 
-                className="btn-danger"
+                className="modal-btn danger"
                 onClick={handleLogout}
               >
                 {t('logout')}
@@ -941,42 +922,152 @@ const [supportSuccess, setSupportSuccess] = useState(false)
       {/* Модальное окно удаления аккаунта */}
       {showDeleteModal && (
         <>
-          <div className="modal-overlay" onClick={() => setShowDeleteModal(false)} />
-          <div className="modal">
+          <div className="modal-overlay" onClick={() => {
+            if (!isDeleting && !accountDeleted) {
+              setShowDeleteModal(false);
+            }
+          }} />
+          <div className="modal delete-account-modal">
             <div className="modal-header">
-              <h3>{t('deleteAccountModalTitle')}</h3>
-              <button 
-                className="modal-close"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                <span className="material-icons">close</span>
-              </button>
+              <h3>{accountDeleted ? t('accountDeletedTitle') : t('deleteAccountModalTitle')}</h3>
+              {!accountDeleted && (
+                <button 
+                  className="modal-close"
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={isDeleting}
+                >
+                  <span className="material-icons">close</span>
+                </button>
+              )}
             </div>
+            
             <div className="modal-body">
-              <p><strong>{t('deleteWarning')}</strong></p>
-              <p>{t('deleteWillRemove')}</p>
-              <ul>
-                <li>{t('deleteProfile')}</li>
-                <li>{t('deleteHistory')}</li>
-                <li>{t('deleteTeams')}</li>
-                <li>{t('deleteStories')}</li>
-                <li>{t('deleteAchievements')}</li>
-              </ul>
-              <p><strong>{t('deleteConfirm')}</strong></p>
+              {!accountDeleted ? (
+                <div className="delete-content">
+                  <div className="warning-message">
+                    <span className="material-icons">warning</span>
+                    <p>{t('deleteWarning')}</p>
+                  </div>
+                  
+                  <div className="will-be-deleted">
+                    <p className="section-title">{t('willBeDeleted')}</p>
+                    <div className="deleted-items">
+                      <div className="deleted-item">
+                        <span className="material-icons">account_circle</span>
+                        <span>{t('deleteProfile')}</span>
+                      </div>
+                      <div className="deleted-item">
+                        <span className="material-icons">history</span>
+                        <span>{t('deleteHistory')}</span>
+                      </div>
+                      <div className="deleted-item">
+                        <span className="material-icons">group</span>
+                        <span>{t('deleteTeams')}</span>
+                      </div>
+                      <div className="deleted-item">
+                        <span className="material-icons">emoji_events</span>
+                        <span>{t('deleteAchievements')}</span>
+                      </div>
+                      <div className="deleted-item">
+                        <span className="material-icons">contact_support</span>
+                        <span>{t('deleteSupportTickets')}</span>
+                      </div>
+                      <div className="deleted-item">
+                        <span className="material-icons">settings</span>
+                        <span>{t('deleteSettings')}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="email-confirmation-section">
+                    <p className="confirmation-title">{t('typeEmailToConfirm')}</p>
+                    
+                    <div className="current-email">
+                      <span className="material-icons">email</span>
+                      <span>{user?.email}</span>
+                    </div>
+                    
+                    <div className="email-input-wrapper">
+                      <input
+                        type="email"
+                        value={deleteEmailConfirmation}
+                        onChange={(e) => {
+                          setDeleteEmailConfirmation(e.target.value);
+                          setDeleteError('');
+                        }}
+                        placeholder={t('enterEmailPlaceholder')}
+                        className={`email-input ${deleteError ? 'error' : ''}`}
+                        disabled={isDeleting}
+                        autoFocus
+                      />
+                      
+                      {deleteError && (
+                        <div className="input-error-message">
+                          <span className="material-icons">error</span>
+                          <span>{deleteError}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="success-message">
+                  <div className="success-icon">
+                    <span className="material-icons">check_circle</span>
+                  </div>
+                  <h4>{t('accountDeletedSuccess')}</h4>
+                  <p>{t('accountDeletedDetails')}</p>
+                  <div className="redirect-info">
+                    <span className="material-icons">timer</span>
+                    <span>{t('redirectingIn')} <strong>3 {t('seconds')}</strong></span>
+                  </div>
+                </div>
+              )}
             </div>
+            
             <div className="modal-footer">
-              <button 
-                className="btn-secondary"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                className="btn-danger"
-                onClick={handleDeleteAccount}
-              >
-                {t('deleteForever')}
-              </button>
+              {!accountDeleted ? (
+                <>
+                  <button 
+                    className="modal-btn secondary"
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeleteEmailConfirmation('');
+                      setDeleteError('');
+                    }}
+                    disabled={isDeleting}
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button 
+                    className="modal-btn danger"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting || !deleteEmailConfirmation.trim()}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <span className="material-icons loading-icon">hourglass_empty</span>
+                        {t('deleting')}
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-icons">delete_forever</span>
+                        {t('deleteAccount')}
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button 
+                  className="modal-btn primary"
+                  onClick={() => {
+                    window.location.href = '/';
+                  }}
+                >
+                  <span className="material-icons">home</span>
+                  {t('goToHomePage')}
+                </button>
+              )}
             </div>
           </div>
         </>
@@ -988,7 +1079,7 @@ const [supportSuccess, setSupportSuccess] = useState(false)
           <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)} />
           <div className="modal">
             <div className="modal-header">
-              <h3>Сброс пароля</h3>
+              <h3>{t('resetPasswordTitle') || 'Сброс пароля'}</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowResetPasswordModal(false)}
@@ -997,71 +1088,73 @@ const [supportSuccess, setSupportSuccess] = useState(false)
               </button>
             </div>
             <div className="modal-body">
-              <p>Мы отправим ссылку для сброса пароля на ваш email:</p>
+              <p>{t('resetPasswordDesc') || 'Мы отправим ссылку для сброса пароля на ваш email:'}</p>
               <p><strong>{user?.email}</strong></p>
-              <p>Проверьте папку "Спам", если письмо не придет в течение нескольких минут.</p>
+              <p>{t('checkSpamFolder') || 'Проверьте папку "Спам", если письмо не придет в течение нескольких минут.'}</p>
             </div>
             <div className="modal-footer">
               <button 
-                className="btn-secondary"
+                className="modal-btn secondary"
                 onClick={() => setShowResetPasswordModal(false)}
               >
-                Отмена
+                {t('cancel')}
               </button>
               <button 
-                className="btn-primary"
+                className="modal-btn primary"
                 onClick={handleResetPassword}
               >
-                {t('sendLink')}
+                {t('sendLink') || 'Отправить ссылку'}
               </button>
             </div>
           </div>
         </>
       )}
-{/* Модальное окно FAQ */}
-{showFaqModal && (
-  <>
-    <div className="modal-overlay" onClick={() => setShowFaqModal(false)} />
-    <div className="modal large">
-      <div className="modal-header">
-        <h3>{t('faqTitle')}</h3>
-        <button 
-          className="modal-close"
-          onClick={() => setShowFaqModal(false)}
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
-      <div className="modal-body">
-        <div className="faq-list">
-          {faqItems.map((item, index) => (
-            <div key={index} className="faq-item">
-              <h4>{t(item.questionKey)}</h4>
-              <p>{t(item.answerKey)}</p>
+
+      {/* Модальное окно FAQ */}
+      {showFaqModal && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowFaqModal(false)} />
+          <div className="modal large">
+            <div className="modal-header">
+              <h3>{t('faqTitle')}</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowFaqModal(false)}
+              >
+                <span className="material-icons">close</span>
+              </button>
             </div>
-          ))}
-        </div>
-      </div>
-      <div className="modal-footer">
-        <button 
-          className="btn-secondary"
-          onClick={() => setShowFaqModal(false)}
-        >
-          {t('close')}
-        </button>
-        <button 
-          className="btn-primary"
-          onClick={() => {
-            setShowFaqModal(false);
-            setShowSupportModal(true);
-          }}
-        >
-          {t('askQuestion')}
-        </button>
-      </div>
-    </div>
-  </>
-)}
+            <div className="modal-body">
+              <div className="faq-list">
+                {faqItems.map((item, index) => (
+                  <div key={index} className="faq-item">
+                    <h4>{t(item.questionKey)}</h4>
+                    <p>{t(item.answerKey)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="modal-btn secondary"
+                onClick={() => setShowFaqModal(false)}
+              >
+                {t('close')}
+              </button>
+              <button 
+                className="modal-btn primary"
+                onClick={() => {
+                  setShowFaqModal(false);
+                  setShowSupportModal(true);
+                }}
+              >
+                {t('askQuestion')}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Модальное окно очистки кэша */}
       {showClearCacheModal && (
         <>
@@ -1089,13 +1182,13 @@ const [supportSuccess, setSupportSuccess] = useState(false)
             </div>
             <div className="modal-footer">
               <button 
-                className="btn-secondary"
+                className="modal-btn secondary"
                 onClick={() => setShowClearCacheModal(false)}
               >
                 {t('cancel')}
               </button>
               <button 
-                className="btn-primary"
+                className="modal-btn primary"
                 onClick={handleClearCache}
               >
                 {t('clearCacheButton')}
@@ -1104,353 +1197,358 @@ const [supportSuccess, setSupportSuccess] = useState(false)
           </div>
         </>
       )}
-
-      {/* Временное уведомление об успешной очистке кэша */}
-      {tempNotification.show && (
-        <>
-          <div className="modal-overlay" onClick={() => setTempNotification({ show: false, title: '', body: '' })} />
-          <div className="modal notification-modal">
-            <div className="modal-header">
-              <h3>
-                <span className="material-icons" style={{ color: '#10b981', marginRight: '8px' }}>check_circle</span>
-                {tempNotification.title}
-              </h3>
-              <button 
-                className="modal-close"
-                onClick={() => setTempNotification({ show: false, title: '', body: '' })}
-              >
-                <span className="material-icons">close</span>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p style={{ textAlign: 'center' }}>{tempNotification.body}</p>
-              <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                <span className="material-icons" style={{ fontSize: '48px', color: '#10b981' }}>cleaning_services</span>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-primary"
-                onClick={() => setTempNotification({ show: false, title: '', body: '' })}
-                style={{ width: '100%' }}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-{/* Модальное окно для написания в поддержку */}
-{showSupportModal && (
+{/* Временное уведомление об успешной очистке кэша */}
+{tempNotification.show && (
   <>
-    <div className="modal-overlay" onClick={() => !supportSuccess && setShowSupportModal(false)} />
-    <div className="modal large">
+    <div className="modal-overlay" onClick={() => setTempNotification({ show: false, title: '', body: '' })} />
+    <div 
+      className="modal notification-modal"
+      style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 2002
+      }}
+    >
       <div className="modal-header">
-        <h3>{supportSuccess ? t('messageSent') : t('writeToSupport')}</h3>
+        <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <span className="material-icons" style={{ color: '#10b981', marginRight: '8px' }}>check_circle</span>
+          {tempNotification.title}
+        </h3>
         <button 
           className="modal-close"
-          onClick={() => {
-            if (!supportSuccess) {
-              setShowSupportModal(false);
-            }
-          }}
-          disabled={supportSuccess}
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
-      <form onSubmit={handleSupportSubmit}>
-        <div className="modal-body">
-          {supportSuccess ? (
-            <div className="success-message">
-              <div className="success-icon">
-                <span className="material-icons" style={{ color: '#4caf50', fontSize: '64px' }}>check_circle</span>
-              </div>
-              <h4>{t('supportRequestSent')}</h4>
-              <p>
-                {t('supportWillRespond')}
-              </p>
-              <p style={{ marginTop: '16px', color: '#666' }}>
-                <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>schedule</span>
-                {t('responseTime')}
-              </p>
-              <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
-                <p style={{ margin: '0', color: '#0369a1' }}>
-                  <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>info</span>
-                  {t('checkStatusInMyRequests')}
-                </p>
-              </div>
-              <div className="countdown" style={{ marginTop: '24px', textAlign: 'center', color: '#666' }}>
-                <p>
-                  <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>timer</span>
-                  {t('windowWillClose')}
-                </p>
-                {/* Прогресс-бар */}
-                <div 
-                  style={{ 
-                    width: '100%', 
-                    height: '4px', 
-                    backgroundColor: '#e0e0e0', 
-                    borderRadius: '2px',
-                    marginTop: '8px',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <div 
-                    className="progress-bar"
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      backgroundColor: '#4caf50',
-                      transform: 'scaleX(1)',
-                      transformOrigin: 'left',
-                      animation: 'progressCountdown 5s linear forwards'
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="form-group">
-                <label>{t('supportSubject')} *</label>
-                <input 
-                  type="text"
-                  value={supportForm.subject}
-                  onChange={(e) => setSupportForm({...supportForm, subject: e.target.value})}
-                  placeholder={t('supportSubjectPlaceholder')}
-                  className="form-input"
-                  required
-                  maxLength={255}
-                  disabled={supportSuccess}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>{t('supportMessage')} *</label>
-                <textarea 
-                  value={supportForm.message}
-                  onChange={(e) => setSupportForm({...supportForm, message: e.target.value})}
-                  placeholder={t('supportMessagePlaceholder')}
-                  className="form-textarea"
-                  rows="8"
-                  required
-                  disabled={supportSuccess}
-                />
-                <div className="form-hint">
-                  {t('supportMessageHint')}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-        <div className="modal-footer">
-          {!supportSuccess && (
-            <>
-              <button 
-                type="button"
-                className="btn-secondary"
-                onClick={() => setShowSupportModal(false)}
-                disabled={supportSuccess}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                type="submit"
-                className="btn-primary"
-                disabled={supportSuccess}
-              >
-                {t('sendMessage')}
-              </button>
-            </>
-          )}
-          {supportSuccess && (
-            <button 
-              type="button"
-              className="btn-primary"
-              onClick={() => {
-                setShowSupportModal(false);
-                setSupportSuccess(false);
-              }}
-              style={{ width: '100%' }}
-            >
-              {t('close')}
-            </button>
-          )}
-        </div>
-      </form>
-    </div>
-  </>
-)}
-
-{/* Модальное окно "Мои обращения" */}
-{showMyQuestionsModal && (
-  <>
-    <div className="modal-overlay" onClick={() => setShowMyQuestionsModal(false)} />
-    <div className="modal large">
-      <div className="modal-header">
-        <h3>{t('mySupportRequests')}</h3>
-        <button 
-          className="modal-close"
-          onClick={() => setShowMyQuestionsModal(false)}
-          aria-label={t('close')}
+          onClick={() => setTempNotification({ show: false, title: '', body: '' })}
         >
           <span className="material-icons">close</span>
         </button>
       </div>
       <div className="modal-body">
-        {questionsLoading ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-            <p>{t('loading')}</p>
-          </div>
-        ) : !myQuestions || !Array.isArray(myQuestions) ? (
-          <div className="empty-state error-state">
-            <span className="material-icons" style={{ color: '#ef4444', fontSize: '48px' }}>error_outline</span>
-            <h4>{t('errorLoadingData')}</h4>
-            <p>{t('dataLoadError')}</p>
-            <button 
-              className="btn-primary"
-              onClick={() => {
-                loadMyQuestions();
-              }}
-            >
-              <span className="material-icons">refresh</span>
-              {t('tryAgain')}
-            </button>
-          </div>
-        ) : myQuestions.length === 0 ? (
-          <div className="empty-state">
-            <span className="material-icons" style={{ color: '#6b7280', fontSize: '48px' }}>question_answer</span>
-            <h4>{t('noQuestionsTitle')}</h4>
-            <p>{t('noQuestionsDescription')}</p>
-            <button 
-              className="btn-primary"
-              onClick={() => {
-                setShowMyQuestionsModal(false);
-                setShowSupportModal(true);
-              }}
-            >
-              {t('createFirstQuestion')}
-            </button>
-          </div>
-        ) : (
-          <div className="questions-list">
-            {myQuestions.map(question => {
-              // Проверка на наличие необходимых полей
-              if (!question || typeof question !== 'object') {
-                console.warn('Некорректный вопрос:', question);
-                return null;
-              }
-
-              const ticketNumber = question.ticket_number || question.ticketNumber || `TKT-${question.id || '???'}`;
-              const subject = question.subject || t('noSubject');
-              const message = question.message || '';
-              const status = question.status || 'pending';
-              const createdAt = question.created_at || question.createdAt || new Date();
-              const hasResponse = Boolean(question.admin_response);
-              
-              return (
-                <div 
-                  key={question.id || Math.random()} 
-                  className={`question-item ${status}`}
-                  onClick={() => handleViewQuestionDetails(question)}
-                  style={{ cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleViewQuestionDetails(question);
-                    }
-                  }}
-                >
-                  <div className="question-header">
-                    <div className="question-number" title={ticketNumber}>
-                      {ticketNumber}
-                    </div>
-                    <div 
-                      className="question-status"
-                      style={{ backgroundColor: getStatusColor(status) }}
-                      title={getStatusLabel(status)}
-                    >
-                      {getStatusLabel(status)}
-                    </div>
-                  </div>
-                  <div className="question-subject" title={subject}>
-                    {subject}
-                  </div>
-                  <div className="question-meta">
-                    <span className="question-date">
-                      {formatDate(createdAt)}
-                    </span>
-                    {question.updated_at && question.updated_at !== createdAt && (
-                      <span className="question-updated">
-                        <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>update</span>
-                        {t('updated')}: {formatDate(question.updated_at)}
-                      </span>
-                    )}
-                  </div>
-                  {message && (
-                    <div className="question-message-preview" title={message}>
-                      {message.length > 100 ? 
-                        `${message.substring(0, 100)}...` : message}
-                    </div>
-                  )}
-                  {hasResponse && (
-                    <div className="question-has-response">
-                      <span className="material-icons" style={{ color: '#10b981', marginRight: '4px' }}>check_circle</span>
-                      {t('hasResponse')}
-                    </div>
-                  )}
-                  {question.responded_at && (
-                    <div className="question-response-date">
-                      <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>schedule</span>
-                      {t('answeredAt')}: {formatDate(question.responded_at)}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <p style={{ textAlign: 'center', fontSize: '16px', marginBottom: '20px' }}>
+          {tempNotification.body}
+        </p>
+        <div style={{ textAlign: 'center', margin: '20px 0' }}>
+          <span className="material-icons" style={{ fontSize: '64px', color: '#10b981' }}>
+            cleaning_services
+          </span>
+        </div>
       </div>
       <div className="modal-footer">
         <button 
-          type="button"
-          className="btn-secondary"
-          onClick={() => setShowMyQuestionsModal(false)}
+          className="modal-btn primary"
+          onClick={() => setTempNotification({ show: false, title: '', body: '' })}
+          style={{ width: '100%' }}
         >
-          {t('close')}
-        </button>
-        {!questionsLoading && myQuestions && myQuestions.length > 0 && (
-          <button 
-            type="button"
-            className="btn-secondary"
-            onClick={() => {
-              loadMyQuestions();
-            }}
-          >
-            <span className="material-icons">refresh</span>
-            {t('refresh')}
-          </button>
-        )}
-        <button 
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            setShowMyQuestionsModal(false);
-            setShowSupportModal(true);
-          }}
-        >
-          <span className="material-icons">add</span>
-          {t('askNewQuestion')}
+          OK
         </button>
       </div>
     </div>
   </>
 )}
+
+      {/* Модальное окно для написания в поддержку */}
+      {showSupportModal && (
+        <>
+          <div className="modal-overlay" onClick={() => !supportSuccess && setShowSupportModal(false)} />
+          <div className="modal large">
+            <div className="modal-header">
+              <h3>{supportSuccess ? t('messageSent') : t('writeToSupport')}</h3>
+              <button 
+                className="modal-close"
+                onClick={() => {
+                  if (!supportSuccess) {
+                    setShowSupportModal(false);
+                  }
+                }}
+                disabled={supportSuccess}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSupportSubmit}>
+              <div className="modal-body">
+                {supportSuccess ? (
+                  <div className="success-message">
+                    <div className="success-icon">
+                      <span className="material-icons" style={{ color: '#4caf50', fontSize: '64px' }}>check_circle</span>
+                    </div>
+                    <h4>{t('supportRequestSent')}</h4>
+                    <p>
+                      {t('supportWillRespond')}
+                    </p>
+                    <p style={{ marginTop: '16px', color: '#666' }}>
+                      <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>schedule</span>
+                      {t('responseTime')}
+                    </p>
+                    <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+                      <p style={{ margin: '0', color: '#0369a1' }}>
+                        <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>info</span>
+                        {t('checkStatusInMyRequests')}
+                      </p>
+                    </div>
+                    <div className="countdown" style={{ marginTop: '24px', textAlign: 'center', color: '#666' }}>
+                      <p>
+                        <span className="material-icons" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>timer</span>
+                        {t('windowWillClose')}
+                      </p>
+                      <div 
+                        style={{ 
+                          width: '100%', 
+                          height: '4px', 
+                          backgroundColor: '#e0e0e0', 
+                          borderRadius: '2px',
+                          marginTop: '8px',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        <div 
+                          className="progress-bar"
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            backgroundColor: '#4caf50',
+                            transform: 'scaleX(1)',
+                            transformOrigin: 'left',
+                            animation: 'progressCountdown 5s linear forwards'
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="form-group">
+                      <label>{t('supportSubject')} *</label>
+                      <input 
+                        type="text"
+                        value={supportForm.subject}
+                        onChange={(e) => setSupportForm({...supportForm, subject: e.target.value})}
+                        placeholder={t('supportSubjectPlaceholder')}
+                        className="form-input"
+                        required
+                        maxLength={255}
+                        disabled={supportSuccess}
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>{t('supportMessage')} *</label>
+                      <textarea 
+                        value={supportForm.message}
+                        onChange={(e) => setSupportForm({...supportForm, message: e.target.value})}
+                        placeholder={t('supportMessagePlaceholder')}
+                        className="form-textarea"
+                        rows="8"
+                        required
+                        disabled={supportSuccess}
+                      />
+                      <div className="form-hint">
+                        {t('supportMessageHint')}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="modal-footer">
+                {!supportSuccess && (
+                  <>
+                    <button 
+                      type="button"
+                      className="modal-btn secondary"
+                      onClick={() => setShowSupportModal(false)}
+                      disabled={supportSuccess}
+                    >
+                      {t('cancel')}
+                    </button>
+                    <button 
+                      type="submit"
+                      className="modal-btn primary"
+                      disabled={supportSuccess}
+                    >
+                      {t('sendMessage')}
+                    </button>
+                  </>
+                )}
+                {supportSuccess && (
+                  <button 
+                    type="button"
+                    className="modal-btn primary"
+                    onClick={() => {
+                      setShowSupportModal(false);
+                      setSupportSuccess(false);
+                    }}
+                    style={{ width: '100%' }}
+                  >
+                    {t('close')}
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </>
+      )}
+
+      {/* Модальное окно "Мои обращения" */}
+      {showMyQuestionsModal && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowMyQuestionsModal(false)} />
+          <div className="modal large">
+            <div className="modal-header">
+              <h3>{t('mySupportRequests')}</h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowMyQuestionsModal(false)}
+                aria-label={t('close')}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              {questionsLoading ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <p>{t('loading')}</p>
+                </div>
+              ) : !myQuestions || !Array.isArray(myQuestions) ? (
+                <div className="empty-state error-state">
+                  <span className="material-icons" style={{ color: '#ef4444', fontSize: '48px' }}>error_outline</span>
+                  <h4>{t('errorLoadingData')}</h4>
+                  <p>{t('dataLoadError')}</p>
+                  <button 
+                    className="modal-btn primary"
+                    onClick={() => {
+                      loadMyQuestions();
+                    }}
+                  >
+                    <span className="material-icons">refresh</span>
+                    {t('tryAgain')}
+                  </button>
+                </div>
+              ) : myQuestions.length === 0 ? (
+                <div className="empty-state">
+                  <span className="material-icons" style={{ color: '#6b7280', fontSize: '48px' }}>question_answer</span>
+                  <h4>{t('noQuestionsTitle')}</h4>
+                  <p>{t('noQuestionsDescription')}</p>
+                  <button 
+                    className="modal-btn primary"
+                    onClick={() => {
+                      setShowMyQuestionsModal(false);
+                      setShowSupportModal(true);
+                    }}
+                  >
+                    {t('createFirstQuestion')}
+                  </button>
+                </div>
+              ) : (
+                <div className="questions-list">
+                  {myQuestions.map(question => {
+                    const ticketNumber = question.ticket_number || question.ticketNumber || `TKT-${question.id || '???'}`;
+                    const subject = question.subject || t('noSubject');
+                    const message = question.message || '';
+                    const status = question.status || 'pending';
+                    const createdAt = question.created_at || question.createdAt || new Date();
+                    const hasResponse = Boolean(question.admin_response);
+                    
+                    return (
+                      <div 
+                        key={question.id || Math.random()} 
+                        className={`question-item ${status}`}
+                        onClick={() => handleViewQuestionDetails(question)}
+                        style={{ cursor: 'pointer' }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleViewQuestionDetails(question);
+                          }
+                        }}
+                      >
+                        <div className="question-header">
+                          <div className="question-number" title={ticketNumber}>
+                            {ticketNumber}
+                          </div>
+                          <div 
+                            className="question-status"
+                            style={{ backgroundColor: getStatusColor(status) }}
+                            title={getStatusLabel(status)}
+                          >
+                            {getStatusLabel(status)}
+                          </div>
+                        </div>
+                        <div className="question-subject" title={subject}>
+                          {subject}
+                        </div>
+                        <div className="question-meta">
+                          <span className="question-date">
+                            {formatDate(createdAt)}
+                          </span>
+                          {question.updated_at && question.updated_at !== createdAt && (
+                            <span className="question-updated">
+                              <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>update</span>
+                              {t('updated')}: {formatDate(question.updated_at)}
+                            </span>
+                          )}
+                        </div>
+                        {message && (
+                          <div className="question-message-preview" title={message}>
+                            {message.length > 100 ? 
+                              `${message.substring(0, 100)}...` : message}
+                          </div>
+                        )}
+                        {hasResponse && (
+                          <div className="question-has-response">
+                            <span className="material-icons" style={{ color: '#10b981', marginRight: '4px' }}>check_circle</span>
+                            {t('hasResponse')}
+                          </div>
+                        )}
+                        {question.responded_at && (
+                          <div className="question-response-date">
+                            <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>schedule</span>
+                            {t('answeredAt')}: {formatDate(question.responded_at)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button 
+                type="button"
+                className="modal-btn secondary"
+                onClick={() => setShowMyQuestionsModal(false)}
+              >
+                {t('close')}
+              </button>
+              {!questionsLoading && myQuestions && myQuestions.length > 0 && (
+                <button 
+                  type="button"
+                  className="modal-btn secondary"
+                  onClick={() => {
+                    loadMyQuestions();
+                  }}
+                >
+                  <span className="material-icons">refresh</span>
+                  {t('refresh')}
+                </button>
+              )}
+              <button 
+                type="button"
+                className="modal-btn primary"
+                onClick={() => {
+                  setShowMyQuestionsModal(false);
+                  setShowSupportModal(true);
+                }}
+              >
+                <span className="material-icons">add</span>
+                {t('askNewQuestion')}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Модальное окно деталей вопроса */}
       {showQuestionDetailsModal && selectedQuestion && (
@@ -1509,7 +1607,7 @@ const [supportSuccess, setSupportSuccess] = useState(false)
             </div>
             <div className="modal-footer">
               <button 
-                className="btn-secondary"
+                className="modal-btn secondary"
                 onClick={() => setShowQuestionDetailsModal(false)}
               >
                 {t('close') || 'Закрыть'}

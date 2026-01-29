@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 // Общий лимит для API
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // Максимум 100 запросов за окно
+  max: 500, // Максимум 500 запросов за окно
   message: {
     success: false,
     error: 'TOO_MANY_REQUESTS',

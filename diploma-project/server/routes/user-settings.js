@@ -484,5 +484,175 @@ router.get('/check-auth', requireAuth, async (req, res) => {
     });
   }
 });
-
+router.delete('/account', requireAuth, async (req, res) => {
+  console.log('\n=== DELETE ACCOUNT ===');
+  console.log(`🗑️  Запрос на удаление аккаунта для пользователя ${req.userId}`);
+  
+  try {
+    // Начинаем транзакцию, чтобы удалить все связанные данные
+    await pool.query('BEGIN');
+    
+    // 1. Получаем информацию о пользователе (для логирования)
+    const userQuery = await pool.query(
+      'SELECT email, nickname FROM users WHERE id = $1',
+      [req.userId]
+    );
+    
+    if (userQuery.rows.length === 0) {
+      await pool.query('ROLLBACK');
+      return res.status(404).json({
+        success: false,
+        error: 'USER_NOT_FOUND',
+        message: 'Пользователь не найден'
+      });
+    }
+    
+    const userEmail = userQuery.rows[0].email;
+    const userNickname = userQuery.rows[0].nickname;
+    
+    console.log(`Удаляем аккаунт: ${userNickname} (${userEmail})`);
+    
+    // 2. Получаем текущие настройки пользователя перед удалением
+    console.log('📋 Получаем текущие настройки пользователя...');
+    let currentSettings = {
+      theme: 'light',
+      language: 'RU',
+      notifications: true,
+      ecoTips: true,
+      emailNotifications: true,
+      pushNotifications: false,
+      privacyLevel: 1
+    };
+    
+    try {
+      const settingsQuery = await pool.query(
+        'SELECT theme, language, notifications_enabled, eco_tips_enabled, email_notifications, push_notifications, privacy_level FROM user_settings WHERE user_id = $1',
+        [req.userId]
+      );
+      
+      if (settingsQuery.rows.length > 0) {
+        const settings = settingsQuery.rows[0];
+        currentSettings = {
+          theme: settings.theme || 'light',
+          language: settings.language || 'RU',
+          notifications: settings.notifications_enabled ?? true,
+          ecoTips: settings.eco_tips_enabled ?? true,
+          emailNotifications: settings.email_notifications ?? true,
+          pushNotifications: settings.push_notifications ?? false,
+          privacyLevel: settings.privacy_level || 1
+        };
+        console.log('Текущие настройки пользователя:', currentSettings);
+      } else {
+        console.log('Настройки не найдены, используем дефолтные');
+      }
+    } catch (error) {
+      console.log('⚠️ Не удалось получить настройки пользователя:', error.message);
+    }
+    
+    // 3. Удаляем вопросы в поддержке пользователя
+    console.log('🗑️  Удаляем вопросы поддержки...');
+    await pool.query(
+      'DELETE FROM support_tickets WHERE user_id = $1',
+      [req.userId]
+    );
+    
+    // 4. Удаляем настройки пользователя
+    console.log('🗑️  Удаляем настройки пользователя...');
+    await pool.query(
+      'DELETE FROM user_settings WHERE user_id = $1',
+      [req.userId]
+    );
+    
+    // 5. Удаляем достижения пользователя (если есть таблица achievements)
+    try {
+      console.log('🗑️  Удаляем достижения пользователя...');
+      await pool.query(
+        'DELETE FROM user_achievements WHERE user_id = $1',
+        [req.userId]
+      );
+    } catch (error) {
+      console.log('⚠️  Таблица user_achievements не существует или недоступна:', error.message);
+    }
+    
+    // 6. Удаляем историю пользователя (если есть таблица user_history)
+    try {
+      console.log('🗑️  Удаляем историю пользователя...');
+      await pool.query(
+        'DELETE FROM user_history WHERE user_id = $1',
+        [req.userId]
+      );
+    } catch (error) {
+      console.log('⚠️  Таблица user_history не существует или недоступна:', error.message);
+    }
+    
+    // 7. Удаляем пользователя из команд (если есть таблица team_members)
+    try {
+      console.log('🗑️  Удаляем пользователя из команд...');
+      await pool.query(
+        'DELETE FROM team_members WHERE user_id = $1',
+        [req.userId]
+      );
+    } catch (error) {
+      console.log('⚠️  Таблица team_members не существует или недоступна:', error.message);
+    }
+    
+    // 8. Удаляем самого пользователя
+    console.log('🗑️  Удаляем пользователя из таблицы users...');
+    const deleteUserResult = await pool.query(
+      'DELETE FROM users WHERE id = $1 RETURNING id, email, nickname',
+      [req.userId]
+    );
+    
+    if (deleteUserResult.rowCount === 0) {
+      await pool.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: 'DELETE_FAILED',
+        message: 'Не удалось удалить пользователя'
+      });
+    }
+    
+    // Подтверждаем транзакцию
+    await pool.query('COMMIT');
+    
+    console.log(`✅ Аккаунт пользователя ${userNickname} (ID: ${req.userId}) успешно удален`);
+    
+    // 9. Определяем настройки для сброса (значения по умолчанию)
+    const defaultSettings = {
+      theme: 'light',        // Всегда светлая тема
+      language: 'RU',        // Русский язык по умолчанию
+      notifications: true,   // Уведомления включены
+      ecoTips: true,         // Эко-советы включены
+      emailNotifications: true, // Email уведомления включены
+      pushNotifications: false, // Push уведомления выключены
+      privacyLevel: 1        // Базовый уровень приватности
+    };
+    
+    console.log('🎨 Настройки сброшены на значения по умолчанию:', defaultSettings);
+    
+    res.json({
+      success: true,
+      message: 'Аккаунт успешно удален',
+      deletedUser: deleteUserResult.rows[0],
+      // Отправляем настройки для сброса на фронтенде
+      settings: defaultSettings,
+      // Для отладки можем также отправить оригинальные настройки
+      originalSettings: currentSettings,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    // Откатываем транзакцию при ошибке
+    await pool.query('ROLLBACK');
+    
+    console.error('❌ Ошибка при удалении аккаунта:', error);
+    
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Ошибка сервера при удалении аккаунта',
+      debug: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 module.exports = router;

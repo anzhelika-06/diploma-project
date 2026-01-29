@@ -840,35 +840,35 @@ const AboutPage = () => {
         </div>
       </div>
 
-      {/* Модальное окно авторизации */}
-      {showAuthModal && (
-        <>
-          <div className="modal-overlay" onClick={() => setShowAuthModal(false)} />
-          <div className="auth-modal">
-            <div className="modal-header">
-              <h3>Требуется регистрация</h3>
-              <button className="modal-close" onClick={() => setShowAuthModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <p>Чтобы ставить лайки историям, необходимо войти в систему.</p>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn-secondary" 
-                onClick={() => setShowAuthModal(false)}
-              >
-                Остаться здесь
-              </button>
-              <button 
-                className="btn-primary" 
-                onClick={() => window.location.href = '/auth'}
-              >
-                Войти в систему
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+    {/* Модальное окно авторизации */}
+{showAuthModal && (
+  <>
+    <div className="modal-overlay" onClick={() => setShowAuthModal(false)} />
+    <div className="auth-modal">
+      <div className="modal-header">
+        <h3>{t('authModalTitle') || 'Требуется регистрация'}</h3>
+        <button className="modal-close" onClick={() => setShowAuthModal(false)}>✕</button>
+      </div>
+      <div className="modal-body">
+        <p>{t('authModalText') || 'Чтобы ставить лайки историям, необходимо войти в систему.'}</p>
+      </div>
+      <div className="modal-footer">
+        <button 
+          className="btn-secondary" 
+          onClick={() => setShowAuthModal(false)}
+        >
+          {t('authModalCancel') || 'Остаться здесь'}
+        </button>
+        <button 
+          className="btn-primary" 
+          onClick={() => window.location.href = '/auth'}
+        >
+          {t('authModalLogin') || 'Войти в систему'}
+        </button>
+      </div>
+    </div>
+  </>
+)}
     </div>
   )
 }

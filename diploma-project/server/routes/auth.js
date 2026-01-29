@@ -10,7 +10,21 @@ const isValidEmail = (email) => {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email);
 };
-
+router.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Request body:', req.body);
+  next();
+});
+// Добавьте в authRoutes.js после импортов, до других роутов
+router.get('/health', (req, res) => {
+  console.log('Health check requested');
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
 // Регистрация пользователя с токеном
 router.post('/register', async (req, res) => {
   try {
@@ -134,12 +148,13 @@ router.post('/register', async (req, res) => {
       {
         userId: newUser.id,
         email: newUser.email,
-        nickname: newUser.nickname
+        nickname: newUser.nickname,
+        is_admin: newUser.is_admin, // ДОБАВЛЕНО!
+        isAdmin: newUser.is_admin    // И camelCase
       },
       process.env.JWT_SECRET || 'ecosteps-secret-key-2024',
       { expiresIn: '30d' }
     );
-
     // Успешная регистрация с токеном
     res.status(201).json({
       success: true,
@@ -167,13 +182,18 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Авторизация (вход через email или никнейм) с токеном
+// authRoutes.js - обновите login роут
 router.post('/login', async (req, res) => {
+  console.log('=== START LOGIN HANDLER ===');
+  
   try {
     const { login, password } = req.body;
 
+    console.log('Login attempt for:', login);
+    
     // Валидация входных данных
     if (!login || !password) {
+      console.log('Validation failed: missing fields');
       return res.status(400).json({
         success: false,
         error: 'MISSING_FIELDS',
@@ -181,17 +201,32 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Поиск пользователя по email ИЛИ никнейму
+    console.log('Attempting to query database...');
+    
+    // Поиск пользователя по email ИЛИ никнейму - ВАЖНО: добавить is_admin в запрос
     const userQuery = `
       SELECT id, email, nickname, password_hash, is_admin,
-             carbon_saved, eco_level, avatar_emoji
+             carbon_saved, eco_level, avatar_emoji, is_banned
       FROM users 
       WHERE email = $1 OR nickname = $1
     `;
     
-    const userResult = await pool.query(userQuery, [login]);
+    let userResult;
+    try {
+      userResult = await pool.query(userQuery, [login]);
+      console.log('Database query successful, rows found:', userResult.rows.length);
+    } catch (dbError) {
+      console.error('Database query failed:', dbError);
+      console.error('Stack trace:', dbError.stack);
+      return res.status(500).json({
+        success: false,
+        error: 'DB_QUERY_ERROR',
+        message: 'Ошибка запроса к базе данных'
+      });
+    }
 
     if (userResult.rows.length === 0) {
+      console.log('User not found in database');
       return res.status(401).json({
         success: false,
         error: 'USER_NOT_FOUND',
@@ -200,11 +235,39 @@ router.post('/login', async (req, res) => {
     }
 
     const user = userResult.rows[0];
+    console.log('User found:', { 
+      id: user.id, 
+      email: user.email,
+      is_admin: user.is_admin 
+    });
+
+    // Проверка на бан
+    if (user.is_banned) {
+      console.log('User is banned');
+      return res.status(403).json({
+        success: false,
+        error: 'USER_BANNED',
+        message: 'Ваш аккаунт заблокирован'
+      });
+    }
 
     // Проверка пароля
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    console.log('Checking password...');
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await bcrypt.compare(password, user.password_hash);
+      console.log('Password check result:', isPasswordValid);
+    } catch (bcryptError) {
+      console.error('Bcrypt comparison failed:', bcryptError);
+      return res.status(500).json({
+        success: false,
+        error: 'PASSWORD_CHECK_ERROR',
+        message: 'Ошибка проверки пароля'
+      });
+    }
 
     if (!isPasswordValid) {
+      console.log('Invalid password');
       return res.status(401).json({
         success: false,
         error: 'INVALID_CREDENTIALS',
@@ -212,44 +275,85 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Генерация JWT токена
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        nickname: user.nickname
-      },
-      process.env.JWT_SECRET || 'ecosteps-secret-key-2024',
-      { expiresIn: '30d' }
-    );
+    console.log('Password valid, generating JWT token...');
+    
+    // Генерация JWT токена - ВАЖНО: включаем is_admin!
+    const JWT_SECRET = process.env.JWT_SECRET;
+    console.log('JWT_SECRET exists?', !!JWT_SECRET);
+    
+    let token;
+    try {
+      token = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          nickname: user.nickname,
+          is_admin: user.is_admin, // ДОБАВЛЕНО!
+          isAdmin: user.is_admin   // И camelCase вариант тоже
+        },
+        JWT_SECRET || 'ecosteps-secret-key-2024',
+        { expiresIn: '30d' }
+      );
+      console.log('JWT token generated successfully');
+    } catch (jwtError) {
+      console.error('JWT generation failed:', jwtError);
+      return res.status(500).json({
+        success: false,
+        error: 'JWT_GENERATION_ERROR',
+        message: 'Ошибка создания токена'
+      });
+    }
 
+    console.log('Sending successful response...');
+    
     // Успешная авторизация с токеном
-    res.json({
+    const responseData = {
       success: true,
       message: 'Авторизация успешна',
-      token: token, // Важно: возвращаем токен
+      token: token,
       user: {
         id: user.id,
         email: user.email,
         nickname: user.nickname,
         isAdmin: user.is_admin || false,
+        is_admin: user.is_admin || false, // Добавляем и snake_case
         carbonSaved: user.carbon_saved || 0,
         ecoLevel: user.eco_level || 'Эко-новичок',
         avatarEmoji: user.avatar_emoji || '🌱'
       }
-    });
+    };
+    
+    console.log('Response data:', JSON.stringify(responseData, null, 2));
+    
+    // Важно: явно указываем Content-Type
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.json(responseData);
+    
+    console.log('=== END LOGIN HANDLER (SUCCESS) ===');
 
   } catch (error) {
-    console.error('Ошибка авторизации:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'Внутренняя ошибка сервера'
-    });
+    console.error('=== UNHANDLED ERROR IN LOGIN HANDLER ===');
+    console.error('Error:', error);
+    console.error('Stack trace:', error.stack);
+    
+    try {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.status(500).json({
+        success: false,
+        error: 'SERVER_ERROR',
+        message: 'Внутренняя ошибка сервера',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    } catch (sendError) {
+      console.error('Failed to send error response:', sendError);
+    }
+    
+    console.log('=== END LOGIN HANDLER (ERROR) ===');
   }
 });
 
 // Проверка токена (верификация)
+// Обновите функцию verify
 router.get('/verify', async (req, res) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -269,7 +373,7 @@ router.get('/verify', async (req, res) => {
       
       // Получаем актуальные данные пользователя из БД
       const userQuery = `
-        SELECT id, email, nickname, is_admin, carbon_saved, eco_level, avatar_emoji
+        SELECT id, email, nickname, is_admin, carbon_saved, eco_level, avatar_emoji, is_banned
         FROM users WHERE id = $1
       `;
       
@@ -285,6 +389,15 @@ router.get('/verify', async (req, res) => {
 
       const user = userResult.rows[0];
       
+      // Проверка на бан
+      if (user.is_banned) {
+        return res.status(403).json({
+          success: false,
+          error: 'USER_BANNED',
+          message: 'Ваш аккаунт заблокирован'
+        });
+      }
+      
       res.json({
         success: true,
         user: {
@@ -292,6 +405,7 @@ router.get('/verify', async (req, res) => {
           email: user.email,
           nickname: user.nickname,
           isAdmin: user.is_admin || false,
+          is_admin: user.is_admin || false,
           carbonSaved: user.carbon_saved || 0,
           ecoLevel: user.eco_level || 'Эко-новичок',
           avatarEmoji: user.avatar_emoji || '🌱'
@@ -315,7 +429,20 @@ router.get('/verify', async (req, res) => {
     });
   }
 });
+router.get('/test', (req, res) => {
+  console.log('Тестовый запрос получен')
+  res.json({ success: true, message: 'Auth API работает!', timestamp: new Date().toISOString() })
+})
 
+router.post('/test-post', (req, res) => {
+  console.log('Тестовый POST запрос:', req.body)
+  res.json({ 
+    success: true, 
+    message: 'POST запрос работает!',
+    received: req.body,
+    timestamp: new Date().toISOString() 
+  })
+})
 // Тестовый маршрут для проверки подключения к БД
 router.get('/test-db', async (req, res) => {
   try {
