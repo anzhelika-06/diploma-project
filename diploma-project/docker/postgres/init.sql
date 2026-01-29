@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_banned BOOLEAN DEFAULT FALSE, 
     ban_reason TEXT,
     ban_expires_at TIMESTAMP DEFAULT NULL, -- Дата окончания бана
+    ban_count INTEGER DEFAULT 0,
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
