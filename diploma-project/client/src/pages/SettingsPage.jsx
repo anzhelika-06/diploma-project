@@ -1496,12 +1496,7 @@ const SettingsPage = () => {
                               `${message.substring(0, 100)}...` : message}
                           </div>
                         )}
-                        {hasResponse && (
-                          <div className="question-has-response">
-                            <span className="material-icons" style={{ color: '#10b981', marginRight: '4px' }}>check_circle</span>
-                            {t('hasResponse')}
-                          </div>
-                        )}
+
                         {question.responded_at && (
                           <div className="question-response-date">
                             <span className="material-icons" style={{ fontSize: '14px', marginRight: '4px' }}>schedule</span>

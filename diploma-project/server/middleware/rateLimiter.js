@@ -53,7 +53,15 @@ const calculatorLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
+const createStoryLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 час
+  max: 10, // максимум 10 историй в час
+  message: {
+    success: false,
+    error: 'TOO_MANY_STORIES',
+    message: 'Слишком много историй. Попробуйте позже.'
+  }
+});
 module.exports = {
   generalLimiter,
   authLimiter,

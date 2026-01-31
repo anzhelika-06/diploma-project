@@ -11,6 +11,9 @@ const ALLOWED_FILTERS = ['all', 'best', 'recent'];
 // Разрешенные типы сортировки
 const ALLOWED_SORT_TYPES = ['carbon_saved', 'created_at', 'likes_count'];
 
+// Разрешенные статусы историй
+const ALLOWED_STATUSES = ['draft', 'pending', 'published', 'rejected', 'all'];
+
 /**
  * Валидация категории историй
  */
@@ -25,6 +28,22 @@ const validateCategory = (category) => {
 const validateFilter = (filter) => {
   if (!filter) return true;
   return ALLOWED_FILTERS.includes(filter);
+};
+
+/**
+ * Валидация статуса истории для запроса (фильтрация)
+ */
+const validateStatus = (status) => {
+  if (!status || status === 'all') return 'published'; // по умолчанию published для запросов
+  return ALLOWED_STATUSES.includes(status) ? status : 'published';
+};
+
+/**
+ * Валидация статуса для создания/редактирования истории
+ */
+const validateStoryStatus = (status) => {
+  if (!status) return 'pending'; // при создании по умолчанию pending
+  return ALLOWED_STATUSES.slice(0, 4).includes(status) ? status : 'pending'; // исключаем 'all'
 };
 
 /**
@@ -98,9 +117,37 @@ const validateNickname = (nickname) => {
   return trimmed.length >= 2 && trimmed.length <= 50;
 };
 
+/**
+ * Валидация заголовка истории
+ */
+const validateStoryTitle = (title) => {
+  if (!title || typeof title !== 'string') return false;
+  const trimmed = title.trim();
+  return trimmed.length >= 3 && trimmed.length <= 255;
+};
+
+/**
+ * Валидация содержания истории
+ */
+const validateStoryContent = (content) => {
+  if (!content || typeof content !== 'string') return false;
+  const trimmed = content.trim();
+  return trimmed.length >= 10 && trimmed.length <= 5000;
+};
+
+/**
+ * Валидация количества сэкономленного CO2
+ */
+const validateCarbonSaved = (carbonSaved) => {
+  const num = parseFloat(carbonSaved);
+  return !isNaN(num) && num >= 0 && num <= 10000;
+};
+
 module.exports = {
   validateCategory,
   validateFilter,
+  validateStatus,
+  validateStoryStatus,
   validatePagination,
   validateUserId,
   validateStoryId,
@@ -108,7 +155,11 @@ module.exports = {
   sanitizeString,
   validateEmail,
   validateNickname,
+  validateStoryTitle,
+  validateStoryContent,
+  validateCarbonSaved,
   ALLOWED_CATEGORIES,
   ALLOWED_FILTERS,
-  ALLOWED_SORT_TYPES
+  ALLOWED_SORT_TYPES,
+  ALLOWED_STATUSES
 };

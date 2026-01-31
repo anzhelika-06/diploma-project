@@ -399,7 +399,124 @@ router.get('/support/tickets/:ticketId', authenticateToken, isAdmin, async (req,
     });
   }
 });
-
+// ========== Получение деталей бана пользователя ==========
+router.get('/users/:userId/ban-details', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    
+    console.log('=== BAN DETAILS REQUEST ===');
+    console.log('User ID:', userId, 'Admin:', req.user.id);
+    
+    // Проверяем существование пользователя
+    const userCheck = await query(
+      'SELECT id, email, nickname, is_banned, ban_reason, ban_expires_at, ban_count FROM users WHERE id = $1 AND deleted_at IS NULL',
+      [userId]
+    );
+    
+    if (userCheck.rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
+    const user = userCheck.rows[0];
+    
+    // Если пользователь не забанен, возвращаем пустые данные
+    if (!user.is_banned) {
+      return res.json({
+        success: true,
+        banDetails: {
+          is_banned: false,
+          is_permanent: false,
+          expires_at: null,
+          reason: null,
+          created_at: null,
+          ban_id: null
+        }
+      });
+    }
+    
+    // Получаем детали из таблицы ban_history
+    let banDetails = {
+      is_banned: true,
+      is_permanent: !user.ban_expires_at,
+      expires_at: user.ban_expires_at ? new Date(user.ban_expires_at).toISOString() : null,
+      reason: user.ban_reason || 'Причина не указана',
+      created_at: null,
+      ban_id: null
+    };
+    
+    try {
+      // Пытаемся получить более подробную информацию из ban_history
+      const historyQuery = `
+        SELECT 
+          bh.id as ban_id,
+          bh.reason,
+          bh.duration_hours,
+          bh.is_permanent,
+          bh.created_at,
+          bh.created_by,
+          u.email as admin_email,
+          bh.unbanned_at,
+          bh.unban_reason
+        FROM ban_history bh
+        LEFT JOIN users u ON bh.created_by = u.id
+        WHERE bh.user_id = $1 AND bh.unbanned_at IS NULL
+        ORDER BY bh.created_at DESC
+        LIMIT 1
+      `;
+      
+      const historyResult = await query(historyQuery, [userId]);
+      
+      if (historyResult.rowCount > 0) {
+        const history = historyResult.rows[0];
+        banDetails = {
+          ...banDetails,
+          ban_id: history.ban_id,
+          reason: history.reason || banDetails.reason,
+          is_permanent: history.is_permanent || banDetails.is_permanent,
+          created_at: history.created_at ? new Date(history.created_at).toISOString() : null,
+          created_by: history.created_by,
+          admin_email: history.admin_email
+        };
+      } else {
+        // Если записи в истории нет, создаем примерные данные на основе полей пользователя
+        banDetails = {
+          ...banDetails,
+          ban_id: `temp_${userId}`,
+          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 часа назад
+          created_by: req.user.id,
+          admin_email: req.user.email
+        };
+      }
+    } catch (historyError) {
+      console.log('Could not fetch ban history details:', historyError.message);
+      // Используем базовые данные из пользователя
+      banDetails = {
+        ...banDetails,
+        ban_id: `temp_${userId}`,
+        created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        created_by: req.user.id,
+        admin_email: req.user.email
+      };
+    }
+    
+    res.json({
+      success: true,
+      banDetails: banDetails
+    });
+    
+  } catch (error) {
+    console.error('Error fetching ban details:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при загрузке деталей бана',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 // ========== История банов пользователя ==========
 router.get('/users/:userId/ban-history', authenticateToken, isAdmin, async (req, res) => {
   try {
@@ -888,36 +1005,53 @@ router.get('/simple-stats', authenticateToken, isAdmin, async (req, res) => {
   try {
     console.log('=== SIMPLE STATS REQUEST ===');
     
-    // Самый простой запрос
+    // Самый простой запрос для пользователей
     const totalQuery = 'SELECT COUNT(*) as count FROM users WHERE deleted_at IS NULL';
     const adminsQuery = 'SELECT COUNT(*) as count FROM users WHERE is_admin = true AND deleted_at IS NULL';
     const bannedQuery = 'SELECT COUNT(*) as count FROM users WHERE is_banned = true AND deleted_at IS NULL';
     const bansQuery = 'SELECT COALESCE(SUM(ban_count), 0) as total FROM users WHERE deleted_at IS NULL';
     
-    const [totalResult, adminsResult, bannedResult, bansResult] = await Promise.all([
+    // Статистика по обращениям - ВСЕ статусы независимо от фильтров
+    const pendingTicketsQuery = "SELECT COUNT(*) as count FROM support_tickets WHERE status = 'pending'";
+    const answeredTicketsQuery = "SELECT COUNT(*) as count FROM support_tickets WHERE status = 'answered'";
+    const closedTicketsQuery = "SELECT COUNT(*) as count FROM support_tickets WHERE status = 'closed'";
+    const totalTicketsQuery = "SELECT COUNT(*) as count FROM support_tickets";
+    
+    const [
+      totalResult, 
+      adminsResult, 
+      bannedResult, 
+      bansResult,
+      pendingResult,
+      answeredResult,
+      closedResult,
+      totalTicketsResult
+    ] = await Promise.all([
       query(totalQuery),
       query(adminsQuery),
       query(bannedQuery),
-      query(bansQuery)
+      query(bansQuery),
+      query(pendingTicketsQuery),
+      query(answeredTicketsQuery),
+      query(closedTicketsQuery),
+      query(totalTicketsQuery)
     ]);
     
     const stats = {
+      // Статистика пользователей
       totalUsers: parseInt(totalResult.rows[0].count) || 0,
       totalAdmins: parseInt(adminsResult.rows[0].count) || 0,
       totalBanned: parseInt(bannedResult.rows[0].count) || 0,
-      totalBans: parseInt(bansResult.rows[0].total) || 0
+      totalBans: parseInt(bansResult.rows[0].total) || 0,
+      
+      // Статистика обращений
+      pendingTickets: parseInt(pendingResult.rows[0].count) || 0,
+      answeredTickets: parseInt(answeredResult.rows[0].count) || 0,
+      closedTickets: parseInt(closedResult.rows[0].count) || 0,
+      totalTickets: parseInt(totalTicketsResult.rows[0].count) || 0
     };
     
     console.log('Simple stats result:', stats);
-    
-    // Проверяем данные вручную
-    const checkQuery = 'SELECT id, email, is_admin, is_banned, ban_count FROM users WHERE deleted_at IS NULL LIMIT 10';
-    const checkResult = await query(checkQuery);
-    
-    console.log('Sample of first 10 users:');
-    checkResult.rows.forEach(user => {
-      console.log(`ID: ${user.id}, Email: ${user.email}, Admin: ${user.is_admin}, Banned: ${user.is_banned}, Ban count: ${user.ban_count}`);
-    });
     
     res.json({
       success: true,
@@ -934,6 +1068,10 @@ router.get('/simple-stats', authenticateToken, isAdmin, async (req, res) => {
       totalAdmins: 0,
       totalBanned: 0,
       totalBans: 0,
+      pendingTickets: 0,
+      answeredTickets: 0,
+      closedTickets: 0,
+      totalTickets: 0,
       error: 'Failed to load stats, using defaults'
     });
   }

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAdminCheck } from '../hooks/useAdminCheck';
-import { getEmojiByCarbon, getEcoLevelText } from '../utils/emojiMapper';
+import { getEmojiByCarbon } from '../utils/emojiMapper';
 import '../styles/pages/AdminPage.css';
 
 const AdminPage = () => {
@@ -16,6 +16,9 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
+  // Детали банов для каждого пользователя
+  const [banDetails, setBanDetails] = useState({});
+  
   // Состояния для поддержки
   const [supportTickets, setSupportTickets] = useState([]);
   const [supportLoading, setSupportLoading] = useState(false);
@@ -24,8 +27,11 @@ const AdminPage = () => {
   // Фильтры для обращений
   const [supportFilters, setSupportFilters] = useState({
     search: '',
-    status: 'pending'
+    status: 'all' // ИЗМЕНИЛОСЬ: было 'pending'
   });
+  
+  // Добавляем новые состояния для dropdown галочек обращений
+  const [supportStatusDropdownOpen, setSupportStatusDropdownOpen] = useState(false);
   
   // Пагинация для обращений
   const [supportPagination, setSupportPagination] = useState({
@@ -100,7 +106,10 @@ const AdminPage = () => {
     totalUsers: 0,
     totalAdmins: 0,
     totalBanned: 0,
-    pendingTickets: 0
+    totalTickets: 0,
+    pendingTickets: 0,
+    answeredTickets: 0,
+    closedTickets: 0
   });
 
   // Рефы
@@ -142,6 +151,14 @@ const AdminPage = () => {
     { id: 'active', label: t('active') || 'Активные', value: false }
   ], [t]);
 
+  // Options для статусов обращений
+  const supportStatusOptions = useMemo(() => [
+    { id: 'all', label: t('allStatuses') || 'Все статусы', value: 'all' },
+    { id: 'pending', label: t('pending') || 'Ожидают', value: 'pending' },
+    { id: 'answered', label: t('answered') || 'Отвеченные', value: 'answered' },
+    { id: 'closed', label: t('closed') || 'Закрытые', value: 'closed' }
+  ], [t]);
+
   // ==================== ЭФФЕКТЫ ====================
 
   // Закрытие dropdown при клике вне
@@ -155,6 +172,10 @@ const AdminPage = () => {
         setStatusDropdownOpen(false);
       }
       
+      if (supportStatusDropdownOpen && !e.target.closest('.support-filter-dropdown')) {
+        setSupportStatusDropdownOpen(false);
+      }
+      
       if (durationDropdownOpen && !e.target.closest('.modal-dropdown') && !e.target.closest('.modal-overlay')) {
         setDurationDropdownOpen(false);
       }
@@ -165,6 +186,7 @@ const AdminPage = () => {
       if (e.key === 'Escape') {
         setRoleDropdownOpen(false);
         setStatusDropdownOpen(false);
+        setSupportStatusDropdownOpen(false);
         setDurationDropdownOpen(false);
       }
     });
@@ -173,7 +195,7 @@ const AdminPage = () => {
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', () => {});
     };
-  }, [roleDropdownOpen, statusDropdownOpen, durationDropdownOpen]);
+  }, [roleDropdownOpen, statusDropdownOpen, supportStatusDropdownOpen, durationDropdownOpen]);
 
   // Загрузка обращений при переключении на вкладку
   useEffect(() => {
@@ -192,6 +214,21 @@ const AdminPage = () => {
     }
   }, [activeTab, isAdmin, adminLoading]);
 
+  // Загрузка статистики при монтировании
+  useEffect(() => {
+    if (isAdmin && !adminLoading) {
+      loadStatsFromDB();
+      loadSupportStatsFromDB();
+    }
+  }, [isAdmin, adminLoading]);
+
+  // Загрузка деталей банов при изменении списка пользователей
+  useEffect(() => {
+    if (activeTab === 'users' && users.length > 0 && isAdmin && !adminLoading) {
+      loadBanDetailsForUsers();
+    }
+  }, [users, activeTab, isAdmin, adminLoading]);
+
   // Очистка таймеров
   useEffect(() => {
     return () => {
@@ -205,6 +242,37 @@ const AdminPage = () => {
   }, []);
 
   // ==================== ФУНКЦИИ ДЛЯ ПОДДЕРЖКИ ====================
+
+  const loadSupportStatsFromDB = useCallback(async () => {
+    if (!isAdmin || adminLoading) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const statsResponse = await fetch(`/api/admin/simple-stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        if (statsData.success) {
+          setStats(prev => ({
+            ...prev,
+            totalTickets: parseInt(statsData.totalTickets) || 0,
+            pendingTickets: parseInt(statsData.pendingTickets) || 0,
+            answeredTickets: parseInt(statsData.answeredTickets) || 0,
+            closedTickets: parseInt(statsData.closedTickets) || 0
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading support stats:', error);
+    }
+  }, [isAdmin, adminLoading]);
 
   const loadSupportTickets = useCallback(async (filtersToUse = supportFilters, page = supportPagination.page) => {
     if (!isAdmin || adminLoading || supportLoading) return;
@@ -225,13 +293,16 @@ const AdminPage = () => {
         limit: supportPagination.limit.toString()
       });
       
-      if (filtersToUse.status && filtersToUse.status !== 'all') {
+      // ИЗМЕНИЛОСЬ: Всегда отправляем статус, даже 'all'
+      if (filtersToUse.status) {
         params.append('status', filtersToUse.status);
       }
       
       if (filtersToUse.search) {
         params.append('search', filtersToUse.search);
       }
+      
+      console.log('Loading support tickets with params:', Object.fromEntries(params));
       
       const response = await fetch(`/api/admin/support/tickets?${params}`, {
         headers: {
@@ -254,6 +325,7 @@ const AdminPage = () => {
       const data = await response.json();
       
       if (data.success) {
+        console.log('Support tickets loaded:', data.tickets?.length || 0, 'tickets');
         setSupportTickets(data.tickets || []);
         setSupportPagination(prev => ({
           ...prev,
@@ -261,14 +333,6 @@ const AdminPage = () => {
           total: data.pagination?.total || 0,
           totalPages: data.pagination?.totalPages || 1
         }));
-        
-        // Обновляем статистику
-        if (data.stats) {
-          setStats(prev => ({
-            ...prev,
-            pendingTickets: data.stats.pending || 0
-          }));
-        }
       } else {
         setSupportError(data.message || t('errorLoadingTickets') || 'Ошибка загрузки обращений');
       }
@@ -289,10 +353,22 @@ const AdminPage = () => {
       clearTimeout(supportSearchDebounceTimer.current);
     }
     
-    supportSearchDebounceTimer.current = setTimeout(() => {
-      loadSupportTickets(newFilters, 1);
-    }, 300);
+    // Для статуса загружаем сразу, для поиска - с задержкой
+    if (type === 'status') {
+      supportSearchDebounceTimer.current = setTimeout(() => {
+        loadSupportTickets(newFilters, 1);
+      }, 100);
+    } else {
+      supportSearchDebounceTimer.current = setTimeout(() => {
+        loadSupportTickets(newFilters, 1);
+      }, 300);
+    }
   }, [supportFilters, loadSupportTickets]);
+
+  const getSupportStatusLabel = () => {
+    const option = supportStatusOptions.find(opt => opt.value === supportFilters.status);
+    return option ? option.label : supportStatusOptions[0].label;
+  };
 
   const handleSupportPageChange = useCallback((newPage) => {
     if (newPage < 1 || newPage > supportPagination.totalPages || newPage === supportPagination.page) return;
@@ -336,6 +412,7 @@ const AdminPage = () => {
       
       if (data.success) {
         loadSupportTickets();
+        loadSupportStatsFromDB();
         
         showSuccessModal(
           t('responseSent') || 'Ответ отправлен',
@@ -385,6 +462,7 @@ const AdminPage = () => {
           
           if (data.success) {
             loadSupportTickets();
+            loadSupportStatsFromDB();
             showSuccessModal(
               t('ticketClosed') || 'Обращение закрыто',
               t('ticketClosedSuccess', { ticketNumber: ticket.ticket_number }) || 
@@ -418,60 +496,74 @@ const AdminPage = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
       
-      try {
-        const statsResponse = await fetch(`/api/admin/stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          if (statsData.success) {
-            setStats({
-              totalUsers: parseInt(statsData.totalUsers) || 0,
-              totalAdmins: parseInt(statsData.totalAdmins) || 0,
-              totalBanned: parseInt(statsData.totalBanned) || 0,
-              pendingTickets: parseInt(statsData.pendingTickets) || 0
-            });
-            return;
-          }
+      const statsResponse = await fetch(`/api/admin/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      } catch (statsError) {
-        console.log('Regular stats endpoint failed:', statsError.message);
-      }
+      });
       
-      try {
-        const simpleStatsResponse = await fetch(`/api/admin/simple-stats`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (simpleStatsResponse.ok) {
-          const simpleStatsData = await simpleStatsResponse.json();
-          if (simpleStatsData.success) {
-            setStats({
-              totalUsers: parseInt(simpleStatsData.totalUsers) || 0,
-              totalAdmins: parseInt(simpleStatsData.totalAdmins) || 0,
-              totalBanned: parseInt(simpleStatsData.totalBanned) || 0,
-              pendingTickets: parseInt(simpleStatsData.pendingTickets) || 0
-            });
-            return;
-          }
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        if (statsData.success) {
+          setStats(prev => ({
+            ...prev,
+            totalUsers: parseInt(statsData.totalUsers) || 0,
+            totalAdmins: parseInt(statsData.totalAdmins) || 0,
+            totalBanned: parseInt(statsData.totalBanned) || 0,
+          }));
         }
-      } catch (simpleError) {
-        console.log('Simple stats also failed:', simpleError.message);
       }
-      
     } catch (error) {
       console.error('Error loading stats:', error);
     }
   }, [isAdmin, adminLoading]);
 
-  const loadUsers = useCallback(async (filtersToUse = filters, sortToUse = sortConfig, page = pagination.page, updateStats = false) => {
+  // Функция загрузки деталей бана для конкретного пользователя
+  const loadBanDetailsForUser = useCallback(async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return null;
+      
+      const response = await fetch(`/api/admin/users/${userId}/ban-details`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          return data.banDetails || {};
+        }
+      }
+    } catch (error) {
+      console.error(`Error loading ban details for user ${userId}:`, error);
+    }
+    return null;
+  }, []);
+
+  // Загрузка деталей банов для всех забаненных пользователей
+  const loadBanDetailsForUsers = useCallback(async () => {
+    if (!isAdmin || adminLoading || loading) return;
+    
+    const bannedUsers = users.filter(user => user.is_banned);
+    
+    for (const user of bannedUsers) {
+      if (!banDetails[user.id]) {
+        const details = await loadBanDetailsForUser(user.id);
+        if (details) {
+          setBanDetails(prev => ({ 
+            ...prev, 
+            [user.id]: details 
+          }));
+        }
+      }
+    }
+  }, [users, isAdmin, adminLoading, loading, banDetails, loadBanDetailsForUser]);
+
+  const loadUsers = useCallback(async (filtersToUse = filters, sortToUse = sortConfig, page = pagination.page) => {
     if (!isAdmin || adminLoading || loading) return;
     
     setLoading(true);
@@ -545,10 +637,6 @@ const AdminPage = () => {
           total,
           totalPages
         }));
-        
-        if (updateStats || (!filtersToUse.search && filtersToUse.is_admin === null && filtersToUse.is_banned === null && page === 1)) {
-          await loadStatsFromDB();
-        }
       } else {
         setError(data.message || t('errorLoadingUsers') || 'Ошибка загрузки пользователей');
       }
@@ -559,14 +647,14 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, adminLoading, loading, t, navigate, pagination.limit, filters, sortConfig, loadStatsFromDB]);
+  }, [isAdmin, adminLoading, loading, t, navigate, pagination.limit, filters, sortConfig]);
 
   const loadInitialData = useCallback(async () => {
     if (!isAdmin || adminLoading) return;
     
     await Promise.all([
       loadStatsFromDB(),
-      loadUsers({ search: '', is_admin: null, is_banned: null }, sortConfig, 1, false)
+      loadUsers({ search: '', is_admin: null, is_banned: null }, sortConfig, 1)
     ]);
   }, [isAdmin, adminLoading, loadStatsFromDB, loadUsers, sortConfig]);
 
@@ -598,7 +686,9 @@ const AdminPage = () => {
   const openBanModal = async (user) => {
     if (user.is_banned) {
       let message;
-      if (user.ban_expires_at === null) {
+      const userBanDetails = banDetails[user.id];
+      
+      if (userBanDetails?.expires_at === null || userBanDetails?.is_permanent) {
         message = t('userAlreadyPermanentlyBanned', { 
           username: user.nickname || user.email 
         }) || `Пользователь ${user.nickname || user.email} уже забанен навсегда`;
@@ -725,24 +815,28 @@ const AdminPage = () => {
       const data = await response.json();
       
       if (data.success) {
+        // Загружаем обновленные детали бана
+        const updatedBanDetails = await loadBanDetailsForUser(banModal.userId);
+        if (updatedBanDetails) {
+          setBanDetails(prev => ({
+            ...prev,
+            [banModal.userId]: updatedBanDetails
+          }));
+        }
+        
         const updatedUsers = users.map(user => 
           user.id === banModal.userId ? { 
             ...user, 
             is_banned: true,
             ban_reason: reason,
-            ban_count: newBanCount,
-            ban_expires_at: duration ? new Date(Date.now() + duration * 3600000).toISOString() : null
+            ban_count: newBanCount
           } : user
         );
         
         setUsers(updatedUsers);
         
-        setStats(prev => ({
-          ...prev,
-          totalBanned: prev.totalBanned + (data.user.is_banned && !data.user.was_banned ? 1 : 0)
-        }));
-        
-        loadUsers(filters, sortConfig, pagination.page, false);
+        loadStatsFromDB();
+        loadUsers(filters, sortConfig, pagination.page);
         
         let successMessage = '';
         if (newBanCount >= 4) {
@@ -806,23 +900,26 @@ const AdminPage = () => {
           const data = await response.json();
           
           if (data.success) {
+            // Удаляем детали бана
+            setBanDetails(prev => {
+              const newDetails = { ...prev };
+              delete newDetails[user.id];
+              return newDetails;
+            });
+            
             const updatedUsers = users.map(u => 
               u.id === user.id ? { 
                 ...u, 
                 is_banned: false,
                 ban_reason: null,
-                ban_count: 0,
-                ban_expires_at: null
+                ban_count: 0
               } : u
             );
             
             setUsers(updatedUsers);
-            setStats(prev => ({
-              ...prev,
-              totalBanned: Math.max(0, prev.totalBanned - 1)
-            }));
             
-            loadUsers(filters, sortConfig, pagination.page, false);
+            loadStatsFromDB();
+            loadUsers(filters, sortConfig, pagination.page);
             
             showSuccessModal(
               t('userUnbanned') || 'Пользователь разбанен', 
@@ -896,12 +993,9 @@ const AdminPage = () => {
             );
             
             setUsers(updatedUsers);
-            setStats(prev => ({
-              ...prev,
-              totalAdmins: !user.is_admin ? prev.totalAdmins + 1 : Math.max(0, prev.totalAdmins - 1)
-            }));
             
-            loadUsers(filters, sortConfig, pagination.page, false);
+            loadStatsFromDB();
+            loadUsers(filters, sortConfig, pagination.page);
             
             showSuccessModal(t('success') || 'Успешно', messages[action].success);
           } else {
@@ -947,16 +1041,51 @@ const AdminPage = () => {
     return option ? option.label : statusOptions[0].label;
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '—';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const formatDate = (dateInput) => {
+    if (!dateInput || dateInput === 'null' || dateInput === 'undefined' || dateInput === null) {
+      return '—';
+    }
+    
+    try {
+      let date;
+      
+      if (typeof dateInput === 'string') {
+        if (dateInput.includes('T')) {
+          date = new Date(dateInput);
+        } else if (dateInput.includes('-') && dateInput.includes(':')) {
+          date = new Date(dateInput.replace(' ', 'T') + 'Z');
+        } else if (dateInput.includes('-')) {
+          date = new Date(dateInput + 'T00:00:00Z');
+        } else {
+          const timestamp = parseInt(dateInput);
+          if (!isNaN(timestamp)) {
+            date = new Date(timestamp);
+          } else {
+            date = new Date(dateInput);
+          }
+        }
+      } else if (typeof dateInput === 'number') {
+        date = new Date(dateInput);
+      } else {
+        date = dateInput;
+      }
+      
+      if (isNaN(date.getTime())) {
+        return 'Некорректная дата';
+      }
+      
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
+      
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Ошибка даты';
+    }
   };
 
   const getUserAvatar = (user) => {
@@ -989,7 +1118,13 @@ const AdminPage = () => {
       return translated;
     }
     
-    return getEcoLevelText(carbon);
+    // Если нет перевода, возвращаем дефолтный текст
+    if (carbon >= 5000) return t('ecoHero') || 'Эко-герой';
+    else if (carbon >= 4000) return t('ecoMaster') || 'Эко-мастер';
+    else if (carbon >= 3000) return t('ecoActivist') || 'Эко-активист';
+    else if (carbon >= 2000) return t('ecoEnthusiast') || 'Эко-энтузиаст';
+    else if (carbon >= 1000) return t('ecoStarter') || 'Эко-стартер';
+    else return t('ecoNovice') || 'Эко-новичок';
   };
 
   const getEcoLevelClass = (carbonSaved) => {
@@ -1059,7 +1194,7 @@ const AdminPage = () => {
     };
     
     setFilters(newFilters);
-    loadUsers(newFilters, sortConfig, 1, false);
+    loadUsers(newFilters, sortConfig, 1);
   }, [filters, sortConfig, loadUsers]);
 
   const handleSearchChange = useCallback((searchValue) => {
@@ -1070,7 +1205,7 @@ const AdminPage = () => {
     }
     
     searchDebounceTimer.current = setTimeout(() => {
-      loadUsers({ ...filters, search: searchValue }, sortConfig, 1, false);
+      loadUsers({ ...filters, search: searchValue }, sortConfig, 1);
     }, 500);
   }, [filters, sortConfig, loadUsers]);
 
@@ -1083,12 +1218,12 @@ const AdminPage = () => {
     };
     
     setSortConfig(newSortConfig);
-    loadUsers(filters, newSortConfig, 1, false);
+    loadUsers(filters, newSortConfig, 1);
   }, [sortConfig, filters, loadUsers]);
 
   const handlePageChange = useCallback((newPage) => {
     if (newPage < 1 || newPage > pagination.totalPages || newPage === pagination.page) return;
-    loadUsers(filters, sortConfig, newPage, false);
+    loadUsers(filters, sortConfig, newPage);
   }, [filters, sortConfig, pagination.totalPages, pagination.page, loadUsers]);
 
   const handleSearchKeyPress = (e) => {
@@ -1096,7 +1231,7 @@ const AdminPage = () => {
       if (searchDebounceTimer.current) {
         clearTimeout(searchDebounceTimer.current);
       }
-      loadUsers(filters, sortConfig, 1, false);
+      loadUsers(filters, sortConfig, 1);
     }
   };
 
@@ -1104,7 +1239,7 @@ const AdminPage = () => {
     if (searchDebounceTimer.current) {
       clearTimeout(searchDebounceTimer.current);
     }
-    loadUsers(filters, sortConfig, 1, false);
+    loadUsers(filters, sortConfig, 1);
   };
 
   const handleClearFilters = () => {
@@ -1121,16 +1256,52 @@ const AdminPage = () => {
     setFilters(clearedFilters);
     setRoleDropdownOpen(false);
     setStatusDropdownOpen(false);
-    loadUsers(clearedFilters, sortConfig, 1, true);
+    loadUsers(clearedFilters, sortConfig, 1);
   };
 
   const handleRefresh = () => {
     if (activeTab === 'users') {
       loadStatsFromDB();
-      loadUsers(filters, sortConfig, pagination.page, false);
+      loadUsers(filters, sortConfig, pagination.page);
     } else if (activeTab === 'support') {
+      loadSupportStatsFromDB();
       loadSupportTickets();
     }
+  };
+
+  // Функция для получения текста тултипа с информацией о бане
+  const getBanTooltipText = (user) => {
+    const details = banDetails[user.id];
+    
+    if (!details) {
+      return 'Загрузка информации о бане...';
+    }
+    
+    let tooltipText = '';
+    // Информация о типе бана
+    if (details.is_permanent || details.expires_at === null) {
+      tooltipText = 'БАН НАВСЕГДА';
+    } else if (details.expires_at) {
+      const formattedDate = formatDate(details.expires_at);
+      tooltipText = `Бан до: ${formattedDate}`;
+    } else {
+      tooltipText = 'Пользователь забанен';
+    }
+    
+    // Дата начала бана
+    if (details.created_at) {
+      const startDate = formatDate(details.created_at);
+      tooltipText += `\nДата начала: ${startDate}`;
+    }
+    
+    // Причина
+    if (details.reason) {
+      tooltipText += `\nПричина: ${details.reason}`;
+    } else if (user.ban_reason) {
+      tooltipText += `\nПричина: ${user.ban_reason}`;
+    }
+    
+    return tooltipText;
   };
 
   // ==================== РЕНДЕРИНГ ====================
@@ -1603,9 +1774,20 @@ const AdminPage = () => {
                       <td className="user-status">
                         <div className="status-cell">
                           {user.is_banned ? (
-                            <span className="status-badge banned">
+                            <span className="status-badge banned with-info-icon">
                               <span className="material-icons">block</span>
                               {t('banned') || 'Забанен'}
+                              <span 
+                                className="material-icons ban-info-icon" 
+                                title={getBanTooltipText(user)}
+                              >
+                                {(() => {
+                                  const details = banDetails[user.id];
+                                  if (!details) return 'hourglass_empty';
+                                  if (details.is_permanent || details.expires_at === null) return 'warning';
+                                  return 'info';
+                                })()}
+                              </span>
                             </span>
                           ) : user.is_admin ? (
                             <span className="status-badge admin">
@@ -1625,7 +1807,7 @@ const AdminPage = () => {
                           <span className={`ban-count ${(user.ban_count || 0) >= 3 ? 'ban-count-danger' : ''}`}>
                             {user.ban_count || 0}
                           </span>
-                          {(user.ban_count || 0) >= 3 && (
+                          {!user.is_banned && (user.ban_count || 0) >= 3 && (
                             <span className="ban-warning-icon" title={t('nextBanPermanent') || 'Следующий бан будет вечным'}>
                               <span className="material-icons">warning</span>
                             </span>
@@ -1679,13 +1861,6 @@ const AdminPage = () => {
   };
 
   const renderSupportTab = () => {
-    const statusOptions = [
-      { value: 'all', label: t('allStatuses') || 'Все статусы' },
-      { value: 'pending', label: t('pending') || 'Ожидают' },
-      { value: 'answered', label: t('answered') || 'Отвеченные' },
-      { value: 'closed', label: t('closed') || 'Закрытые' }
-    ];
-
     const getStatusColor = (status) => {
       switch(status) {
         case 'pending': return '#ff9800';
@@ -1694,8 +1869,8 @@ const AdminPage = () => {
         default: return '#666';
       }
     };
-
-    const getStatusLabel = (status) => {
+  
+    const getStatusBadgeLabel = (status) => {
       switch(status) {
         case 'pending': return t('statusPending') || 'Ожидает';
         case 'answered': return t('answered') || 'Отвечено';
@@ -1703,14 +1878,14 @@ const AdminPage = () => {
         default: return status;
       }
     };
-
+  
     return (
       <div className="admin-section">
         <div className="section-header">
           <h2>{t('manageSupportTickets') || 'Управление обращениями'}</h2>
           <div className="section-actions">
             <button 
-              onClick={() => loadSupportTickets()} 
+              onClick={handleRefresh}
               className="refresh-button"
               disabled={supportLoading}
             >
@@ -1719,14 +1894,16 @@ const AdminPage = () => {
             </button>
           </div>
         </div>
-
+  
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon support">
-              <span className="material-icons">support</span>
+              <span className="material-icons">help_outline</span>
             </div>
             <div className="stat-info">
-              <div className="stat-value">{supportPagination.total || 0}</div>
+              <div className="stat-value">
+                {stats.totalTickets || 0}
+              </div>
               <div className="stat-label">{t('totalTickets') || 'Всего обращений'}</div>
             </div>
           </div>
@@ -1736,7 +1913,9 @@ const AdminPage = () => {
               <span className="material-icons">schedule</span>
             </div>
             <div className="stat-info">
-              <div className="stat-value">{stats.pendingTickets || 0}</div>
+              <div className="stat-value">
+                {stats.pendingTickets || 0}
+              </div>
               <div className="stat-label">{t('pendingTickets') || 'Ожидают ответа'}</div>
             </div>
           </div>
@@ -1747,13 +1926,13 @@ const AdminPage = () => {
             </div>
             <div className="stat-info">
               <div className="stat-value">
-                {supportTickets.filter(t => t.status === 'answered').length}
+                {stats.answeredTickets || 0}
               </div>
               <div className="stat-label">{t('answeredTickets') || 'Отвечено'}</div>
             </div>
           </div>
         </div>
-
+  
         <div className="filters-panel">
           <div className="search-box">
             <input
@@ -1771,33 +1950,58 @@ const AdminPage = () => {
           </div>
           
           <div className="filter-buttons">
-            <select
-              value={supportFilters.status}
-              onChange={(e) => handleSupportFilterChange('status', e.target.value)}
-              className="admin-filter-select"
-              disabled={supportLoading}
-            >
-              {statusOptions.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="support-filter-dropdown admin-filter-dropdown">
+              <div 
+                className={`admin-dropdown-trigger ${supportStatusDropdownOpen ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSupportStatusDropdownOpen(!supportStatusDropdownOpen);
+                }}
+              >
+                <span>{getSupportStatusLabel()}</span>
+                <svg 
+                  className={`admin-dropdown-arrow ${supportStatusDropdownOpen ? 'rotated' : ''}`}
+                  width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" 
+                    fill="currentColor"
+                  />
+                </svg>
+              </div>
+              {supportStatusDropdownOpen && (
+                <div className="admin-dropdown-options">
+                  {supportStatusOptions.map((option) => (
+                    <div
+                      key={option.id}
+                      className={`admin-dropdown-option ${supportFilters.status === option.value ? 'selected' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSupportFilterChange('status', option.value);
+                        setSupportStatusDropdownOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             
             <button
               onClick={() => {
-                setSupportFilters({ search: '', status: 'pending' });
-                loadSupportTickets({ search: '', status: 'pending' }, 1);
+                setSupportFilters({ search: '', status: 'all' });
+                setSupportStatusDropdownOpen(false);
+                loadSupportTickets({ search: '', status: 'all' }, 1);
               }}
               className="admin-clear-filters-button"
-              disabled={supportLoading}
+              disabled={supportLoading || (!supportFilters.search && supportFilters.status === 'all')}
             >
               <span className="material-icons">clear_all</span>
               {t('clearFilters') || 'Сбросить'}
             </button>
           </div>
         </div>
-
+  
         {supportLoading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
@@ -1822,6 +2026,17 @@ const AdminPage = () => {
                 ? t('changeSearchParams') || 'Измените параметры поиска.'
                 : t('noTicketsInSystem') || 'Нет обращений в системе.'}
             </p>
+            {(supportFilters.search || supportFilters.status !== 'all') && (
+              <button 
+                onClick={() => {
+                  setSupportFilters({ search: '', status: 'all' });
+                  loadSupportTickets({ search: '', status: 'all' }, 1);
+                }}
+                className="retry-button"
+              >
+                {t('showAllTickets') || 'Показать все обращения'}
+              </button>
+            )}
           </div>
         ) : (
           <>
@@ -1857,9 +2072,9 @@ const AdminPage = () => {
                       <td className="ticket-status">
                         <span 
                           className="status-badge"
-                          style={{ backgroundColor: getStatusColor(ticket.status) }}
+                          style={{ backgroundColor: getStatusColor(ticket.status)}}
                         >
-                          {getStatusLabel(ticket.status)}
+                          {getStatusBadgeLabel(ticket.status)}
                         </span>
                       </td>
                       <td className="ticket-date">
