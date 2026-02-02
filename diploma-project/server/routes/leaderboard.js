@@ -106,16 +106,14 @@ router.get('/teams', async (req, res) => {
         t.id,
         t.name,
         t.description,
+        t.avatar_emoji,  -- ДОБАВЛЕНО: эмодзи команды
+        t.carbon_saved as total_carbon_saved,
+        t.member_count,
         t.created_at,
-        COUNT(tm.user_id) as member_count,
-        COALESCE(SUM(u.carbon_saved), 0) as total_carbon_saved,
-        ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(u.carbon_saved), 0) DESC, t.created_at ASC) as rank
+        ROW_NUMBER() OVER (ORDER BY t.carbon_saved DESC, t.created_at ASC) as rank
       FROM teams t
-      LEFT JOIN team_members tm ON t.id = tm.team_id
-      LEFT JOIN users u ON tm.user_id = u.id
-      GROUP BY t.id, t.name, t.description, t.created_at
-      HAVING COALESCE(SUM(u.carbon_saved), 0) > 0
-      ORDER BY total_carbon_saved DESC, t.created_at ASC
+      WHERE t.carbon_saved > 0
+      ORDER BY t.carbon_saved DESC, t.created_at ASC
       LIMIT $1 OFFSET $2
     `;
     
@@ -124,14 +122,8 @@ router.get('/teams', async (req, res) => {
     // Получаем общее количество команд с CO₂ > 0
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM (
-        SELECT t.id
-        FROM teams t
-        LEFT JOIN team_members tm ON t.id = tm.team_id
-        LEFT JOIN users u ON tm.user_id = u.id
-        GROUP BY t.id
-        HAVING COALESCE(SUM(u.carbon_saved), 0) > 0
-      ) teams_with_co2
+      FROM teams
+      WHERE carbon_saved > 0
     `;
     
     const countResult = await executeQueryWithLogging(pool, countQuery);
@@ -144,12 +136,9 @@ router.get('/teams', async (req, res) => {
         SELECT rank FROM (
           SELECT 
             t.id,
-            ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(u.carbon_saved), 0) DESC, t.created_at ASC) as rank
+            ROW_NUMBER() OVER (ORDER BY t.carbon_saved DESC, t.created_at ASC) as rank
           FROM teams t
-          LEFT JOIN team_members tm ON t.id = tm.team_id
-          LEFT JOIN users u ON tm.user_id = u.id
-          GROUP BY t.id, t.created_at
-          HAVING COALESCE(SUM(u.carbon_saved), 0) > 0
+          WHERE t.carbon_saved > 0
         ) ranked_teams
         WHERE id IN (
           SELECT team_id FROM team_members WHERE user_id = $1

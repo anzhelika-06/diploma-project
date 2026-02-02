@@ -3334,7 +3334,6 @@ const AdminPage = () => {
                 <div className="story-preview-footer">
                   <div className="story-stats-preview">
                     <div className="story-likes-preview">
-                      <span className="material-icons">favorite</span>
                       {selectedStory.likes_count || 0} {t('likes') || 'лайков'}
                     </div>
                     <div className="story-status-preview">

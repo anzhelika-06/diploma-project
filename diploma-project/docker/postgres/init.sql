@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
     ban_expires_at TIMESTAMP DEFAULT NULL,
     ban_count INTEGER DEFAULT 0,
     is_admin BOOLEAN DEFAULT FALSE,
+    eco_coins INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL
@@ -156,10 +157,20 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     progress INTEGER DEFAULT 0,
     completed BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMP,
+    claimed_at TIMESTAMP, -- Время получения награды
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, achievement_id)
 );
-
+-- ============ ИСТОРИЯ ЭКОИНОВ ============
+CREATE TABLE IF NOT EXISTS eco_coins_history (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    amount INTEGER NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    achievement_id INTEGER REFERENCES achievements(id) ON DELETE SET NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 -- ============ ВОПРОСЫ В ПОДДЕРЖКУ ============
 CREATE TABLE IF NOT EXISTS support_tickets (
     id SERIAL PRIMARY KEY,
@@ -217,7 +228,11 @@ CREATE INDEX IF NOT EXISTS idx_users_carbon_saved ON users(carbon_saved);
 CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
 CREATE INDEX IF NOT EXISTS idx_users_is_banned ON users(is_banned);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
-
+-- Индексы для быстрого поиска
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement_id ON user_achievements(achievement_id);
+CREATE INDEX IF NOT EXISTS idx_eco_coins_history_user_id ON eco_coins_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_eco_coins_history_achievement_id ON eco_coins_history(achievement_id);
 -- Индексы для истории банов
 CREATE INDEX IF NOT EXISTS idx_ban_history_user_id ON ban_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_ban_history_created_by ON ban_history(created_by);
@@ -861,7 +876,20 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+-- Обновляем триггер для updated_at если он есть
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 -- Этот триггер можно запускать периодически через cron
 -- Для примера создадим функцию, которую можно вызывать по расписанию
 CREATE OR REPLACE FUNCTION check_and_unban_expired()
@@ -1081,7 +1109,6 @@ INSERT INTO achievements (code, name, description, category, icon, requirement_t
     ('recycle_first', 'Первая сортировка', 'Начать раздельный сбор мусора', 'waste', '♻️', 'count', 1, 10, 'common'),
     ('vegan_7', 'Неделя веганства', 'Питаться веганской пищей 7 дней', 'food', '🥗', 'days', 7, 25, 'common'),
     ('water_save_100', 'Экономия воды', 'Сэкономить 100 литров воды', 'water', '💧', 'count', 100, 20, 'common'),
-    ('invite_friend', 'Пригласи друга', 'Пригласить друга в EcoSteps', 'social', '👥', 'count', 1, 15, 'common'),
     ('join_team', 'Командный игрок', 'Присоединиться к команде', 'social', '🤝', 'count', 1, 20, 'common'),
     ('create_team', 'Лидер команды', 'Создать свою команду', 'social', '👑', 'count', 1, 50, 'rare'),
     ('share_story', 'Рассказчик', 'Поделиться своей эко-историей', 'social', '📝', 'count', 1, 15, 'common')

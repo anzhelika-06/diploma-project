@@ -22,7 +22,6 @@ import ReviewsPage from './pages/ReviewsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import SearchPage from './pages/SearchPage';
-import TestSettingsPage from './pages/TestSettingsPage';
 import AdminPage from './pages/AdminPage';
 import NotificationSystem from './components/NotificationSystem';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -152,7 +151,6 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/test-settings" element={<TestSettingsPage />} />
             <Route path="/about" element={<AboutPage />} />
 
             {/* Защищенные страницы */}

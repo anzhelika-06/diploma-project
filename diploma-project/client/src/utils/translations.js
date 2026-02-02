@@ -779,7 +779,55 @@ ticketClosedSuccess: "Обращение {ticketNumber} закрыто",
     ecoEnthusiast: "Эко-энтузиаст",
     ecoStarter: "Эко-стартер",
     ecoNovice: "Эко-новичок",
-    
+    //достижения
+    titleAch: "Достижения",
+      myAchievements: "Мои достижения",
+      allAchievements: "Все достижения",
+      ecoCoins: "Эко-коины",
+      loading: "Загрузка достижений...",
+      userNotFound: "Пользователь не найден. Пожалуйста, войдите в систему.",
+      loadError: "Не удалось загрузить достижения",
+      
+      // Статистика
+      completed: "Выполнено",
+      points: "Очки",
+      progress: "Прогресс",
+      
+      // Редкости достижений
+      rarity: {
+        common: "Обычный",
+        rare: "Редкий",
+        epic: "Эпический",
+        legendary: "Легендарный"
+      },
+      
+      // Статусы достижений
+      inProgress: "В процессе",
+      completed: "Завершено",
+      claimed: "Получено",
+      claimReward: "Получить награду",
+      
+      // Модальное окно
+      confirmClaim: "Подтверждение награды",
+      reward: "Награда",
+      confirmClaimText: "Вы уверены, что хотите получить эту награду?",
+      
+      // Сообщения
+      rewardClaimed: "Награда успешно получена!",
+      claimError: "Не удалось получить награду",
+      
+      // Пустые состояния
+      noAchievements: "Достижения не найдены",
+      noAchievementsHint: "Выполняйте задания, чтобы открыть достижения",
+      
+      // Категории (если будут добавлены позже)
+      allCategories: "Все категории",
+      daily: "Ежедневные",
+      steps: "Шаги",
+      eco: "Эко-действия",
+      social: "Социальные",
+      challenge: "Испытания",
+      collection: "Коллекции",
     // Admin panel - Stories/Reviews management
     manageReviews: 'Управление историями',
     totalStories: 'Всего историй',
@@ -1740,7 +1788,56 @@ banned: "Banned",
   showing: "Showing",
   of: "of",
   loading: "Loading...",
-  
+  //достижения
+   // Заголовки и основные тексты
+   titleAch: "Achievements",
+   myAchievements: "My Achievements",
+   allAchievements: "All Achievements",
+   ecoCoins: "Eco-Coins",
+   loading: "Loading achievements...",
+   userNotFound: "User not found. Please log in.",
+   loadError: "Failed to load achievements",
+   
+   // Статистика
+   completed: "Completed",
+   points: "Points",
+   progress: "Progress",
+   
+   // Редкости достижений
+   rarity: {
+     common: "Common",
+     rare: "Rare",
+     epic: "Epic",
+     legendary: "Legendary"
+   },
+   
+   // Статусы достижений
+   inProgress: "In Progress",
+   completed: "Completed",
+   claimed: "Claimed",
+   claimReward: "Claim Reward",
+   
+   // Модальное окно
+   confirmClaim: "Confirm Reward",
+   reward: "Reward",
+   confirmClaimText: "Are you sure you want to claim this reward?",
+   
+   // Сообщения
+   rewardClaimed: "Reward successfully claimed!",
+   claimError: "Failed to claim reward",
+   
+   // Пустые состояния
+   noAchievements: "No achievements found",
+   noAchievementsHint: "Complete tasks to unlock achievements",
+   
+   // Категории (если будут добавлены позже)
+   allCategories: "All Categories",
+   daily: "Daily",
+   steps: "Steps",
+   eco: "Eco Actions",
+   social: "Social",
+   challenge: "Challenges",
+   collection: "Collections",
   // Question statuses
   statusPending: "Pending",
   statusAnswered: "Answered",
@@ -2501,7 +2598,56 @@ editResponse: "Рэдагаваць адказ",
   banTooltip: 'Забанаваць карыстальніка',
   unbanTooltip: 'Разбанаваць карыстальніка',
   emailVerified: 'Пошта пацверджана',
-  
+  //достижения
+   // Заголовки и основные тексты
+   titleAch: "Дасягненні",
+   myAchievements: "Мае дасягненні",
+   allAchievements: "Усе дасягненні",
+   ecoCoins: "Эка-манеты",
+   loading: "Загрузка дасягненняў...",
+   userNotFound: "Карыстальнік не знойдзены. Калі ласка, увайдзіце ў сістэму.",
+   loadError: "Не атрымалася загрузіць дасягненні",
+   
+   // Статистика
+   completed: "Выканана",
+   points: "Ачкі",
+   progress: "Прагрэс",
+   
+   // Редкости достижений
+   rarity: {
+     common: "Звычайны",
+     rare: "Рэдкі",
+     epic: "Эпічны",
+     legendary: "Легендарны"
+   },
+   
+   // Статусы достижений
+   inProgress: "У працэсе",
+   completed: "Завершана",
+   claimed: "Атрымана",
+   claimReward: "Атрымаць узнагароду",
+   
+   // Модальное окно
+   confirmClaim: "Пацвярджэнне узнагароды",
+   reward: "Узнагарода",
+   confirmClaimText: "Вы ўпэўнены, што хочаце атрымаць гэтую ўзнагароду?",
+   
+   // Сообщения
+   rewardClaimed: "Узнагарода паспяхова атрымана!",
+   claimError: "Не атрымалася атрымаць узнагароду",
+   
+   // Пустые состояния
+   noAchievements: "Дасягненні не знойдзены",
+   noAchievementsHint: "Выконвайце заданні, каб адкрыць дасягненні",
+   
+   // Категории (если будут добавлены позже)
+   allCategories: "Усе катэгорыі",
+   daily: "Штодзённыя",
+   steps: "Крокі",
+   eco: "Эка-дзеянні",
+   social: "Сацыяльныя",
+   challenge: "Выпрабаванні",
+   collection: "Калекцыі",
   // Пацверджанні
   confirmMakeAdmin: 'Назначыць карыстальніка адміністратарам?',
   confirmRemoveAdmin: 'Пазбавіць правоў адміністратара ў карыстальніка?',

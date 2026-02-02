@@ -9,6 +9,7 @@ const LeaderboardPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
   const [currentUser, setCurrentUser] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   // Состояния для пользователей
   const [users, setUsers] = useState([]);
@@ -32,7 +33,7 @@ const LeaderboardPage = () => {
   });
   const [userTeamRank, setUserTeamRank] = useState(null);
 
-  // Проверка авторизации
+  // Проверка авторизации и предзагрузка данных
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -43,9 +44,48 @@ const LeaderboardPage = () => {
         console.error('Ошибка при парсинге пользователя:', error);
       }
     }
-  }, []);
+    
+    // Предзагружаем данные для обеих вкладок сразу
+    const preloadData = async () => {
+      try {
+        // Загружаем пользователей
+        const usersResponse = await fetch(`/api/leaderboard/users?page=1&limit=20${userStr ? `&userId=${JSON.parse(userStr).id}` : ''}`);
+        const usersData = await usersResponse.json();
+        
+        if (usersData.success) {
+          setUsers(usersData.users);
+          setUserRank(usersData.userRank);
+          setUsersPagination(prev => ({
+            ...prev,
+            total: usersData.pagination.total,
+            totalPages: usersData.pagination.totalPages
+          }));
+        }
+        
+        // Загружаем команды
+        const teamsResponse = await fetch(`/api/leaderboard/teams?page=1&limit=20${userStr ? `&userId=${JSON.parse(userStr).id}` : ''}`);
+        const teamsData = await teamsResponse.json();
+        
+        if (teamsData.success) {
+          setTeams(teamsData.teams);
+          setUserTeamRank(teamsData.userTeamRank);
+          setTeamsPagination(prev => ({
+            ...prev,
+            total: teamsData.pagination.total,
+            totalPages: teamsData.pagination.totalPages
+          }));
+        }
+      } catch (error) {
+        console.error('Ошибка предзагрузки данных:', error);
+      } finally {
+        setIsInitialLoad(false);
+      }
+    };
+    
+    preloadData();
+  }, []); // Только при монтировании компонента
 
-  // Загрузка рейтинга пользователей
+  // Загрузка рейтинга пользователей (для пагинации)
   const loadUsersLeaderboard = useCallback(async (page = 1) => {
     setUsersLoading(true);
     try {
@@ -78,7 +118,7 @@ const LeaderboardPage = () => {
     }
   }, [currentUser, usersPagination.limit]);
 
-  // Загрузка рейтинга команд
+  // Загрузка рейтинга команд (для пагинации)
   const loadTeamsLeaderboard = useCallback(async (page = 1) => {
     setTeamsLoading(true);
     try {
@@ -111,15 +151,6 @@ const LeaderboardPage = () => {
     }
   }, [currentUser, teamsPagination.limit]);
 
-  // Загрузка данных при смене вкладки
-  useEffect(() => {
-    if (activeTab === 'users') {
-      loadUsersLeaderboard(1);
-    } else if (activeTab === 'teams') {
-      loadTeamsLeaderboard(1);
-    }
-  }, [activeTab, loadUsersLeaderboard, loadTeamsLeaderboard]);
-
   // Обработчики пагинации
   const handleUsersPageChange = (newPage) => {
     if (newPage < 1 || newPage > usersPagination.totalPages || newPage === usersPagination.page) return;
@@ -150,6 +181,16 @@ const LeaderboardPage = () => {
       return user.avatar_emoji;
     }
     return getEmojiByCarbon(user.carbon_saved || 0);
+  };
+
+  // Получение эмодзи для команды
+  const getTeamAvatar = (team) => {
+    // Если в базе есть эмодзи, используем его
+    if (team.avatar_emoji) {
+      return team.avatar_emoji;
+    }
+    // Иначе используем эмодзи по умолчанию на основе CO₂
+    return getEmojiByCarbon(team.total_carbon_saved || 0);
   };
 
   // Рендер пагинации
@@ -293,21 +334,23 @@ const LeaderboardPage = () => {
         )}
 
         {/* Вкладки */}
-        <div className="leaderboard-tabs">
-          <button
-            className={`leaderboard-tab ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            <span className="material-icons">person</span>
-            {t('usersTab') || 'Пользователи'}
-          </button>
-          <button
-            className={`leaderboard-tab ${activeTab === 'teams' ? 'active' : ''}`}
-            onClick={() => setActiveTab('teams')}
-          >
-            <span className="material-icons">groups</span>
-            {t('teamsTab') || 'Команды'}
-          </button>
+        <div className="leaderboard-tabs-container">
+          <div className="leaderboard-tabs">
+            <button
+              className={`leaderboard-tab ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              <span className="material-icons">person</span>
+              {t('usersTab') || 'Пользователи'}
+            </button>
+            <button
+              className={`leaderboard-tab ${activeTab === 'teams' ? 'active' : ''}`}
+              onClick={() => setActiveTab('teams')}
+            >
+              <span className="material-icons">groups</span>
+              {t('teamsTab') || 'Команды'}
+            </button>
+          </div>
         </div>
 
         {/* Контент */}
@@ -318,6 +361,11 @@ const LeaderboardPage = () => {
                 <div className="leaderboard-loading">
                   <div className="loading-spinner"></div>
                   <p>{t('loading') || 'Загрузка...'}</p>
+                </div>
+              ) : users.length === 0 ? (
+                <div className="leaderboard-empty">
+                  <span className="material-icons">people</span>
+                  <p>{t('noUsersData') || 'Нет данных о пользователях'}</p>
                 </div>
               ) : (
                 <>
@@ -380,6 +428,11 @@ const LeaderboardPage = () => {
                   <div className="loading-spinner"></div>
                   <p>{t('loading') || 'Загрузка...'}</p>
                 </div>
+              ) : teams.length === 0 ? (
+                <div className="leaderboard-empty">
+                  <span className="material-icons">groups</span>
+                  <p>{t('noTeamsData') || 'Нет данных о командах'}</p>
+                </div>
               ) : (
                 <>
                   <div className="leaderboard-table-container">
@@ -408,16 +461,16 @@ const LeaderboardPage = () => {
                             </td>
                             <td className="team-cell">
                               <div className="team-info">
-                                <div className="team-name">{team.name}</div>
-                                {team.description && (
-                                  <div className="team-description">{team.description}</div>
-                                )}
+                                <span className="team-avatar">{getTeamAvatar(team)}</span>
+                                <div className="team-details">
+                                  <div className="team-name">{team.name}</div>
+                                </div>
                               </div>
                             </td>
                             <td className="members-cell">
                               <div className="members-info">
                                 <span className="material-icons">group</span>
-                                <span>{team.member_count}</span>
+                                <span>{team.member_count || 0}</span>
                               </div>
                             </td>
                             <td className="carbon-cell">
