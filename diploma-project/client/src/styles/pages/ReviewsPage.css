@@ -2,6 +2,27 @@
 @import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
 @import '../variables.css';
 
+/* Тема переменные */
+:root {
+  --primary-color: #4caf50;
+  --primary-light: #e8f5e9;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+}
+
+[data-theme="dark"] {
+  --primary-color: #4caf50;
+  --primary-light: #2d4a2e;
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #2d2d2d;
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --border-color: #404040;
+}
+
 /* Основные стили страницы */
 .reviews-page-container {
   min-height: 100vh;
@@ -296,6 +317,7 @@
 
 /* ========================================
    КАСТОМНЫЙ DROPDOWN В СТИЛЕ ADMIN PAGE
+   (серые бордеры)
    ======================================== */
 .reviews-dropdown-wrapper {
   position: relative;
@@ -325,6 +347,7 @@
   color: var(--text-primary);
 }
 
+/* СЕРЫЙ при наведении вместо зеленого */
 .reviews-dropdown-trigger:hover {
   border-color: #999999;
 }
@@ -362,7 +385,7 @@
   left: 0;
   right: 0;
   background: #ffffff;
-  border: 2px solid #666666;
+  border: 2px solid #666666; /* СЕРЫЙ бордер */
   border-top: none;
   border-radius: 0 0 8px 8px !important;
   z-index: 1100;
@@ -373,7 +396,7 @@
 
 [data-theme="dark"] .reviews-dropdown-options {
   background: var(--bg-primary);
-  border-color: #666666;
+  border-color: #666666; /* СЕРЫЙ в темной теме тоже */
 }
 
 .reviews-dropdown-option {
@@ -815,7 +838,9 @@
   user-select: none;
 }
 
-/* Модальное окно создания истории */
+/* ========================================
+   МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ИСТОРИИ
+   ======================================== */
 .reviews-modal-overlay {
   position: fixed;
   top: 0;
@@ -847,6 +872,7 @@
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 @keyframes slideIn {
@@ -902,10 +928,11 @@
 
 .reviews-modal-body-no-scroll {
   padding: 20px;
-  overflow: hidden;
+  overflow: visible !important;
   flex: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .reviews-modal-footer {
@@ -923,6 +950,7 @@
 /* Формы в модальном окне */
 .reviews-form-group {
   margin-bottom: 20px;
+  position: relative;
 }
 
 .reviews-form-group label {
@@ -945,6 +973,7 @@
   color: var(--text-primary);
   transition: all 0.3s ease;
   box-sizing: border-box;
+  max-height: 100px;
 }
 
 .reviews-form-input:focus,
@@ -1021,264 +1050,143 @@
 
 /* ========================================
    КАСТОМНЫЙ DROPDOWN ДЛЯ ВЫБОРА КАТЕГОРИИ
-   (замена нативного select)
+   (серые бордеры, выходит за границы модального окна)
    ======================================== */
-   .reviews-category-dropdown-wrapper {
-    position: relative;
-    width: 100%;
-    z-index: 100;
-  }
-  
-  .reviews-category-dropdown-trigger {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid var(--border-color);
-    border-radius: 8px !important;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.3s ease;
-    height: 42px;
-    box-sizing: border-box;
-  }
-  
-  /* Ховер для триггера */
-  .reviews-category-dropdown-trigger:hover {
-    border-color: var(--primary-color);
-  }
-  
-  .reviews-category-dropdown-trigger.active {
-    border-color: var(--primary-color);
-    border-bottom-left-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-  }
-  
-  .reviews-category-dropdown-selected {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 14px;
-  }
-  
-  .reviews-category-dropdown-arrow {
-    width: 12px;
-    height: 12px;
-    transition: transform 0.3s ease;
-    color: var(--text-secondary);
-    margin-left: 8px;
-    flex-shrink: 0;
-  }
-  
-  .reviews-category-dropdown-arrow.rotated {
-    transform: rotate(180deg);
-  }
-  
-  .reviews-category-dropdown-options {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--bg-primary);
-    border: 2px solid var(--primary-color);
-    border-top: none;
-    border-radius: 0 0 8px 8px !important;
-    z-index: 1100;
-    max-height: 300px;
-    overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 100%;
-  }
-  
-  /* Дропдаун внутри модального окна - НЕ ВЛИЯЕТ НА ПОЗИЦИОНИРОВАНИЕ МОДАЛКИ */
-  .reviews-create-modal .reviews-category-dropdown-options {
-    position: absolute !important;
-    top: 100% !important;
-    left: 0 !important;
-    transform: none !important;
-    width: 100% !important;
-    max-width: none !important;
-    max-height: 60vh !important;
-    z-index: 1100 !important;
-    margin-top: -2px !important;
-    border-radius: 0 0 8px 8px !important;
-    border: 2px solid var(--primary-color) !important;
-    border-top: none !important;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
-  }
-  
-  .reviews-category-dropdown-option {
-    padding: 12px 16px;
-    font-size: 14px;
-    color: var(--text-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    text-align: left;
-    width: 100%;
-    border: none;
-  }
-  
-  /* Ховер для опций */
-  .reviews-category-dropdown-option:hover {
-    background-color: var(--bg-secondary);
-  }
-  
-  .reviews-category-dropdown-option:last-child {
-    border-bottom: none;
-    border-radius: 0 0 6px 6px !important;
-  }
-  
-  .reviews-category-dropdown-option.selected {
-    font-weight: 500;
-    cursor: default;
-    background-color: var(--primary-light);
-    color: var(--primary-color);
-  }
-  
-  /* Улучшенный ховер для выбранной опции */
-  .reviews-category-dropdown-option.selected:hover {
-    background-color: var(--primary-light);
-    cursor: default;
-  }
-  
-  /* SVG стрелка для кастомного дропдауна */
-  .reviews-category-dropdown-arrow svg {
-    width: 12px;
-    height: 12px;
-    fill: currentColor;
-  }
-  
-  /* Обновляем z-index для модального окна */
-  .reviews-modal-overlay {
-    z-index: 999;
-  }
-  
-  .reviews-create-modal {
-    z-index: 1000;
-    position: fixed !important; /* Убедимся, что fixed */
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    background: var(--bg-primary);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
-    animation: slideIn 0.3s ease;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* Ключевое: Убираем overflow: visible для модального тела */
-  .reviews-modal-body-no-scroll {
-    overflow: auto !important; /* Меняем visible на auto */
-    padding: 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative; /* Добавляем relative позиционирование */
-  }
-  
-  /* Убираем старые стили для обычного дропдауна, если они есть */
-  .reviews-dropdown-wrapper,
-  .reviews-dropdown-trigger,
-  .reviews-dropdown-options,
-  .reviews-dropdown-option {
-    display: none;
-  }
-  
-  /* Модальное окно создания истории */
-  @keyframes slideIn {
-    from { 
-      transform: translate(-50%, -50%) scale(0.95);
-      opacity: 0; 
-    }
-    to { 
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1; 
-    }
-  }
-  
-  .reviews-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid var(--border-color);
-    height: 60px;
-    box-sizing: border-box;
-    flex-shrink: 0;
-  }
-  
-  .reviews-modal-header h3 {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 18px;
-    font-weight: 600;
-  }
-  
-  .reviews-modal-close {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    font-family: 'Libre Caslon Text', serif;
-    font-size: 20px;
-  }
-  
-  .reviews-modal-close:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-  }
-  
-  .reviews-modal-footer {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    padding: 20px;
-    border-top: 1px solid var(--border-color);
-    min-height: 80px;
-    align-items: center;
-    box-sizing: border-box;
-    flex-shrink: 0;
-  }
-/* Тема переменные */
-:root {
-  --primary-color: #4caf50;
-  --primary-light: #e8f5e9;
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --border-color: #e0e0e0;
+.reviews-category-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  z-index: 1100;
 }
 
-[data-theme="dark"] {
-  --primary-color: #4caf50;
-  --primary-light: #2d4a2e;
-  --bg-primary: #1e1e1e;
-  --bg-secondary: #2d2d2d;
-  --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --border-color: #404040;
+.reviews-category-dropdown-trigger {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color); /* СЕРЫЙ бордер */
+  border-radius: 8px !important;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  height: 42px;
+  box-sizing: border-box;
 }
 
-/* Темная тема */
+/* СЕРЫЙ при наведении вместо зеленого */
+.reviews-category-dropdown-trigger:hover {
+  border-color: #999999;
+}
+
+.reviews-category-dropdown-trigger.active {
+  border-color: #666666; /* ТЕМНО-СЕРЫЙ при активном */
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.reviews-category-dropdown-selected {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.reviews-category-dropdown-arrow {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.3s ease;
+  color: var(--text-secondary);
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.reviews-category-dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+/* Dropdown с СЕРЫМ бордером */
+.reviews-category-dropdown-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border: 2px solid #666666; /* СЕРЫЙ бордер */
+  border-top: none;
+  border-radius: 0 0 8px 8px !important;
+  z-index: 1200;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+/* Dropdown внутри модального окна с СЕРЫМ бордером */
+.reviews-create-modal .reviews-category-dropdown-options {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: 300px !important;
+  z-index: 1200 !important;
+  margin-top: -2px !important;
+  border-radius: 0 0 8px 8px !important;
+  border: 2px solid #666666 !important; /* СЕРЫЙ бордер */
+  border-top: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+.reviews-category-dropdown-option {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  text-align: left;
+  width: 100%;
+  border: none;
+}
+
+.reviews-category-dropdown-option:hover {
+  background-color: var(--bg-secondary);
+}
+
+.reviews-category-dropdown-option:last-child {
+  border-bottom: none;
+  border-radius: 0 0 6px 6px !important;
+}
+
+.reviews-category-dropdown-option.selected {
+  font-weight: 500;
+  cursor: default;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.reviews-category-dropdown-option.selected:hover {
+  background-color: var(--primary-light);
+  cursor: default;
+}
+
+.reviews-category-dropdown-arrow svg {
+  width: 12px;
+  height: 12px;
+  fill: currentColor;
+}
+
+/* ========================================
+   ИСПРАВЛЕНИЯ ДЛЯ ТЕМНОЙ ТЕМЫ
+   (белый текст вместо зеленого)
+   ======================================== */
+
+/* Темная тема - основной фон */
 [data-theme="dark"] .reviews-page-wrapper {
   background: var(--bg-secondary);
 }
@@ -1301,10 +1209,11 @@
   color: var(--text-primary);
 }
 
+/* Активные табы в темной теме - БЕЛЫЙ текст вместо зеленого */
 [data-theme="dark"] .reviews-page-tab.reviews-page-tab-active {
   background: var(--primary-light);
   border-color: var(--primary-color);
-  color: var(--text-primary);
+  color: var(--text-primary); /* БЕЛЫЙ текст */
 }
 
 [data-theme="dark"] .reviews-page-tab:hover:not(.reviews-page-tab-active) {
@@ -1318,11 +1227,12 @@
   color: var(--text-primary);
 }
 
+/* Активные фильтры в темной теме - БЕЛЫЙ текст вместо зеленого */
 [data-theme="dark"] .reviews-filter-btn.reviews-filter-btn-active,
 [data-theme="dark"] .reviews-status-btn.reviews-status-btn-active {
   background: var(--primary-light);
   border-color: var(--primary-color);
-  color: var(--text-primary);
+  color: var(--text-primary); /* БЕЛЫЙ текст */
 }
 
 [data-theme="dark"] .reviews-categories-island {
@@ -1336,10 +1246,11 @@
   color: var(--text-primary);
 }
 
+/* Активные категории в темной теме - БЕЛЫЙ текст вместо зеленого */
 [data-theme="dark"] .reviews-category-chip.reviews-category-chip-active {
   background: var(--primary-light);
   border-color: var(--primary-color);
-  color: var(--text-primary);
+  color: var(--text-primary); /* БЕЛЫЙ текст */
 }
 
 [data-theme="dark"] .reviews-story-card {
@@ -1392,12 +1303,18 @@
   color: #f44336;
 }
 
+/* Кнопка развернуть/свернуть - зеленый в темной теме, но можно сделать белым */
 [data-theme="dark"] .reviews-expand-btn {
-  color: var(--primary-color);
+  color: var(--text-primary); /* БЕЛЫЙ вместо зеленого */
 }
 
 [data-theme="dark"] .reviews-expand-btn:hover {
-  color: #45a049;
+  color: #45a049; /* Оставляем зеленый при ховере */
+}
+
+/* Сохраненный углерод - зеленый в темной теме, но можно сделать белым */
+[data-theme="dark"] .reviews-carbon-saved {
+  color: var(--text-primary); /* БЕЛЫЙ вместо зеленого */
 }
 
 [data-theme="dark"] .reviews-create-modal {
@@ -1428,6 +1345,49 @@
 
 [data-theme="dark"] .reviews-btn-secondary:hover {
   background: var(--bg-secondary);
+}
+
+/* Dropdown в темной теме - СЕРЫЕ бордеры */
+[data-theme="dark"] .reviews-dropdown-trigger {
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-dropdown-trigger:hover {
+  border-color: #999999;
+}
+
+[data-theme="dark"] .reviews-dropdown-trigger.active {
+  border-color: #666666;
+}
+
+[data-theme="dark"] .reviews-dropdown-options {
+  border-color: #666666;
+}
+
+/* Dropdown категории в темной теме - СЕРЫЕ бордеры */
+[data-theme="dark"] .reviews-category-dropdown-trigger {
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-category-dropdown-trigger:hover {
+  border-color: #999999;
+}
+
+[data-theme="dark"] .reviews-category-dropdown-trigger.active {
+  border-color: #666666;
+}
+
+[data-theme="dark"] .reviews-category-dropdown-options {
+  border-color: #666666;
+}
+
+[data-theme="dark"] .reviews-create-modal .reviews-category-dropdown-options {
+  border-color: #666666 !important;
+}
+
+/* Выбранные опции в dropdown категорий - БЕЛЫЙ текст в темной теме */
+[data-theme="dark"] .reviews-category-dropdown-option.selected {
+  color: var(--text-primary); /* БЕЛЫЙ текст */
 }
 
 /* Пагинация в темной теме */
@@ -1625,14 +1585,13 @@
 
   /* Адаптивность для кастомного дропдауна */
   .reviews-category-dropdown-options {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 90%;
-    max-width: 300px;
-    border-radius: 12px !important;
-    max-height: 70vh;
+    position: absolute;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    border-radius: 0 0 8px 8px !important;
+    max-height: 250px !important;
   }
 }
 
@@ -1726,4 +1685,794 @@
     height: 30px;
     font-size: 11px;
   }
+}
+/* ========================================
+   МОДАЛЬНЫЕ ОКНА ПОДТВЕРЖДЕНИЯ И УВЕДОМЛЕНИЙ
+   ======================================== */
+
+/* Модальное окно подтверждения удаления */
+.reviews-confirm-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 450px; /* Увеличил ширину с 400px до 450px */
+  z-index: 1002;
+  animation: slideInConfirm 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  padding: 0;
+  overflow: hidden;
+}
+
+@keyframes slideInConfirm {
+  from { 
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0; 
+  }
+  to { 
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1; 
+  }
+}
+
+.reviews-confirm-modal-content {
+  padding: 32px 30px; /* Увеличил верхний и нижний отступ */
+  text-align: center;
+}
+
+.reviews-confirm-modal-icon {
+  font-size: 56px; /* Увеличил иконку */
+  margin-bottom: 24px;
+  color: #f44336;
+}
+
+.reviews-confirm-modal-title {
+  font-size: 22px; /* Увеличил шрифт */
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+.reviews-confirm-modal-message {
+  font-size: 16px; /* Увеличил шрифт */
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 28px 0;
+}
+
+.reviews-confirm-modal-buttons {
+  display: flex;
+  gap: 16px; /* Увеличил расстояние между кнопками */
+  justify-content: center;
+}
+
+.reviews-confirm-modal-btn {
+  padding: 14px 32px; /* Увеличил паддинг кнопок */
+  border-radius: 10px; /* Сделал более закругленные углы */
+  font-size: 16px; /* Увеличил шрифт кнопок */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 140px; /* Увеличил минимальную ширину */
+  height: 48px; /* Увеличил высоту */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Libre Caslon Text', serif;
+  border: 2px solid;
+}
+
+.reviews-confirm-modal-btn-cancel {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.reviews-confirm-modal-btn-cancel:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary-color);
+}
+
+.reviews-confirm-modal-btn-delete {
+  background: #f44336;
+  border-color: #f44336;
+  color: white;
+}
+
+.reviews-confirm-modal-btn-delete:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+}
+
+/* ========================================
+   МОДАЛЬНОЕ ОКНО СОЗДАНИЯ ИСТОРИИ
+   ======================================== */
+.reviews-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.reviews-create-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px; /* Увеличил ширину с 600px до 500px (более узкое, как в Settings) */
+  z-index: 1001;
+  animation: slideIn 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+@keyframes slideIn {
+  from { 
+    transform: translate(-50%, -50%) scale(0.95);
+    opacity: 0; 
+  }
+  to { 
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1; 
+  }
+}
+
+.reviews-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  height: 60px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.reviews-modal-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.reviews-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-family: 'Libre Caslon Text', serif;
+  font-size: 20px;
+}
+
+.reviews-modal-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.reviews-modal-body-no-scroll {
+  padding: 20px;
+  overflow: visible !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.reviews-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  min-height: 80px;
+  align-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* Формы в модальном окне */
+.reviews-form-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.reviews-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.reviews-form-input,
+.reviews-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: 'Libre Caslon Text', serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.reviews-form-input:focus,
+.reviews-form-textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.reviews-form-textarea {
+  min-height: 120px;
+  resize: vertical;
+  flex: 1;
+}
+
+.reviews-form-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Кнопки в модальном окне */
+.reviews-btn-secondary {
+  padding: 10px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Libre Caslon Text', serif;
+}
+
+.reviews-btn-secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary-color);
+}
+
+.reviews-btn-primary {
+  padding: 10px 20px;
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  background: var(--primary-color);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Libre Caslon Text', serif;
+}
+
+.reviews-btn-primary:hover:not(:disabled) {
+  background: #45a049;
+  border-color: #45a049;
+}
+
+.reviews-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   КАСТОМНЫЙ DROPDOWN ДЛЯ ВЫБОРА КАТЕГОРИИ
+   (серые бордеры, выходит за границы модального окна)
+   ======================================== */
+.reviews-category-dropdown-wrapper {
+  position: relative;
+  width: 100%;
+  z-index: 1100;
+}
+
+.reviews-category-dropdown-trigger {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color); /* СЕРЫЙ бордер */
+  border-radius: 8px !important;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  height: 42px;
+  box-sizing: border-box;
+}
+
+/* СЕРЫЙ при наведении вместо зеленого */
+.reviews-category-dropdown-trigger:hover {
+  border-color: #999999;
+}
+
+.reviews-category-dropdown-trigger.active {
+  border-color: #666666; /* ТЕМНО-СЕРЫЙ при активном */
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.reviews-category-dropdown-selected {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.reviews-category-dropdown-arrow {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.3s ease;
+  color: var(--text-secondary);
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.reviews-category-dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+/* Dropdown с СЕРЫМ бордером */
+.reviews-category-dropdown-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border: 2px solid #666666; /* СЕРЫЙ бордер */
+  border-top: none;
+  border-radius: 0 0 8px 8px !important;
+  z-index: 1200;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+/* Dropdown внутри модального окна с СЕРЫМ бордером */
+.reviews-create-modal .reviews-category-dropdown-options {
+  position: absolute !important;
+  top: 100% !important;
+  left: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  max-height: 300px !important;
+  z-index: 1200 !important;
+  margin-top: -2px !important;
+  border-radius: 0 0 8px 8px !important;
+  border: 2px solid #666666 !important; /* СЕРЫЙ бордер */
+  border-top: none !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+.reviews-category-dropdown-option {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  text-align: left;
+  width: 100%;
+  border: none;
+}
+
+.reviews-category-dropdown-option:hover {
+  background-color: var(--bg-secondary);
+}
+
+.reviews-category-dropdown-option:last-child {
+  border-bottom: none;
+  border-radius: 0 0 6px 6px !important;
+}
+
+.reviews-category-dropdown-option.selected {
+  font-weight: 500;
+  cursor: default;
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.reviews-category-dropdown-option.selected:hover {
+  background-color: var(--primary-light);
+  cursor: default;
+}
+
+/* ========================================
+   ВРЕМЕННОЕ УВЕДОМЛЕНИЕ ОБ УСПЕХЕ/ОШИБКЕ
+   (как в SettingsPage)
+   ======================================== */
+
+.reviews-notification-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 450px; /* Увеличил ширину */
+  z-index: 2002;
+  animation: slideIn 0.3s ease-out;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+}
+
+.reviews-notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 3px solid #10b981; /* Зеленая полоска для успеха */
+}
+
+.reviews-notification-header.error {
+  border-bottom-color: #ef4444; /* Красная полоска для ошибки */
+}
+
+.reviews-notification-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reviews-notification-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.reviews-notification-close:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.reviews-notification-body {
+  padding: 24px;
+  color: var(--text-primary);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.reviews-notification-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.reviews-notification-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  font-size: 14px;
+  justify-content: center;
+  min-width: 100px;
+}
+
+.reviews-notification-btn-ok {
+  background-color: var(--primary-color);
+  color: white;
+  width: 100%;
+}
+
+.reviews-notification-btn-ok:hover {
+  background-color: #45a049;
+}
+
+/* ========================================
+   АДАПТИВНОСТЬ ДЛЯ МОДАЛЬНЫХ ОКОН
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Уведомления */
+  .reviews-notification-modal {
+    width: 92%;
+    max-width: 400px;
+  }
+  
+  .reviews-notification-header,
+  .reviews-notification-body,
+  .reviews-notification-footer {
+    padding: 16px;
+  }
+  
+  .reviews-notification-btn {
+    padding: 12px 20px;
+  }
+  
+  /* Подтверждение удаления */
+  .reviews-confirm-modal {
+    width: 92%;
+    max-width: 400px;
+  }
+  
+  .reviews-confirm-modal-content {
+    padding: 24px 20px;
+  }
+  
+  .reviews-confirm-modal-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+  }
+  
+  .reviews-confirm-modal-title {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  
+  .reviews-confirm-modal-message {
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  
+  .reviews-confirm-modal-buttons {
+    gap: 12px;
+  }
+  
+  .reviews-confirm-modal-btn {
+    padding: 12px 24px;
+    min-width: 120px;
+    height: 44px;
+    font-size: 15px;
+  }
+  
+  /* Создание истории */
+  .reviews-create-modal {
+    width: 92%;
+    max-height: 85vh;
+  }
+  
+  .reviews-modal-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .reviews-btn-secondary,
+  .reviews-btn-primary {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Уведомления */
+  .reviews-notification-modal {
+    width: 94%;
+    max-width: 350px;
+  }
+  
+  .reviews-notification-header h3 {
+    font-size: 16px;
+  }
+  
+  .reviews-notification-body {
+    font-size: 14px;
+  }
+  
+  .reviews-notification-btn {
+    width: 100%;
+  }
+  
+  /* Подтверждение удаления */
+  .reviews-confirm-modal {
+    width: 94%;
+    max-width: 350px;
+  }
+  
+  .reviews-confirm-modal-content {
+    padding: 20px 16px;
+  }
+  
+  .reviews-confirm-modal-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+  }
+  
+  .reviews-confirm-modal-title {
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+  
+  .reviews-confirm-modal-message {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  
+  .reviews-confirm-modal-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .reviews-confirm-modal-btn {
+    width: 100%;
+    min-width: 100%;
+    padding: 12px 20px;
+    height: 42px;
+    font-size: 14px;
+  }
+  
+  /* Создание истории */
+  .reviews-create-modal {
+    width: 94%;
+  }
+  
+  .reviews-form-input,
+  .reviews-form-textarea {
+    font-size: 13px;
+  }
+}
+
+/* ========================================
+   ТЕМНАЯ ТЕМА ДЛЯ МОДАЛЬНЫХ ОКОН
+   ======================================== */
+
+[data-theme="dark"] .reviews-confirm-modal {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] .reviews-confirm-modal-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .reviews-confirm-modal-message {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .reviews-confirm-modal-btn-cancel {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .reviews-confirm-modal-btn-cancel:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .reviews-create-modal {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] .reviews-modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-modal-body-no-scroll,
+[data-theme="dark"] .reviews-modal-footer {
+  border-top-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-form-input,
+[data-theme="dark"] .reviews-form-textarea {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-btn-secondary {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-btn-secondary:hover {
+  background: var(--bg-secondary);
+}
+
+/* Dropdown категории в темной теме - СЕРЫЕ бордеры */
+[data-theme="dark"] .reviews-category-dropdown-trigger {
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-category-dropdown-trigger:hover {
+  border-color: #999999;
+}
+
+[data-theme="dark"] .reviews-category-dropdown-trigger.active {
+  border-color: #666666;
+}
+
+[data-theme="dark"] .reviews-category-dropdown-options {
+  border-color: #666666;
+}
+
+[data-theme="dark"] .reviews-create-modal .reviews-category-dropdown-options {
+  border-color: #666666 !important;
+}
+
+/* Выбранные опции в dropdown категорий - БЕЛЫЙ текст в темной теме */
+[data-theme="dark"] .reviews-category-dropdown-option.selected {
+  color: var(--text-primary); /* БЕЛЫЙ текст */
+}
+
+/* Уведомления в темной теме */
+[data-theme="dark"] .reviews-notification-modal {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .reviews-notification-header h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .reviews-notification-body {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .reviews-notification-close {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .reviews-notification-close:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .reviews-notification-footer {
+  border-top-color: var(--border-color);
 }

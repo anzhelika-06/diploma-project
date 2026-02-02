@@ -10,6 +10,8 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading, user: currentUser } = useAdminCheck();
   
+
+  
   // Состояния для пользователей
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
@@ -27,7 +29,7 @@ const AdminPage = () => {
   // Фильтры для обращений
   const [supportFilters, setSupportFilters] = useState({
     search: '',
-    status: 'all' // ИЗМЕНИЛОСЬ: было 'pending'
+    status: 'all'
   });
   
   // Добавляем новые состояния для dropdown галочек обращений
@@ -112,12 +114,40 @@ const AdminPage = () => {
     closedTickets: 0
   });
 
+  // ==================== СОСТОЯНИЯ ДЛЯ ОТЗЫВОВ ====================
+  const [stories, setStories] = useState([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const [storiesError, setStoriesError] = useState(null);
+  const [storyStats, setStoryStats] = useState({
+    total: 0,
+    published: 0,
+    pending: 0,
+    draft: 0,
+  });
+  const [categoryStats, setCategoryStats] = useState([]);
+  const [storyFilters, setStoryFilters] = useState({
+    status: 'all',
+    category: 'all',
+    search: ''
+  });
+  const [storiesPagination, setStoriesPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1
+  });
+  const [storyStatusDropdownOpen, setStoryStatusDropdownOpen] = useState(false);
+  const [storyCategoryDropdownOpen, setStoryCategoryDropdownOpen] = useState(false);
+  const [selectedStory, setSelectedStory] = useState(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+
   // Рефы
   const isInitialMount = useRef(true);
   const searchDebounceTimer = useRef(null);
   const supportSearchDebounceTimer = useRef(null);
 
-  // Константы
+  // ==================== КОНСТАНТЫ ====================
+
   const banDurations = useMemo(() => [
     { value: '1', label: t('banDuration1h') || '1 час', type: 'hours' },
     { value: '24', label: t('banDuration24h') || '24 часа', type: 'hours' },
@@ -159,6 +189,294 @@ const AdminPage = () => {
     { id: 'closed', label: t('closed') || 'Закрытые', value: 'closed' }
   ], [t]);
 
+  // Options для статусов историй
+  const storyStatusOptions = useMemo(() => [
+    { id: 'all', label: t('allStatuses') || 'Все статусы', value: 'all' },
+    { id: 'draft', label: t('draft') || 'Черновик', value: 'draft' },
+    { id: 'pending', label: t('pending') || 'На проверке', value: 'pending' },
+    { id: 'published', label: t('published') || 'Опубликованные', value: 'published' },
+  ], [t]);
+
+  // ==================== УТИЛИТНЫЕ ФУНКЦИИ ====================
+
+  const showSuccessModal = (title, message) => {
+    setSuccessModal({
+      isOpen: true,
+      title,
+      message
+    });
+    
+    setTimeout(() => {
+      setSuccessModal(prev => ({ ...prev, isOpen: false }));
+    }, 3000);
+  };
+
+  const getRoleLabel = () => {
+    const option = roleOptions.find(opt => opt.value === filters.is_admin);
+    return option ? option.label : roleOptions[0].label;
+  };
+
+  const getStatusLabel = (value) => {
+    const option = statusOptions.find(opt => opt.value === value);
+    return option ? option.label : statusOptions[0].label;
+  };
+
+  const formatDate = (dateInput) => {
+    if (!dateInput || dateInput === 'null' || dateInput === 'undefined' || dateInput === null) {
+      return '—';
+    }
+    
+    try {
+      let date;
+      
+      if (typeof dateInput === 'string') {
+        if (dateInput.includes('T')) {
+          date = new Date(dateInput);
+        } else if (dateInput.includes('-') && dateInput.includes(':')) {
+          date = new Date(dateInput.replace(' ', 'T') + 'Z');
+        } else if (dateInput.includes('-')) {
+          date = new Date(dateInput + 'T00:00:00Z');
+        } else {
+          const timestamp = parseInt(dateInput);
+          if (!isNaN(timestamp)) {
+            date = new Date(timestamp);
+          } else {
+            date = new Date(dateInput);
+          }
+        }
+      } else if (typeof dateInput === 'number') {
+        date = new Date(dateInput);
+      } else {
+        date = dateInput;
+      }
+      
+      if (isNaN(date.getTime())) {
+        return 'Некорректная дата';
+      }
+      
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return `${day}.${month}.${year} ${hours}:${minutes}`;
+      
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Ошибка даты';
+    }
+  };
+
+  const getUserAvatar = (user) => {
+    if (!user) return '👤';
+    
+    if (user.avatar_emoji && user.avatar_emoji.length <= 10) {
+      return getEmojiByCarbon(user.carbon_saved || 0);
+    }
+    
+    if (user.avatar_emoji) {
+      return user.avatar_emoji;
+    }
+    
+    return getEmojiByCarbon(user.carbon_saved || 0);
+  };
+
+  const getTranslatedEcoLevel = (carbonSaved) => {
+    const carbon = carbonSaved || 0;
+    
+    let levelKey = 'ecoNovice';
+    
+    if (carbon >= 5000) levelKey = 'ecoHero';
+    else if (carbon >= 4000) levelKey = 'ecoMaster';
+    else if (carbon >= 3000) levelKey = 'ecoActivist';
+    else if (carbon >= 2000) levelKey = 'ecoEnthusiast';
+    else if (carbon >= 1000) levelKey = 'ecoStarter';
+    
+    const translated = t(levelKey);
+    if (translated && translated !== levelKey) {
+      return translated;
+    }
+    
+    // Если нет перевода, возвращаем дефолтный текст
+    if (carbon >= 5000) return t('ecoHero') || 'Эко-герой';
+    else if (carbon >= 4000) return t('ecoMaster') || 'Эко-мастер';
+    else if (carbon >= 3000) return t('ecoActivist') || 'Эко-активист';
+    else if (carbon >= 2000) return t('ecoEnthusiast') || 'Эко-энтузиаст';
+    else if (carbon >= 1000) return t('ecoStarter') || 'Эко-стартер';
+    else return t('ecoNovice') || 'Эко-новичок';
+  };
+
+  const getEcoLevelClass = (carbonSaved) => {
+    const carbon = carbonSaved || 0;
+    
+    if (carbon >= 5000) return 'level-hero';
+    else if (carbon >= 4000) return 'level-master';
+    else if (carbon >= 3000) return 'level-activist';
+    else if (carbon >= 2000) return 'level-enthusiast';
+    else if (carbon >= 1000) return 'level-starter';
+    else return 'level-novice';
+  };
+
+  const formatCarbonSaved = (carbonSaved) => {
+    const value = carbonSaved || 0;
+    const unit = t('carbonUnit') || 'кг';
+    
+    if (value >= 1000) {
+      const tons = (value / 1000).toFixed(1);
+      return `${tons} ${t('units.tons') || 'т'}`;
+    }
+    
+    return `${value.toLocaleString()} ${unit}`;
+  };
+
+  const getBanInfoText = () => {
+    const currentCount = banModal.currentBanCount;
+    const newCount = currentCount + 1;
+    
+    if (currentCount >= 3) {
+      return {
+        type: 'permanent',
+        title: t('banPermanent') || 'Блокировка навсегда',
+        subtitle: t('violationNumber', { number: newCount }) || `(нарушение №${newCount})`,
+        description: t('banPermanentDesc') || 'Пользователь получает вечную блокировку за 4 и более нарушений.',
+        color: '#dc3545',
+        icon: 'warning'
+      };
+    }
+    
+    if (banModal.durationType === 'permanent') {
+      return {
+        type: 'permanent-manual',
+        title: t('banPermanent') || 'Блокировка навсегда',
+        subtitle: t('violationNumber', { number: newCount }) || `(нарушение №${newCount})`,
+        color: '#dc3545',
+        icon: 'warning'
+      };
+    }
+    
+    const durationLabel = banDurations.find(d => d.value === banModal.duration)?.label || '24 часа';
+    return {
+      type: 'temporary',
+      title: `${durationLabel}`,
+      subtitle: t('violationNumber', { number: newCount }) || `(нарушение №${newCount})`,
+      color: '#ffc107',
+      icon: 'schedule'
+    };
+  };
+
+  // Функции для получения лейблов статусов
+  const getSupportStatusLabel = () => {
+    const option = supportStatusOptions.find(opt => opt.value === supportFilters.status);
+    return option ? option.label : supportStatusOptions[0].label;
+  };
+
+  const getSupportStatusBadgeLabel = (status) => {
+    switch(status) {
+      case 'pending': return t('statusPending') || 'Ожидает';
+      case 'answered': return t('answered') || 'Отвечено';
+      case 'closed': return t('closed') || 'Закрыто';
+      default: return status;
+    }
+  };
+
+  const getStoryStatusLabel = () => {
+    const option = storyStatusOptions.find(opt => opt.value === storyFilters.status);
+    return option ? option.label : storyStatusOptions[0].label;
+  };
+
+  const getStoryStatusBadgeLabel = (status) => {
+    switch(status) {
+      case 'published': return t('published') || 'Опубликовано';
+      case 'pending': return t('pending') || 'На проверке';
+      case 'draft': return t('draft') || 'Черновик';
+      default: return status;
+    }
+  };
+
+  const getCategoryLabel = () => {
+    if (storyFilters.category === 'all') return t('allCategories') || 'Все категории';
+    
+    const category = categoryStats.find(c => c.category === storyFilters.category);
+    const translatedCategory = getTranslatedCategory(storyFilters.category);
+    return category ? `${translatedCategory} (${category.count})` : translatedCategory;
+  };
+
+  // Функция для перевода категорий
+  const getTranslatedCategory = (category) => {
+    const categoryTranslations = {
+      'Транспорт': t('categoryTransport') || 'Транспорт',
+      'Питание': t('categoryFood') || 'Питание',
+      'Энергия': t('categoryEnergy') || 'Энергия',
+      'Отходы': t('categoryWaste') || 'Отходы',
+      'Вода': t('categoryWater') || 'Вода',
+      'Общее': t('categoryGeneral') || 'Общее',
+      'Потребление': t('categoryConsumption') || 'Потребление',
+      'Природа': t('categoryNature') || 'Природа',
+      'Быт': t('categoryHousehold') || 'Быт',
+      'Планирование': t('categoryPlanning') || 'Планирование',
+      // English categories
+      'Transport': t('categoryTransport') || 'Транспорт',
+      'Food': t('categoryFood') || 'Питание',
+      'Energy': t('categoryEnergy') || 'Энергия',
+      'Waste': t('categoryWaste') || 'Отходы',
+      'Water': t('categoryWater') || 'Вода',
+      'General': t('categoryGeneral') || 'Общее',
+      'Consumption': t('categoryConsumption') || 'Потребление',
+      'Nature': t('categoryNature') || 'Природа',
+      'Household': t('categoryHousehold') || 'Быт',
+      'Planning': t('categoryPlanning') || 'Планирование'
+    };
+    
+    return categoryTranslations[category] || category;
+  };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'pending': return '#ff9800';
+      case 'answered': return '#4caf50';
+      case 'closed': return '#9e9e9e';
+      case 'published': return '#4caf50';
+      case 'draft': return '#757575';
+      default: return '#666';
+    }
+  };
+
+  // Функция для получения текста тултипа с информацией о бане
+  const getBanTooltipText = (user) => {
+    const details = banDetails[user.id];
+    
+    if (!details) {
+      return 'Загрузка информации о бане...';
+    }
+    
+    let tooltipText = '';
+    // Информация о типе бана
+    if (details.is_permanent || details.expires_at === null) {
+      tooltipText = 'БАН НАВСЕГДА';
+    } else if (details.expires_at) {
+      const formattedDate = formatDate(details.expires_at);
+      tooltipText = `Бан до: ${formattedDate}`;
+    } else {
+      tooltipText = 'Пользователь забанен';
+    }
+    
+    // Дата начала бана
+    if (details.created_at) {
+      const startDate = formatDate(details.created_at);
+      tooltipText += `\nДата начала: ${startDate}`;
+    }
+    
+    // Причина
+    if (details.reason) {
+      tooltipText += `\nПричина: ${details.reason}`;
+    } else if (user.ban_reason) {
+      tooltipText += `\nПричина: ${user.ban_reason}`;
+    }
+    
+    return tooltipText;
+  };
+
   // ==================== ЭФФЕКТЫ ====================
 
   // Закрытие dropdown при клике вне
@@ -179,6 +497,14 @@ const AdminPage = () => {
       if (durationDropdownOpen && !e.target.closest('.modal-dropdown') && !e.target.closest('.modal-overlay')) {
         setDurationDropdownOpen(false);
       }
+      
+      if (storyStatusDropdownOpen && !e.target.closest('.story-filter-dropdown')) {
+        setStoryStatusDropdownOpen(false);
+      }
+      
+      if (storyCategoryDropdownOpen && !e.target.closest('.story-filter-dropdown')) {
+        setStoryCategoryDropdownOpen(false);
+      }
     };
 
     document.addEventListener('click', handleClickOutside);
@@ -188,6 +514,8 @@ const AdminPage = () => {
         setStatusDropdownOpen(false);
         setSupportStatusDropdownOpen(false);
         setDurationDropdownOpen(false);
+        setStoryStatusDropdownOpen(false);
+        setStoryCategoryDropdownOpen(false);
       }
     });
     
@@ -195,7 +523,7 @@ const AdminPage = () => {
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', () => {});
     };
-  }, [roleDropdownOpen, statusDropdownOpen, supportStatusDropdownOpen, durationDropdownOpen]);
+  }, [roleDropdownOpen, statusDropdownOpen, supportStatusDropdownOpen, durationDropdownOpen, storyStatusDropdownOpen, storyCategoryDropdownOpen]);
 
   // Загрузка обращений при переключении на вкладку
   useEffect(() => {
@@ -229,6 +557,13 @@ const AdminPage = () => {
     }
   }, [users, activeTab, isAdmin, adminLoading]);
 
+  // Загрузка данных для вкладки отзывов
+  useEffect(() => {
+    if (activeTab === 'reviews' && isAdmin && !adminLoading) {
+      loadStoriesData();
+    }
+  }, [activeTab, isAdmin, adminLoading]);
+
   // Очистка таймеров
   useEffect(() => {
     return () => {
@@ -240,6 +575,277 @@ const AdminPage = () => {
       }
     };
   }, []);
+
+  // ==================== ФУНКЦИИ ДЛЯ ОТЗЫВОВ (ИСТОРИЙ) ====================
+
+  const loadStoriesData = useCallback(async () => {
+    if (!isAdmin || adminLoading || storiesLoading) return;
+    
+    setStoriesLoading(true);
+    setStoriesError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setStoriesError(t('authRequired') || 'Требуется авторизация');
+        setStoriesLoading(false);
+        return;
+      }
+      
+      // Загружаем статистику историй
+      await loadStoryStats();
+      
+      // Загружаем категории
+      await loadCategoryStats();
+      
+      // Загружаем сами истории
+      await loadStories();
+      
+    } catch (err) {
+      console.error('Error loading stories data:', err);
+      setStoriesError(t('networkError') || 'Ошибка сети');
+    } finally {
+      setStoriesLoading(false);
+    }
+  }, [isAdmin, adminLoading, storiesLoading, t]);
+
+  const loadStoryStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('/api/stories/admin/stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setStoryStats({
+            total: data.total || 0,
+            published: data.published || 0,
+            pending: data.pending || 0,
+            draft: data.draft || 0,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading story stats:', error);
+    }
+  };
+
+  const loadCategoryStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('/api/stories/admin/category-stats', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setCategoryStats(data.categories || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading category stats:', error);
+    }
+  };
+
+  const loadStories = async (customFilters = null, customPage = null) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Используем переданные фильтры или текущие из состояния
+      const filtersToUse = customFilters || storyFilters;
+      const pageToUse = customPage || storiesPagination.page;
+      
+      const params = new URLSearchParams({
+        page: pageToUse.toString(),
+        limit: storiesPagination.limit.toString()
+      });
+      
+      if (filtersToUse.status !== 'all') {
+        params.append('status', filtersToUse.status);
+      }
+      
+      if (filtersToUse.category !== 'all') {
+        params.append('category', filtersToUse.category);
+      }
+      
+      if (filtersToUse.search) {
+        params.append('search', filtersToUse.search);
+      }
+      
+      const response = await fetch(`/api/stories/admin?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setStories(data.stories || []);
+          setStoriesPagination(prev => ({
+            ...prev,
+            page: pageToUse,
+            total: data.pagination?.total || 0,
+            totalPages: data.pagination?.totalPages || 1
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading stories:', error);
+      throw error;
+    }
+  };
+
+  const handleStoryFilterChange = (type, value) => {
+    const newFilters = { ...storyFilters, [type]: value };
+    setStoryFilters(newFilters);
+    
+    // Сбрасываем на первую страницу при изменении фильтров
+    setStoriesPagination(prev => ({ ...prev, page: 1 }));
+    
+    // Загружаем заново с новыми фильтрами сразу
+    if (type === 'search') {
+      // Для поиска добавляем небольшую задержку
+      setTimeout(() => {
+        loadStoryStats();
+        loadStories(newFilters, 1);
+      }, 300);
+    } else {
+      // Для статуса и категории загружаем сразу
+      loadStoryStats();
+      loadStories(newFilters, 1);
+    }
+  };
+
+  const handleStoryClearFilters = () => {
+    const clearedFilters = {
+      search: '',
+      status: 'all',
+      category: 'all'
+    };
+    setStoryFilters(clearedFilters);
+    setStoriesPagination(prev => ({ ...prev, page: 1 }));
+    setStoryStatusDropdownOpen(false);
+    setStoryCategoryDropdownOpen(false);
+    
+    // Загружаем с очищенными фильтрами
+    loadStoryStats();
+    loadStories(clearedFilters, 1);
+  };
+
+  const handleStoryAction = async (storyId, action) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`/api/stories/admin/${storyId}/${action}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Обновляем данные
+          loadStoryStats();
+          loadStories();
+          
+          // Показываем уведомление
+          let message = '';
+          switch(action) {
+            case 'publish':
+              message = t('storyPublished') || 'История опубликована';
+              break;
+            case 'reject':
+              message = t('storyRejected') || 'История отклонена';
+              break;
+            case 'unpublish':
+              message = t('storyUnpublished') || 'История снята с публикации';
+              break;
+            default:
+              message = t('operationCompleted') || 'Операция выполнена';
+          }
+          
+          showSuccessModal(
+            t('success') || 'Успешно',
+            message
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error updating story status:', error);
+      showSuccessModal(
+        t('error') || 'Ошибка',
+        t('operationFailed') || 'Операция не выполнена'
+      );
+    }
+  };
+
+  const openStoryPreview = (story) => {
+    setSelectedStory(story);
+    setPreviewModalOpen(true);
+  };
+
+  const closeStoryPreview = () => {
+    setPreviewModalOpen(false);
+    setSelectedStory(null);
+  };
+
+  const handlePublishStory = (story) => {
+    setConfirmModal({
+      isOpen: true,
+      title: t('confirmPublish') || 'Опубликовать историю?',
+      message: t('confirmPublishMessage', { 
+        title: story.title,
+        author: story.user_nickname
+      }) || `Опубликовать историю "${story.title}" от ${story.user_nickname}?`,
+      onConfirm: () => handleStoryAction(story.id, 'publish')
+    });
+  };
+
+  const handleRejectStory = (story) => {
+    setConfirmModal({
+      isOpen: true,
+      title: t('confirmReject') || 'Отклонить историю?',
+      message: t('confirmRejectMessage', { 
+        title: story.title,
+        author: story.user_nickname
+      }) || `Отклонить историю "${story.title}" от ${story.user_nickname}?`,
+      onConfirm: () => handleStoryAction(story.id, 'reject')
+    });
+  };
+
+  const handleUnpublishStory = (story) => {
+    setConfirmModal({
+      isOpen: true,
+      title: t('confirmUnpublish') || 'Снять с публикации?',
+      message: t('confirmUnpublishMessage', { 
+        title: story.title,
+        author: story.user_nickname
+      }) || `Снять с публикации историю "${story.title}" от ${story.user_nickname}? История будет перемещена в черновики.`,
+      onConfirm: () => handleStoryAction(story.id, 'unpublish')
+    });
+  };
+
+  const handleStoryPageChange = (newPage) => {
+    if (newPage < 1 || newPage > storiesPagination.totalPages || newPage === storiesPagination.page) return;
+    setStoriesPagination(prev => ({ ...prev, page: newPage }));
+    loadStories(null, newPage);
+  };
 
   // ==================== ФУНКЦИИ ДЛЯ ПОДДЕРЖКИ ====================
 
@@ -293,7 +899,7 @@ const AdminPage = () => {
         limit: supportPagination.limit.toString()
       });
       
-      // ИЗМЕНИЛОСЬ: Всегда отправляем статус, даже 'all'
+      // Всегда отправляем статус, даже 'all'
       if (filtersToUse.status) {
         params.append('status', filtersToUse.status);
       }
@@ -364,11 +970,6 @@ const AdminPage = () => {
       }, 300);
     }
   }, [supportFilters, loadSupportTickets]);
-
-  const getSupportStatusLabel = () => {
-    const option = supportStatusOptions.find(opt => opt.value === supportFilters.status);
-    return option ? option.label : supportStatusOptions[0].label;
-  };
 
   const handleSupportPageChange = useCallback((newPage) => {
     if (newPage < 1 || newPage > supportPagination.totalPages || newPage === supportPagination.page) return;
@@ -1017,174 +1618,6 @@ const AdminPage = () => {
     });
   };
 
-  // ==================== УТИЛИТЫ ====================
-
-  const showSuccessModal = (title, message) => {
-    setSuccessModal({
-      isOpen: true,
-      title,
-      message
-    });
-    
-    setTimeout(() => {
-      setSuccessModal(prev => ({ ...prev, isOpen: false }));
-    }, 3000);
-  };
-
-  const getRoleLabel = () => {
-    const option = roleOptions.find(opt => opt.value === filters.is_admin);
-    return option ? option.label : roleOptions[0].label;
-  };
-
-  const getStatusLabel = () => {
-    const option = statusOptions.find(opt => opt.value === filters.is_banned);
-    return option ? option.label : statusOptions[0].label;
-  };
-
-  const formatDate = (dateInput) => {
-    if (!dateInput || dateInput === 'null' || dateInput === 'undefined' || dateInput === null) {
-      return '—';
-    }
-    
-    try {
-      let date;
-      
-      if (typeof dateInput === 'string') {
-        if (dateInput.includes('T')) {
-          date = new Date(dateInput);
-        } else if (dateInput.includes('-') && dateInput.includes(':')) {
-          date = new Date(dateInput.replace(' ', 'T') + 'Z');
-        } else if (dateInput.includes('-')) {
-          date = new Date(dateInput + 'T00:00:00Z');
-        } else {
-          const timestamp = parseInt(dateInput);
-          if (!isNaN(timestamp)) {
-            date = new Date(timestamp);
-          } else {
-            date = new Date(dateInput);
-          }
-        }
-      } else if (typeof dateInput === 'number') {
-        date = new Date(dateInput);
-      } else {
-        date = dateInput;
-      }
-      
-      if (isNaN(date.getTime())) {
-        return 'Некорректная дата';
-      }
-      
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      const year = date.getFullYear();
-      const hours = date.getHours().toString().padStart(2, '0');
-      const minutes = date.getMinutes().toString().padStart(2, '0');
-      
-      return `${day}.${month}.${year} ${hours}:${minutes}`;
-      
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Ошибка даты';
-    }
-  };
-
-  const getUserAvatar = (user) => {
-    if (!user) return '👤';
-    
-    if (user.avatar_emoji && user.avatar_emoji.length <= 10) {
-      return getEmojiByCarbon(user.carbon_saved || 0);
-    }
-    
-    if (user.avatar_emoji) {
-      return user.avatar_emoji;
-    }
-    
-    return getEmojiByCarbon(user.carbon_saved || 0);
-  };
-
-  const getTranslatedEcoLevel = (carbonSaved) => {
-    const carbon = carbonSaved || 0;
-    
-    let levelKey = 'ecoNovice';
-    
-    if (carbon >= 5000) levelKey = 'ecoHero';
-    else if (carbon >= 4000) levelKey = 'ecoMaster';
-    else if (carbon >= 3000) levelKey = 'ecoActivist';
-    else if (carbon >= 2000) levelKey = 'ecoEnthusiast';
-    else if (carbon >= 1000) levelKey = 'ecoStarter';
-    
-    const translated = t(levelKey);
-    if (translated && translated !== levelKey) {
-      return translated;
-    }
-    
-    // Если нет перевода, возвращаем дефолтный текст
-    if (carbon >= 5000) return t('ecoHero') || 'Эко-герой';
-    else if (carbon >= 4000) return t('ecoMaster') || 'Эко-мастер';
-    else if (carbon >= 3000) return t('ecoActivist') || 'Эко-активист';
-    else if (carbon >= 2000) return t('ecoEnthusiast') || 'Эко-энтузиаст';
-    else if (carbon >= 1000) return t('ecoStarter') || 'Эко-стартер';
-    else return t('ecoNovice') || 'Эко-новичок';
-  };
-
-  const getEcoLevelClass = (carbonSaved) => {
-    const carbon = carbonSaved || 0;
-    
-    if (carbon >= 5000) return 'level-hero';
-    else if (carbon >= 4000) return 'level-master';
-    else if (carbon >= 3000) return 'level-activist';
-    else if (carbon >= 2000) return 'level-enthusiast';
-    else if (carbon >= 1000) return 'level-starter';
-    else return 'level-novice';
-  };
-
-  const formatCarbonSaved = (carbonSaved) => {
-    const value = carbonSaved || 0;
-    const unit = t('carbonUnit') || 'кг';
-    
-    if (value >= 1000) {
-      const tons = (value / 1000).toFixed(1);
-      return `${tons} ${t('units.tons') || 'т'}`;
-    }
-    
-    return `${value.toLocaleString()} ${unit}`;
-  };
-
-  const getBanInfoText = () => {
-    const currentCount = banModal.currentBanCount;
-    const newCount = currentCount + 1;
-    
-    if (currentCount >= 3) {
-      return {
-        type: 'permanent',
-        title: t('banPermanent') || 'Блокировка навсегда',
-        subtitle: t('violationNumber', { number: newCount }) || `(нарушение №${newCount})`,
-        description: t('banPermanentDesc') || 'Пользователь получает вечную блокировку за 4 и более нарушений.',
-        color: '#dc3545',
-        icon: 'warning'
-      };
-    }
-    
-    if (banModal.durationType === 'permanent') {
-      return {
-        type: 'permanent-manual',
-        title: t('banPermanent') || 'Блокировка навсегда',
-        subtitle: t('violationNumber', { number: newCount }) || `(нарушение №${newCount})`,
-        color: '#dc3545',
-        icon: 'warning'
-      };
-    }
-    
-    const durationLabel = banDurations.find(d => d.value === banModal.duration)?.label || '24 часа';
-    return {
-      type: 'temporary',
-      title: `${durationLabel}`,
-      subtitle: t('violationNumber', { number: newCount }) || `(нарушение №${newCount})`,
-      color: '#ffc107',
-      icon: 'schedule'
-    };
-  };
-
   // ==================== ОБРАБОТЧИКИ ДЛЯ ПОЛЬЗОВАТЕЛЕЙ ====================
 
   const handleFilterChange = useCallback((filterType, value) => {
@@ -1266,42 +1699,9 @@ const AdminPage = () => {
     } else if (activeTab === 'support') {
       loadSupportStatsFromDB();
       loadSupportTickets();
+    } else if (activeTab === 'reviews') {
+      loadStoriesData();
     }
-  };
-
-  // Функция для получения текста тултипа с информацией о бане
-  const getBanTooltipText = (user) => {
-    const details = banDetails[user.id];
-    
-    if (!details) {
-      return 'Загрузка информации о бане...';
-    }
-    
-    let tooltipText = '';
-    // Информация о типе бана
-    if (details.is_permanent || details.expires_at === null) {
-      tooltipText = 'БАН НАВСЕГДА';
-    } else if (details.expires_at) {
-      const formattedDate = formatDate(details.expires_at);
-      tooltipText = `Бан до: ${formattedDate}`;
-    } else {
-      tooltipText = 'Пользователь забанен';
-    }
-    
-    // Дата начала бана
-    if (details.created_at) {
-      const startDate = formatDate(details.created_at);
-      tooltipText += `\nДата начала: ${startDate}`;
-    }
-    
-    // Причина
-    if (details.reason) {
-      tooltipText += `\nПричина: ${details.reason}`;
-    } else if (user.ban_reason) {
-      tooltipText += `\nПричина: ${user.ban_reason}`;
-    }
-    
-    return tooltipText;
   };
 
   // ==================== РЕНДЕРИНГ ====================
@@ -1532,6 +1932,107 @@ const AdminPage = () => {
     );
   };
 
+  const renderStoriesPagination = () => {
+    if (storiesPagination.totalPages <= 1) return null;
+    
+    const pages = [];
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, storiesPagination.page - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(storiesPagination.totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    pages.push(
+      <button
+        key="prev"
+        onClick={() => handleStoryPageChange(storiesPagination.page - 1)}
+        disabled={storiesPagination.page === 1 || storiesLoading}
+        className="pagination-button"
+      >
+        <span className="material-icons">chevron_left</span>
+      </button>
+    );
+    
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          onClick={() => handleStoryPageChange(1)}
+          className={`pagination-button ${1 === storiesPagination.page ? 'active' : ''}`}
+          disabled={storiesLoading}
+        >
+          1
+        </button>
+      );
+      
+      if (startPage > 2) {
+        pages.push(
+          <span key="ellipsis1" className="pagination-ellipsis">
+            ...
+          </span>
+        );
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          onClick={() => handleStoryPageChange(i)}
+          className={`pagination-button ${i === storiesPagination.page ? 'active' : ''}`}
+          disabled={storiesLoading}
+        >
+          {i}
+        </button>
+      );
+    }
+    
+    if (endPage < storiesPagination.totalPages) {
+      if (endPage < storiesPagination.totalPages - 1) {
+        pages.push(
+          <span key="ellipsis2" className="pagination-ellipsis">
+            ...
+          </span>
+        );
+      }
+      
+      pages.push(
+        <button
+          key={storiesPagination.totalPages}
+          onClick={() => handleStoryPageChange(storiesPagination.totalPages)}
+          className={`pagination-button ${storiesPagination.totalPages === storiesPagination.page ? 'active' : ''}`}
+          disabled={storiesLoading}
+        >
+          {storiesPagination.totalPages}
+        </button>
+      );
+    }
+    
+    pages.push(
+      <button
+        key="next"
+        onClick={() => handleStoryPageChange(storiesPagination.page + 1)}
+        disabled={storiesPagination.page === storiesPagination.totalPages || storiesLoading}
+        className="pagination-button"
+      >
+        <span className="material-icons">chevron_right</span>
+      </button>
+    );
+    
+    return (
+      <div className="pagination-container">
+        <div className="pagination-info">
+          {t('showing') || 'Показано'}: <strong>{(storiesPagination.page - 1) * storiesPagination.limit + 1}-{Math.min(storiesPagination.page * storiesPagination.limit, storiesPagination.total)}</strong> {t('of') || 'из'} <strong>{storiesPagination.total}</strong>
+        </div>
+        <div className="pagination-buttons">
+          {pages}
+        </div>
+      </div>
+    );
+  };
+
   const renderUsersTab = () => {
     return (
       <div className="admin-section">
@@ -1645,7 +2146,7 @@ const AdminPage = () => {
                   setRoleDropdownOpen(false);
                 }}
               >
-                <span>{getStatusLabel()}</span>
+                <span>{getStatusLabel(filters.is_banned)}</span>
                 <svg 
                   className={`admin-dropdown-arrow ${statusDropdownOpen ? 'rotated' : ''}`}
                   width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -1861,24 +2362,6 @@ const AdminPage = () => {
   };
 
   const renderSupportTab = () => {
-    const getStatusColor = (status) => {
-      switch(status) {
-        case 'pending': return '#ff9800';
-        case 'answered': return '#4caf50';
-        case 'closed': return '#9e9e9e';
-        default: return '#666';
-      }
-    };
-  
-    const getStatusBadgeLabel = (status) => {
-      switch(status) {
-        case 'pending': return t('statusPending') || 'Ожидает';
-        case 'answered': return t('answered') || 'Отвечено';
-        case 'closed': return t('closed') || 'Закрыто';
-        default: return status;
-      }
-    };
-  
     return (
       <div className="admin-section">
         <div className="section-header">
@@ -1894,7 +2377,7 @@ const AdminPage = () => {
             </button>
           </div>
         </div>
-  
+
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon support">
@@ -1932,7 +2415,7 @@ const AdminPage = () => {
             </div>
           </div>
         </div>
-  
+
         <div className="filters-panel">
           <div className="search-box">
             <input
@@ -2001,7 +2484,7 @@ const AdminPage = () => {
             </button>
           </div>
         </div>
-  
+
         {supportLoading ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
@@ -2072,9 +2555,9 @@ const AdminPage = () => {
                       <td className="ticket-status">
                         <span 
                           className="status-badge"
-                          style={{ backgroundColor: getStatusColor(ticket.status)}}
+                          style={{ backgroundColor: getStatusColor(ticket.status) }}
                         >
-                          {getStatusBadgeLabel(ticket.status)}
+                          {getSupportStatusBadgeLabel(ticket.status)}
                         </span>
                       </td>
                       <td className="ticket-date">
@@ -2132,10 +2615,344 @@ const AdminPage = () => {
     );
   };
 
+  const renderReviewsTab = () => {
+    return (
+      <div className="admin-section">
+        <div className="section-header">
+          <h2>{t('manageReviews') || 'Управление историями'}</h2>
+          <div className="section-actions">
+            <button 
+              onClick={handleRefresh}
+              className="refresh-button"
+              disabled={storiesLoading}
+            >
+              <span className="material-icons">refresh</span>
+              {t('refresh') || 'Обновить'}
+            </button>
+          </div>
+        </div>
+
+        {/* Четыре блока статистики */}
+        <div className="stats-grid">
+         <div className="stat-card">
+  <div className="stat-icon stories">
+    <span className="material-icons">history</span>
+  </div>
+  <div className="stat-info">
+    <div className="stat-value">{storyStats.total || 0}</div>
+    <div className="stat-label">{t('totalStories') || 'Всего историй'}</div>
+  </div>
+</div>
+
+<div className="stat-card">
+  <div className="stat-icon published">
+    <span className="material-icons">check_circle</span>
+  </div>
+  <div className="stat-info">
+    <div className="stat-value">{storyStats.published || 0}</div>
+    <div className="stat-label">{t('published') || 'Опубликованные'}</div>
+  </div>
+</div>
+
+<div className="stat-card">
+  <div className="stat-icon pending-stories">
+    <span className="material-icons">schedule</span>
+  </div>
+  <div className="stat-info">
+    <div className="stat-value">{storyStats.pending || 0}</div>
+    <div className="stat-label">{t('pendingReview') || 'На проверке'}</div>
+  </div>
+</div>
+
+<div className="stat-card">
+  <div className="stat-icon draft">
+    <span className="material-icons">description</span>
+  </div>
+  <div className="stat-info">
+    <div className="stat-value">{storyStats.draft || 0}</div>
+    <div className="stat-label">{t('draft') || 'Черновики'}</div>
+  </div>
+</div>
+        </div>
+
+        {/* Статистика по категориям */}
+        {categoryStats.length > 0 && (
+          <div className="category-stats-section">
+            <h3>{t('storiesByCategory') || 'Истории по категориям'}</h3>
+            <div className="category-stats-grid">
+              {categoryStats.map(category => (
+                <div key={category.category} className="category-stat-item">
+                  <div className="category-name">{getTranslatedCategory(category.category)}</div>
+                  <div className="category-count">{category.count}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Фильтры */}
+        <div className="filters-panel">
+          <div className="search-box">
+            <input
+              type="text"
+              value={storyFilters.search}
+              onChange={(e) => handleStoryFilterChange('search', e.target.value)}
+              placeholder={t('searchStoriesPlaceholder') || "Поиск по заголовку или автору..."}
+              className="search-input"
+              disabled={storiesLoading}
+            />
+            <button onClick={() => loadStories()} className="search-button" disabled={storiesLoading}>
+              <span className="material-icons">search</span>
+            </button>
+          </div>
+          
+          <div className="filter-buttons">
+            <div className="story-filter-dropdown admin-filter-dropdown">
+              <div 
+                className={`admin-dropdown-trigger ${storyStatusDropdownOpen ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setStoryStatusDropdownOpen(!storyStatusDropdownOpen);
+                  setStoryCategoryDropdownOpen(false);
+                }}
+              >
+                <span>{getStoryStatusLabel()}</span>
+                <svg 
+                  className={`admin-dropdown-arrow ${storyStatusDropdownOpen ? 'rotated' : ''}`}
+                  width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" 
+                    fill="currentColor"
+                  />
+                </svg>
+              </div>
+              {storyStatusDropdownOpen && (
+                <div className="admin-dropdown-options">
+                  {storyStatusOptions.map((option) => (
+                    <div
+                      key={option.id}
+                      className={`admin-dropdown-option ${storyFilters.status === option.value ? 'selected' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStoryFilterChange('status', option.value);
+                        setStoryStatusDropdownOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="story-filter-dropdown admin-filter-dropdown">
+              <div 
+                className={`admin-dropdown-trigger ${storyCategoryDropdownOpen ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setStoryCategoryDropdownOpen(!storyCategoryDropdownOpen);
+                  setStoryStatusDropdownOpen(false);
+                }}
+              >
+                <span>{getCategoryLabel()}</span>
+                <svg 
+                  className={`admin-dropdown-arrow ${storyCategoryDropdownOpen ? 'rotated' : ''}`}
+                  width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" 
+                    fill="currentColor"
+                  />
+                </svg>
+              </div>
+              {storyCategoryDropdownOpen && (
+                <div className="admin-dropdown-options">
+                  <div
+                    className={`admin-dropdown-option ${storyFilters.category === 'all' ? 'selected' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStoryFilterChange('category', 'all');
+                      setStoryCategoryDropdownOpen(false);
+                    }}
+                  >
+                    {t('allCategories') || 'Все категории'}
+                  </div>
+                  {categoryStats.map(category => (
+                    <div
+                      key={category.category}
+                      className={`admin-dropdown-option ${storyFilters.category === category.category ? 'selected' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStoryFilterChange('category', category.category);
+                        setStoryCategoryDropdownOpen(false);
+                      }}
+                    >
+                      {getTranslatedCategory(category.category)} ({category.count})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={handleStoryClearFilters}
+              className="admin-clear-filters-button"
+              disabled={storiesLoading || (!storyFilters.search && storyFilters.status === 'all' && storyFilters.category === 'all')}
+            >
+              <span className="material-icons">clear_all</span>
+              {t('clearFilters') || 'Сбросить'}
+            </button>
+          </div>
+        </div>
+
+        {storiesLoading ? (
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
+            <p>{t('loadingStories') || 'Загрузка историй...'}</p>
+          </div>
+        ) : storiesError ? (
+          <div className="error-state">
+            <span className="material-icons">error_outline</span>
+            <h3>{t('error') || 'Ошибка'}</h3>
+            <p>{storiesError}</p>
+            <button onClick={loadStoriesData} className="retry-button">
+              <span className="material-icons">refresh</span>
+              {t('tryAgain') || 'Попробовать снова'}
+            </button>
+          </div>
+        ) : stories.length === 0 ? (
+          <div className="empty-state">
+            <span className="material-icons">history</span>
+            <h3>{t('noStoriesFound') || 'Истории не найдены'}</h3>
+            <p>
+              {storyFilters.search || storyFilters.status !== 'all' || storyFilters.category !== 'all'
+                ? t('changeSearchParams') || 'Измените параметры поиска.'
+                : t('noStoriesInSystem') || 'Нет историй в системе.'}
+            </p>
+            {(storyFilters.search || storyFilters.status !== 'all' || storyFilters.category !== 'all') && (
+              <button 
+                onClick={handleStoryClearFilters}
+                className="retry-button"
+              >
+                {t('showAllStories') || 'Показать все истории'}
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="stories-table-container">
+              <table className="stories-table">
+                <thead>
+                  <tr>
+                    <th>{t('title') || 'Заголовок'}</th>
+                    <th>{t('author') || 'Автор'}</th>
+                    <th>{t('category') || 'Категория'}</th>
+                    <th>{t('carbonSaved') || 'CO₂ сохранено'}</th>
+                    <th>{t('status') || 'Статус'}</th>
+                    <th>{t('createdAt') || 'Дата'}</th>
+                    <th>{t('actions') || 'Действия'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stories.map(story => (
+                    <tr key={story.id} className={`story-row ${story.status}`}>
+                      <td className="story-title" title={story.title}>
+                        {story.title}
+                      </td>
+                      <td className="story-author">
+                        <div className="author-info">
+                          <div className="author-name">{story.user_nickname}</div>
+                          <div className="story-likes">
+                            <span className="material-icons">favorite</span>
+                            {story.likes_count || 0}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="story-category">
+                        <span className="category-badge">{getTranslatedCategory(story.category)}</span>
+                      </td>
+                      <td className="story-carbon">
+                        {story.carbon_saved ? formatCarbonSaved(story.carbon_saved) : '—'}
+                      </td>
+                      <td className="story-status">
+                        <span 
+                          className="status-badge"
+                          style={{ backgroundColor: getStatusColor(story.status) }}
+                        >
+                          {getStoryStatusBadgeLabel(story.status)}
+                        </span>
+                      </td>
+                      <td className="story-date">
+                        {formatDate(story.created_at)}
+                      </td>
+                      <td className="story-actions">
+                        <div className="action-buttons">
+                          <button
+                            onClick={() => openStoryPreview(story)}
+                            className="action-button preview"
+                            title={t('previewStory') || 'Просмотреть историю'}
+                          >
+                            <span className="material-icons">visibility</span>
+                          </button>
+                          
+                          {story.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handlePublishStory(story)}
+                                className="action-button publish"
+                                title={t('publishStory') || 'Опубликовать'}
+                              >
+                                <span className="material-icons">check_circle</span>
+                              </button>
+                              <button
+                                onClick={() => handleRejectStory(story)}
+                                className="action-button reject"
+                                title={t('rejectStory') || 'Отклонить'}
+                              >
+                                <span className="material-icons">cancel</span>
+                              </button>
+                            </>
+                          )}
+                          
+                          {story.status === 'draft' && (
+                            <button
+                              onClick={() => handlePublishStory(story)}
+                              className="action-button publish"
+                              title={t('publishStory') || 'Опубликовать'}
+                            >
+                              <span className="material-icons">publish</span>
+                            </button>
+                          )}
+                          
+                          {story.status === 'published' && (
+                            <button
+                              onClick={() => handleUnpublishStory(story)}
+                              className="action-button unpublish"
+                              title={t('unpublishStory') || 'Снять с публикации'}
+                            >
+                              <span className="material-icons">unpublished</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {renderStoriesPagination()}
+          </>
+        )}
+      </div>
+    );
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'support':
         return renderSupportTab();
+      case 'reviews':
+        return renderReviewsTab();
       case 'funds':
         return (
           <div className="admin-section">
@@ -2163,16 +2980,6 @@ const AdminPage = () => {
             <div className="admin-empty-state">
               <span className="material-icons">report</span>
               <p>{t('reportsComingSoon') || 'Здесь будут жалобы пользователей и модерация контента'}</p>
-            </div>
-          </div>
-        );
-      case 'reviews':
-        return (
-          <div className="admin-section">
-            <h2>{t('manageReviews') || 'Отзывы о платформе'}</h2>
-            <div className="admin-empty-state">
-              <span className="material-icons">rate_review</span>
-              <p>{t('reviewsComingSoon') || 'Здесь будут отзывы пользователей о платформе'}</p>
             </div>
           </div>
         );
@@ -2467,6 +3274,137 @@ const AdminPage = () => {
                 <span className="material-icons">send</span>
                 {responseModal.response ? t('updateResponse') || 'Обновить' : t('sendResponse') || 'Отправить'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Модалка предпросмотра истории */}
+      {previewModalOpen && selectedStory && (
+        <div className="modal-overlay" onClick={closeStoryPreview}>
+          <div 
+            className="modal story-preview-modal large" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>
+                <span className="material-icons">visibility</span>
+                {t('storyPreview') || 'Предпросмотр истории'}
+              </h3>
+              <button 
+                className="modal-close"
+                onClick={closeStoryPreview}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="story-preview-content">
+                <div className="story-preview-header">
+                  <h2 className="story-preview-title">{selectedStory.title}</h2>
+                  <div className="story-preview-meta">
+                    <div className="story-author-preview">
+                      <span className="material-icons">person</span>
+                      {selectedStory.user_nickname}
+                    </div>
+                    <div className="story-category-preview">
+                      <span className="material-icons">category</span>
+                      {getTranslatedCategory(selectedStory.category)}
+                    </div>
+                    <div className="story-date-preview">
+                      <span className="material-icons">calendar_today</span>
+                      {formatDate(selectedStory.created_at)}
+                    </div>
+                    {selectedStory.carbon_saved && (
+                      <div className="story-carbon-preview">
+                        <span className="material-icons">eco</span>
+                        {formatCarbonSaved(selectedStory.carbon_saved)} {t('carbonSaved') || 'CO₂ сохранено'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="story-preview-body">
+                  <div className="story-content-preview">
+                    {selectedStory.content}
+                  </div>
+                </div>
+                
+                <div className="story-preview-footer">
+                  <div className="story-stats-preview">
+                    <div className="story-likes-preview">
+                      <span className="material-icons">favorite</span>
+                      {selectedStory.likes_count || 0} {t('likes') || 'лайков'}
+                    </div>
+                    <div className="story-status-preview">
+                      <span 
+                        className="status-badge"
+                        style={{ backgroundColor: getStatusColor(selectedStory.status) }}
+                      >
+                        {getStoryStatusBadgeLabel(selectedStory.status)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="btn btn-secondary" 
+                onClick={closeStoryPreview}
+              >
+                {t('close') || 'Закрыть'}
+              </button>
+              {selectedStory.status === 'pending' && (
+                <>
+                  <button 
+                    className="btn btn-danger"
+                    onClick={() => {
+                      closeStoryPreview();
+                      handleRejectStory(selectedStory);
+                    }}
+                  >
+                    <span className="material-icons">cancel</span>
+                    {t('rejectStory') || 'Отклонить'}
+                  </button>
+                  <button 
+                    className="btn btn-success"
+                    onClick={() => {
+                      closeStoryPreview();
+                      handlePublishStory(selectedStory);
+                    }}
+                  >
+                    <span className="material-icons">check_circle</span>
+                    {t('publishStory') || 'Опубликовать'}
+                  </button>
+                </>
+              )}
+              {selectedStory.status === 'published' && (
+                <button 
+                  className="btn btn-warning"
+                  onClick={() => {
+                    closeStoryPreview();
+                    handleUnpublishStory(selectedStory);
+                  }}
+                >
+                  <span className="material-icons">unpublished</span>
+                  {t('unpublishStory') || 'Снять с публикации'}
+                </button>
+              )}
+              {selectedStory.status === 'draft' && (
+                <button 
+                  className="btn btn-success"
+                  onClick={() => {
+                    closeStoryPreview();
+                    handlePublishStory(selectedStory);
+                  }}
+                >
+                  <span className="material-icons">publish</span>
+                  {t('publishStory') || 'Опубликовать'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ const {
 const { executeQueryWithLogging } = require('../utils/logger');
 const { likeLimiter } = require('../middleware/rateLimiter');
 const { sendToUser, broadcast } = require('../utils/socketHelpers');
+const { authenticateTokenWithDB, isAdmin } = require('../middleware/authMiddleware'); 
 
 const pool = new Pool({
   user: process.env.DB_USER || 'ecosteps',
@@ -18,12 +19,12 @@ const pool = new Pool({
   database: process.env.DB_NAME || 'ecosteps',
   password: process.env.DB_PASSWORD || 'ecosteps_password',
   port: process.env.DB_PORT || 5432,
-  max: 20, // Максимум соединений
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
 
-// Получить все истории с фильтрацией и пагинацией
+// Получить все истории с фильтрацией и пагинацией (только опубликованные для обычных пользователей)
 router.get('/', async (req, res) => {
   try {
     const { 
@@ -55,6 +56,7 @@ router.get('/', async (req, res) => {
     const pagination = validatePagination(page, limit);
     
     // Оптимизированный запрос с EXISTS вместо LEFT JOIN
+    // ВАЖНО: Обычные пользователи видят только опубликованные истории!
     let query = `
       SELECT 
         s.id,
@@ -64,6 +66,7 @@ router.get('/', async (req, res) => {
         s.likes_count,
         s.created_at,
         s.category,
+        s.status,  -- Добавляем статус
         u.nickname as user_nickname,
         CASE 
           WHEN u.carbon_saved >= 5000 THEN 'star'
@@ -79,6 +82,7 @@ router.get('/', async (req, res) => {
         }
       FROM success_stories s
       JOIN users u ON s.user_id = u.id
+      WHERE s.status = 'published'  -- Только опубликованные истории!
     `;
     
     let whereConditions = [];
@@ -97,7 +101,7 @@ router.get('/', async (req, res) => {
     
     // Добавляем WHERE условия если они есть
     if (whereConditions.length > 0) {
-      query += ' WHERE ' + whereConditions.join(' AND ');
+      query += ' AND ' + whereConditions.join(' AND ');
     }
     
     // Сортировка
@@ -122,16 +126,20 @@ router.get('/', async (req, res) => {
     console.log('🔍 Query Params:', queryParams);
     const result = await executeQueryWithLogging(pool, query, queryParams);
     
-    // Получаем общее количество для пагинации
+    // Получаем общее количество для пагинации (только опубликованные)
     let countQuery = `
       SELECT COUNT(*) as total
       FROM success_stories s
+      WHERE s.status = 'published'
     `;
     
     let countParams = [];
+    let paramIndex = 1;
+    
     if (category !== 'all') {
-      countQuery += ' WHERE s.category = $1';
+      countQuery += ` AND s.category = $${paramIndex}`;
       countParams.push(category);
+      paramIndex++;
     }
     
     const countResult = await executeQueryWithLogging(pool, countQuery, countParams);
@@ -159,12 +167,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Получить все доступные категории с кэшированием
+// Получить все доступные категории с кэшированием (только опубликованные)
 router.get('/categories', async (req, res) => {
   try {
     const query = `
       SELECT DISTINCT category, COUNT(*) as count
       FROM success_stories 
+      WHERE status = 'published'  -- Только опубликованные
       GROUP BY category 
       ORDER BY count DESC
     `;
@@ -212,7 +221,7 @@ router.post('/:id/like', likeLimiter, async (req, res) => {
     
     // Проверяем, существует ли история
     const storyCheck = await executeQueryWithLogging(pool,
-      'SELECT id FROM success_stories WHERE id = $1',
+      'SELECT id, status FROM success_stories WHERE id = $1',
       [storyId]
     );
     
@@ -221,6 +230,15 @@ router.post('/:id/like', likeLimiter, async (req, res) => {
         success: false,
         error: 'STORY_NOT_FOUND',
         message: 'История не найдена'
+      });
+    }
+    
+    // Можно лайкать только опубликованные истории
+    if (storyCheck.rows[0].status !== 'published') {
+      return res.status(403).json({
+        success: false,
+        error: 'STORY_NOT_PUBLISHED',
+        message: 'Нельзя лайкать неопубликованную историю'
       });
     }
     
@@ -330,12 +348,13 @@ router.post('/:id/like', likeLimiter, async (req, res) => {
     });
   }
 });
+
 // Получить мои истории с фильтрацией по статусу
 router.get('/my', async (req, res) => {
   try {
     const { 
       userId,
-      status = 'published', // published, pending, draft, all
+      status = 'all', // published, pending, draft, all
       category = 'all',
       page = 1,
       limit = 10
@@ -474,7 +493,7 @@ router.get('/my', async (req, res) => {
   }
 });
 
-// Создать новую историю
+// Создать новую историю (со статусом 'pending' - на рассмотрении)
 router.post('/', async (req, res) => {
   try {
     const { userId, title, content, category, carbon_saved = 0 } = req.body;
@@ -526,7 +545,7 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Создаем историю (по умолчанию статус 'pending' - на проверке)
+    // Создаем историю (статус 'pending' - на рассмотрении администратора)
     const insertQuery = `
       INSERT INTO success_stories (
         user_id, 
@@ -553,7 +572,7 @@ router.post('/', async (req, res) => {
     
     // Добавляем информацию о пользователе
     newStory.user_nickname = userCheck.rows[0].nickname;
-    newStory.user_avatar = 'plant'; // Аватар по умолчанию
+    newStory.user_avatar = 'plant';
     newStory.is_liked = false;
     newStory.likes_count = 0;
     
@@ -647,6 +666,517 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка при удалении истории:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// ==================== АДМИНСКИЕ ЭНДПОЙНТЫ ДЛЯ УПРАВЛЕНИЯ ИСТОРИЯМИ ====================
+
+// Статистика историй для админов
+router.get('/admin/stats', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending,
+        COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft
+      FROM success_stories
+    `;
+    
+    const result = await executeQueryWithLogging(pool, query);
+    
+    res.json({
+      success: true,
+      ...result.rows[0]
+    });
+  } catch (error) {
+    console.error('Ошибка при получении статистики историй:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Статистика по категориям для админов
+router.get('/admin/category-stats', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        category,
+        COUNT(*) as count,
+        COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
+      FROM success_stories
+      GROUP BY category
+      ORDER BY count DESC
+    `;
+    
+    const result = await executeQueryWithLogging(pool, query);
+    
+    res.json({
+      success: true,
+      categories: result.rows
+    });
+  } catch (error) {
+    console.error('Ошибка при получении статистики по категориям:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Получить истории для админ-панели с фильтрацией
+router.get('/admin', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const { 
+      status = 'all',
+      category = 'all',
+      search = '',
+      page = 1,
+      limit = 10
+    } = req.query;
+    
+    // Валидация параметров
+    const validStatuses = ['all', 'published', 'pending', 'draft'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STATUS',
+        message: 'Недопустимый статус'
+      });
+    }
+    
+    const pagination = validatePagination(page, limit);
+    
+    // Базовый запрос для админа (видит все статусы)
+    let query = `
+      SELECT 
+        s.id,
+        s.title,
+        s.content,
+        s.carbon_saved,
+        s.likes_count,
+        s.created_at,
+        s.category,
+        s.status,
+        u.id as user_id,
+        u.nickname as user_nickname,
+        u.email as user_email,
+        u.avatar_emoji as user_avatar_emoji,
+        u.is_admin as user_is_admin
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE 1=1
+    `;
+    
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE 1=1
+    `;
+    
+    let queryParams = [];
+    let countParams = [];
+    let paramIndex = 1;
+    
+    // Фильтр по статусу
+    if (status !== 'all') {
+      query += ` AND s.status = $${paramIndex}`;
+      countQuery += ` AND s.status = $${paramIndex}`;
+      queryParams.push(status);
+      countParams.push(status);
+      paramIndex++;
+    }
+    
+    // Фильтр по категории
+    if (category !== 'all') {
+      query += ` AND s.category = $${paramIndex}`;
+      countQuery += ` AND s.category = $${paramIndex}`;
+      queryParams.push(category);
+      countParams.push(category);
+      paramIndex++;
+    }
+    
+    // Поиск по заголовку или автору
+    if (search) {
+      query += ` AND (s.title ILIKE $${paramIndex} OR u.nickname ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+      countQuery += ` AND (s.title ILIKE $${paramIndex} OR u.nickname ILIKE $${paramIndex} OR u.email ILIKE $${paramIndex})`;
+      queryParams.push(`%${search}%`);
+      countParams.push(`%${search}%`);
+      paramIndex++;
+    }
+    
+    // Сортировка (сначала ожидающие модерации, потом новые)
+    if (status === 'pending') {
+      query += ' ORDER BY s.created_at ASC'; // старые pending первыми
+    } else {
+      query += ' ORDER BY s.created_at DESC'; // новые первыми
+    }
+    
+    // Пагинация
+    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(pagination.limit, pagination.offset);
+    
+    // Выполняем запросы
+    const result = await executeQueryWithLogging(pool, query, queryParams);
+    const countResult = await executeQueryWithLogging(pool, countQuery, countParams);
+    
+    const total = parseInt(countResult.rows[0].total);
+    
+    res.json({
+      success: true,
+      stories: result.rows,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasNext: pagination.offset + pagination.limit < total,
+        hasPrev: pagination.page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка при получении историй для админа:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Опубликовать историю (админ меняет статус с pending на published)
+router.post('/admin/:id/publish', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const storyId = validateStoryId(id);
+    
+    if (!storyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STORY_ID',
+        message: 'Недопустимый ID истории'
+      });
+    }
+    
+    // Проверяем текущий статус истории
+    const currentCheck = await executeQueryWithLogging(pool,
+      'SELECT status, user_id FROM success_stories WHERE id = $1',
+      [storyId]
+    );
+    
+    if (currentCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'STORY_NOT_FOUND',
+        message: 'История не найдена'
+      });
+    }
+    
+    const currentStatus = currentCheck.rows[0].status;
+    const authorId = currentCheck.rows[0].user_id;
+    
+    // Если история уже опубликована
+    if (currentStatus === 'published') {
+      return res.status(400).json({
+        success: false,
+        error: 'ALREADY_PUBLISHED',
+        message: 'История уже опубликована'
+      });
+    }
+    
+    // Обновляем статус истории на 'published'
+    const updateQuery = `
+      UPDATE success_stories 
+      SET status = 'published', 
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await executeQueryWithLogging(pool, updateQuery, [storyId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'STORY_NOT_FOUND',
+        message: 'История не найдена'
+      });
+    }
+    
+    // Отправляем уведомление автору через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      sendToUser(io, authorId, 'notification:story', {
+        type: 'story_published',
+        storyId: storyId,
+        storyTitle: result.rows[0].title,
+        timestamp: new Date()
+      });
+      
+      console.log(`📢 Уведомление об опубликовании отправлено автору (userId: ${authorId})`);
+    }
+    
+    // Также отправляем broadcast для обновления списков историй
+    if (io) {
+      broadcast(io, 'story:published', {
+        storyId: storyId,
+        story: result.rows[0]
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'История успешно опубликована',
+      story: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Ошибка при публикации истории:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Отклонить/снять с публикации историю
+router.post('/admin/:id/reject', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const storyId = validateStoryId(id);
+    
+    if (!storyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STORY_ID',
+        message: 'Недопустимый ID истории'
+      });
+    }
+    
+    // Получаем текущий статус истории и информацию об авторе
+    const currentQuery = await executeQueryWithLogging(pool,
+      'SELECT status, user_id, title FROM success_stories WHERE id = $1',
+      [storyId]
+    );
+    
+    if (currentQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'STORY_NOT_FOUND',
+        message: 'История не найдена'
+      });
+    }
+    
+    const currentStatus = currentQuery.rows[0].status;
+    const authorId = currentQuery.rows[0].user_id;
+    const storyTitle = currentQuery.rows[0].title;
+    let newStatus;
+    let actionMessage;
+    let notificationType;
+    
+    if (currentStatus === 'published') {
+      newStatus = 'draft';
+      actionMessage = 'История снята с публикации';
+      notificationType = 'story_unpublished';
+    } else {
+      newStatus = 'draft';
+      actionMessage = 'История отклонена';
+      notificationType = 'story_rejected';
+    }
+    
+    // Обновляем статус истории
+    const updateQuery = `
+      UPDATE success_stories 
+      SET status = $1, 
+          updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `;
+    
+    const result = await executeQueryWithLogging(pool, updateQuery, [newStatus, storyId]);
+    
+    // Отправляем уведомление автору через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      sendToUser(io, authorId, 'notification:story', {
+        type: notificationType,
+        storyId: storyId,
+        storyTitle: storyTitle,
+        reason: reason || 'Администратор отклонил вашу историю',
+        timestamp: new Date()
+      });
+      
+      console.log(`📢 Уведомление об отклонении отправлено автору (userId: ${authorId})`);
+    }
+    
+    // Если снимаем с публикации, отправляем broadcast для удаления из списков
+    if (currentStatus === 'published' && io) {
+      broadcast(io, 'story:unpublished', {
+        storyId: storyId
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: actionMessage,
+      story: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Ошибка при отклонении истории:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Снять историю с публикации (перевести в черновики)
+router.post('/admin/:id/unpublish', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const storyId = validateStoryId(id);
+    
+    if (!storyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STORY_ID',
+        message: 'Недопустимый ID истории'
+      });
+    }
+    
+    // Получаем текущий статус истории и информацию об авторе
+    const currentQuery = await executeQueryWithLogging(pool,
+      'SELECT status, user_id, title FROM success_stories WHERE id = $1',
+      [storyId]
+    );
+    
+    if (currentQuery.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'STORY_NOT_FOUND',
+        message: 'История не найдена'
+      });
+    }
+    
+    const currentStatus = currentQuery.rows[0].status;
+    const authorId = currentQuery.rows[0].user_id;
+    const storyTitle = currentQuery.rows[0].title;
+    
+    // Проверяем, что история опубликована
+    if (currentStatus !== 'published') {
+      return res.status(400).json({
+        success: false,
+        error: 'STORY_NOT_PUBLISHED',
+        message: 'История не опубликована'
+      });
+    }
+    
+    // Переводим историю в черновики
+    const updateQuery = `
+      UPDATE success_stories 
+      SET status = 'draft', 
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+    
+    const result = await executeQueryWithLogging(pool, updateQuery, [storyId]);
+    
+    // Отправляем уведомление автору через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      sendToUser(io, authorId, 'notification:story', {
+        type: 'story_unpublished',
+        storyId: storyId,
+        storyTitle: storyTitle,
+        reason: reason || 'Администратор снял вашу историю с публикации',
+        timestamp: new Date()
+      });
+      
+      console.log(`📢 Уведомление о снятии с публикации отправлено автору (userId: ${authorId})`);
+    }
+    
+    // Отправляем broadcast для удаления из списков
+    if (io) {
+      broadcast(io, 'story:unpublished', {
+        storyId: storyId
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'История снята с публикации и перемещена в черновики',
+      story: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Ошибка при снятии истории с публикации:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Получить детали конкретной истории для админа
+router.get('/admin/:id', authenticateTokenWithDB, isAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const storyId = validateStoryId(id);
+    
+    if (!storyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STORY_ID',
+        message: 'Недопустимый ID истории'
+      });
+    }
+    
+    const query = `
+      SELECT 
+        s.*,
+        u.id as user_id,
+        u.nickname as user_nickname,
+        u.email as user_email,
+        u.avatar_emoji as user_avatar_emoji,
+        u.created_at as user_created_at,
+        u.carbon_saved,
+        u.is_admin as user_is_admin
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE s.id = $1
+    `;
+    
+    const result = await executeQueryWithLogging(pool, query, [storyId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'STORY_NOT_FOUND',
+        message: 'История не найдена'
+      });
+    }
+    
+    res.json({
+      success: true,
+      story: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Ошибка при получении истории для админа:', error);
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',

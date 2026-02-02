@@ -10,15 +10,8 @@ const NotificationSystem = ({ isVisible, onClose }) => {
   })
 
   useEffect(() => {
-    // Загружаем настройки уведомлений
-    const savedSettings = localStorage.getItem('appSettings')
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings)
-      setSettings({
-        ecoTips: parsed.ecoTips ?? true,
-        notifications: parsed.notifications ?? true
-      })
-    }
+    // Загружаем настройки уведомлений с сервера (если есть токен) или локально
+    loadNotificationSettings()
 
     // Загружаем ожидающие уведомления из localStorage
     loadPendingNotifications()
@@ -31,8 +24,72 @@ const NotificationSystem = ({ isVisible, onClose }) => {
     // Устанавливаем интервал для проверки новых уведомлений
     const interval = setInterval(checkDailyTip, 60000)
 
-    return () => clearInterval(interval)
+    // Слушаем события storage для синхронизации между вкладками
+    const handleStorageChange = (e) => {
+      if (e.key === 'appSettings') {
+        const newSettings = JSON.parse(e.newValue || '{}')
+        setSettings({
+          ecoTips: newSettings.ecoTips ?? true,
+          notifications: newSettings.notifications ?? true
+        })
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [isVisible])
+
+  const loadNotificationSettings = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      
+      if (token) {
+        // Пытаемся загрузить серверные настройки
+        const response = await fetch('/api/user-settings', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.settings) {
+            setSettings({
+              ecoTips: data.settings.ecoTips ?? true,
+              notifications: data.settings.notifications ?? true
+            })
+            return
+          }
+        }
+      }
+      
+      // Fallback на локальные настройки
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings)
+        setSettings({
+          ecoTips: parsed.ecoTips ?? true,
+          notifications: parsed.notifications ?? true
+        })
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки настроек уведомлений:', error)
+      // Используем локальные настройки при ошибке
+      const savedSettings = localStorage.getItem('appSettings')
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings)
+        setSettings({
+          ecoTips: parsed.ecoTips ?? true,
+          notifications: parsed.notifications ?? true
+        })
+      }
+    }
+  }
 
   const loadPendingNotifications = () => {
     const pending = localStorage.getItem('pendingNotifications')

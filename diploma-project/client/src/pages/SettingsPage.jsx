@@ -12,8 +12,8 @@ const SettingsPage = () => {
   const [tempNotification, setTempNotification] = useState({ show: false, title: '', body: '' })
   const [user, setUser] = useState(null)
   const [settings, setSettings] = useState({
-    theme: getSavedTheme(),
-    language: currentLanguage,
+    theme: getSavedTheme() || 'light',
+    language: currentLanguage || 'RU',
     notifications: true,
     ecoTips: true,
     emailNotifications: true,
@@ -80,8 +80,8 @@ const SettingsPage = () => {
       
       const headers = {
         'Content-Type': 'application/json',
-        'X-User-Id': userId.toString(),
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'X-User-Id': userId.toString()  // Добавляем обязательный заголовок
       }
       
       const response = await fetch('/api/user-settings', {
@@ -91,14 +91,29 @@ const SettingsPage = () => {
       if (response.ok) {
         const data = await response.json()
         if (data.success && data.settings) {
-          setSettings(data.settings)
-          applyTheme(data.settings.theme)
+          // Убеждаемся, что все свойства определены
+          const loadedSettings = {
+            theme: data.settings.theme || 'light',
+            language: data.settings.language || 'RU',
+            notifications: data.settings.notifications !== undefined ? data.settings.notifications : true,
+            ecoTips: data.settings.ecoTips !== undefined ? data.settings.ecoTips : true,
+            emailNotifications: data.settings.emailNotifications !== undefined ? data.settings.emailNotifications : true,
+            pushNotifications: data.settings.pushNotifications !== undefined ? data.settings.pushNotifications : false,
+            privacyLevel: data.settings.privacyLevel || 1
+          }
+          setSettings(loadedSettings)
+          applyTheme(loadedSettings.theme)
         }
-      } else if (response.status === 404) {
-        await createDefaultSettings(userId)
-        setTimeout(() => loadUserSettings(), 1000)
       } else if (response.status === 401) {
-        localStorage.removeItem('token')
+        console.warn('⚠️ Unauthorized access to user settings, but keeping token for other features')
+        // НЕ удаляем токен, так как он может быть валидным для других функций
+        // localStorage.removeItem('token')
+        // Fallback на локальные настройки
+        const savedSettings = localStorage.getItem('appSettings')
+        if (savedSettings) {
+          const localSettings = JSON.parse(savedSettings)
+          setSettings(localSettings)
+        }
       } else {
         const savedSettings = localStorage.getItem('appSettings')
         if (savedSettings) {
@@ -107,6 +122,7 @@ const SettingsPage = () => {
         }
       }
     } catch (error) {
+      console.error('Error loading user settings:', error)
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
         const localSettings = JSON.parse(savedSettings)
@@ -138,25 +154,72 @@ const SettingsPage = () => {
     }
   }
 
+  const saveSettingsToServer = async (newSettings) => {
+    try {
+      const userData = localStorage.getItem('user')
+      const token = localStorage.getItem('token')
+      
+      // Если нет токена, просто сохраняем локально
+      if (!userData || !token) {
+        return
+      }
+      
+      const user = JSON.parse(userData)
+      const userId = user.id
+      
+      if (!userId) {
+        console.error('❌ У пользователя нет ID для сохранения настроек')
+        return
+      }
+      
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'X-User-Id': userId.toString()
+      }
+      
+      const response = await fetch('/api/user-settings', {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify(newSettings)
+      })
+      
+      if (response.ok) {
+        console.log('✅ Settings saved to server successfully')
+      } else if (response.status === 401) {
+        console.warn('⚠️ Unauthorized access to save settings, keeping local settings')
+      } else {
+        console.warn('⚠️ Failed to save settings to server, keeping local settings')
+      }
+    } catch (error) {
+      console.error('❌ Error saving settings to server:', error)
+    }
+  }
+
   const saveSettings = async (newSettings) => {
     try {
       const userData = localStorage.getItem('user')
       const token = localStorage.getItem('token')
       
+      // Сначала сохраняем локально
       localStorage.setItem('appSettings', JSON.stringify(newSettings))
-      setSettings(newSettings)
+      // НЕ вызываем setSettings здесь, так как это уже сделано в вызывающей функции
   
+      // Если есть токен, отправляем на сервер
       if (userData && token) {
         try {
           const user = JSON.parse(userData)
           const userId = user.id
           
-          if (!userId) return
+          if (!userId) {
+            console.error('❌ У пользователя нет ID для сохранения настроек')
+            return
+          }
           
           const headers = {
             'Content-Type': 'application/json',
-            'X-User-Id': userId.toString(),
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'X-User-Id': userId.toString()  // Добавляем обязательный заголовок
           }
           
           const response = await fetch('/api/user-settings', {
@@ -164,7 +227,31 @@ const SettingsPage = () => {
             headers: headers,
             body: JSON.stringify(newSettings)
           })
-        } catch (error) {}
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && data.settings) {
+              // Убеждаемся, что все свойства определены
+              const savedSettings = {
+                theme: data.settings.theme || 'light',
+                language: data.settings.language || 'RU',
+                notifications: data.settings.notifications !== undefined ? data.settings.notifications : true,
+                ecoTips: data.settings.ecoTips !== undefined ? data.settings.ecoTips : true,
+                emailNotifications: data.settings.emailNotifications !== undefined ? data.settings.emailNotifications : true,
+                pushNotifications: data.settings.pushNotifications !== undefined ? data.settings.pushNotifications : false,
+                privacyLevel: data.settings.privacyLevel || 1
+              }
+              // Обновляем настройки только после успешного ответа сервера
+              setSettings(savedSettings)
+              localStorage.setItem('appSettings', JSON.stringify(savedSettings))
+            }
+          } else if (response.status === 401) {
+            console.warn('⚠️ Unauthorized access to save settings, but keeping local settings')
+            // НЕ удаляем токен, используем локальные настройки
+          }
+        } catch (error) {
+          console.error('❌ Ошибка сохранения на сервере, используем локальные настройки:', error)
+        }
       }
     } catch (error) {
       console.error('❌ Ошибка сохранения настроек:', error)
@@ -173,20 +260,32 @@ const SettingsPage = () => {
   
   const handleThemeChange = (theme) => {
     const newSettings = { ...settings, theme }
+    
+    // Мгновенно обновляем UI
     setSettings(newSettings)
-    saveSettings(newSettings)
     applyTheme(theme)
+    
+    // Сохраняем локально
+    localStorage.setItem('appSettings', JSON.stringify(newSettings))
+    
+    // Асинхронно сохраняем на сервер
+    saveSettingsToServer(newSettings)
   }
 
   const handleLanguageChange = async (language) => {
     try {
       const newSettings = { ...settings, language }
+      
+      // Мгновенно обновляем UI
       setSettings(newSettings)
       
+      // Сохраняем локально
       localStorage.setItem('appSettings', JSON.stringify(newSettings))
       
-      await saveSettings(newSettings)
+      // Асинхронно сохраняем на сервер
+      saveSettingsToServer(newSettings)
       
+      // Меняем язык
       await changeLanguage(language)
     } catch (error) {
       console.error('Ошибка при смене языка:', error)
@@ -194,8 +293,19 @@ const SettingsPage = () => {
   }
 
   const handleNotificationToggle = (type) => {
-    const newSettings = { ...settings, [type]: !settings[type] }
-    saveSettings(newSettings)
+    const newValue = !settings[type]
+    const newSettings = { ...settings, [type]: newValue }
+    
+    console.log(`Toggling ${type} from ${settings[type]} to ${newValue}`)
+    
+    // Мгновенно обновляем UI
+    setSettings(newSettings)
+    
+    // Сохраняем локально
+    localStorage.setItem('appSettings', JSON.stringify(newSettings))
+    
+    // Асинхронно сохраняем на сервер (без ожидания)
+    saveSettingsToServer(newSettings)
   }
 
   const handleLogout = () => {
@@ -613,7 +723,7 @@ const SettingsPage = () => {
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
-                      checked={settings.notifications}
+                      checked={!!settings.notifications}
                       onChange={() => handleNotificationToggle('notifications')}
                     />
                     <span className="toggle-slider"></span>
@@ -628,7 +738,7 @@ const SettingsPage = () => {
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
-                      checked={settings.ecoTips}
+                      checked={!!settings.ecoTips}
                       onChange={() => handleNotificationToggle('ecoTips')}
                     />
                     <span className="toggle-slider"></span>
@@ -643,7 +753,7 @@ const SettingsPage = () => {
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
-                      checked={settings.emailNotifications}
+                      checked={!!settings.emailNotifications}
                       onChange={() => handleNotificationToggle('emailNotifications')}
                     />
                     <span className="toggle-slider"></span>
@@ -658,7 +768,7 @@ const SettingsPage = () => {
                   <label className="toggle-switch">
                     <input
                       type="checkbox"
-                      checked={settings.pushNotifications}
+                      checked={!!settings.pushNotifications}
                       onChange={() => handleNotificationToggle('pushNotifications')}
                     />
                     <span className="toggle-slider"></span>
@@ -990,7 +1100,7 @@ const SettingsPage = () => {
                     <div className="email-input-wrapper">
                       <input
                         type="email"
-                        value={deleteEmailConfirmation}
+                        value={deleteEmailConfirmation || ''}
                         onChange={(e) => {
                           setDeleteEmailConfirmation(e.target.value);
                           setDeleteError('');
@@ -1321,7 +1431,7 @@ const SettingsPage = () => {
                       <label>{t('supportSubject')} *</label>
                       <input 
                         type="text"
-                        value={supportForm.subject}
+                        value={supportForm.subject || ''}
                         onChange={(e) => setSupportForm({...supportForm, subject: e.target.value})}
                         placeholder={t('supportSubjectPlaceholder')}
                         className="form-input"
@@ -1334,7 +1444,7 @@ const SettingsPage = () => {
                     <div className="form-group">
                       <label>{t('supportMessage')} *</label>
                       <textarea 
-                        value={supportForm.message}
+                        value={supportForm.message || ''}
                         onChange={(e) => setSupportForm({...supportForm, message: e.target.value})}
                         placeholder={t('supportMessagePlaceholder')}
                         className="form-textarea"

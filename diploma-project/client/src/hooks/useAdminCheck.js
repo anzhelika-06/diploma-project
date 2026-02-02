@@ -10,6 +10,7 @@ export const useAdminCheck = () => {
     const checkAdmin = () => {
       try {
         const token = localStorage.getItem('token');
+        
         if (!token) {
           setIsAdmin(false);
           setUser(null);
@@ -43,7 +44,7 @@ export const useAdminCheck = () => {
     checkAdmin();
     
     // Слушаем изменения в localStorage
-    const handleStorageChange = () => {
+    const handleStorageChange = (e) => {
       checkAdmin();
     };
     

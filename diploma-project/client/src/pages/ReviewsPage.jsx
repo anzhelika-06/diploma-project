@@ -39,7 +39,7 @@ const ReviewsPage = () => {
   const [newStory, setNewStory] = useState({
     title: '',
     content: '',
-    category: 'food',
+    category: 'Общее',
     carbon_saved: 0
   })
   const [creatingStory, setCreatingStory] = useState(false)
@@ -48,6 +48,21 @@ const ReviewsPage = () => {
   // Состояния для кастомного дропдауна
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false)
   const categoryDropdownRef = useRef(null)
+  
+  // Состояния для модальных окон
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [storyToDelete, setStoryToDelete] = useState(null)
+  
+  // Состояния для уведомлений (как в SettingsPage)
+  const [tempNotification, setTempNotification] = useState({ 
+    show: false, 
+    title: '', 
+    body: '',
+    type: 'success' // 'success' или 'error'
+  })
+
+  // Флаг для предотвращения перевода при обновлении лайков
+  const skipTranslationRef = useRef(false)
 
   // Проверка авторизации и получение пользователя
   useEffect(() => {
@@ -82,30 +97,40 @@ const ReviewsPage = () => {
   }, [currentUser])
 
   // Закрытие дропдауна при клике вне его
-useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
-      setIsCategoryDropdownOpen(false);
-    }
-  };
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
 
-  // Добавляем обработчик с capture: true чтобы он срабатывал раньше других кликов
-  document.addEventListener('mousedown', handleClickOutside, true);
-  
-  // Обработчик для Escape
-  const handleEscape = (e) => {
-    if (e.key === 'Escape') {
-      setIsCategoryDropdownOpen(false);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        setIsCategoryDropdownOpen(false);
+      }
+    });
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', () => {});
+    };
+  }, []);
+
+  // Функция для показа уведомлений
+  const showNotification = (type, title, body) => {
+    setTempNotification({
+      show: true,
+      type,
+      title,
+      body
+    });
+    
+    // Автоматически скрыть через 3 секунды
+    setTimeout(() => {
+      setTempNotification({ show: false, title: '', body: '', type: 'success' });
+    }, 3000);
   };
-  
-  document.addEventListener('keydown', handleEscape);
-  
-  return () => {
-    document.removeEventListener('mousedown', handleClickOutside, true);
-    document.removeEventListener('keydown', handleEscape);
-  };
-}, []);
 
   // Сохранение лайков в localStorage
   const saveLikesToStorage = useCallback((likedStoriesSet) => {
@@ -156,6 +181,11 @@ useEffect(() => {
     
     newSocket.on('story:like:update', (data) => {
       console.log('🔄 WebSocket обновление лайков:', data)
+      
+      // Устанавливаем флаг, чтобы не вызывать перевод
+      skipTranslationRef.current = true
+      
+      // Обновляем только лайки
       setStories(prevStories => 
         prevStories.map(story => 
           story.id === data.storyId 
@@ -164,6 +194,7 @@ useEffect(() => {
         )
       )
       
+      // Обновляем translatedStories, сохраняя перевод
       setTranslatedStories(prevTranslated => 
         prevTranslated.map(story => 
           story.id === data.storyId 
@@ -171,6 +202,11 @@ useEffect(() => {
             : story
         )
       )
+      
+      // Сбрасываем флаг после обновления
+      setTimeout(() => {
+        skipTranslationRef.current = false
+      }, 100)
     })
     
     setSocket(newSocket)
@@ -207,7 +243,13 @@ useEffect(() => {
           sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         }
         
-        setStories(sortedStories)
+        // Добавляем флаг, что эти истории нужно перевести
+        const storiesWithTranslationFlag = sortedStories.map(story => ({
+          ...story,
+          _needsTranslation: true
+        }))
+        
+        setStories(storiesWithTranslationFlag)
         
         // Обновляем лайки из серверных данных
         updateLikesFromServer(sortedStories)
@@ -259,7 +301,13 @@ useEffect(() => {
         let sortedStories = [...data.stories]
         sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         
-        setStories(sortedStories)
+        // Добавляем флаг, что эти истории нужно перевести
+        const storiesWithTranslationFlag = sortedStories.map(story => ({
+          ...story,
+          _needsTranslation: true
+        }))
+        
+        setStories(storiesWithTranslationFlag)
         
         // Обновляем лайки из серверных данных
         updateLikesFromServer(sortedStories)
@@ -305,7 +353,7 @@ useEffect(() => {
   }
 
   // Определение языка текста
-  const detectLanguage = (text) => {
+  const detectLanguage = useCallback((text) => {
     if (!text) return 'ru'
     
     const latinChars = (text.match(/[a-zA-Z]/g) || []).length
@@ -325,10 +373,16 @@ useEffect(() => {
     }
     
     return 'ru'
-  }
+  }, [])
 
   // Перевод историй
-  const translateStories = async () => {
+  const translateStories = useCallback(async () => {
+    // Проверяем флаг - если true, пропускаем перевод
+    if (skipTranslationRef.current) {
+      console.log('⏭️ Пропуск перевода из-за флага')
+      return
+    }
+    
     if (stories.length === 0) {
       setTranslatedStories([])
       return
@@ -342,9 +396,25 @@ useEffect(() => {
     setTranslating(true)
     
     try {
+      // Фильтруем истории, которые нужно перевести
+      const storiesToTranslate = stories.filter(story => story._needsTranslation !== false)
+      
+      if (storiesToTranslate.length === 0) {
+        // Если все истории уже переведены, просто обновляем translatedStories
+        setTranslatedStories(stories)
+        return
+      }
+      
+      console.log(`📝 Переводим ${storiesToTranslate.length} из ${stories.length} историй`)
+      
       const translated = await Promise.all(
         stories.map(async (story) => {
           try {
+            // Если история не требует перевода, возвращаем как есть
+            if (story._needsTranslation === false) {
+              return story
+            }
+            
             const titleLanguage = detectLanguage(story.title)
             const contentLanguage = detectLanguage(story.content)
             const targetLang = currentLanguage.toLowerCase()
@@ -356,6 +426,7 @@ useEffect(() => {
               try {
                 translatedTitle = await translateStoryContent(story.title, currentLanguage, titleLanguage)
               } catch (error) {
+                console.warn('⚠️ Ошибка перевода заголовка:', error)
                 translatedTitle = story.title
               }
             }
@@ -364,6 +435,7 @@ useEffect(() => {
               try {
                 translatedContent = await translateStoryContent(story.content, currentLanguage, contentLanguage)
               } catch (error) {
+                console.warn('⚠️ Ошибка перевода контента:', error)
                 translatedContent = story.content
               }
             }
@@ -371,23 +443,37 @@ useEffect(() => {
             return {
               ...story,
               title: translatedTitle,
-              content: translatedContent
+              content: translatedContent,
+              // Помечаем как переведенную
+              _needsTranslation: false,
+              _translatedAt: new Date().toISOString(),
+              _targetLanguage: currentLanguage
             }
           } catch (error) {
-            return story
+            console.error('❌ Ошибка при переводе истории:', error)
+            return {
+              ...story,
+              _needsTranslation: false, // Помечаем, чтобы не пытаться снова
+              _targetLanguage: currentLanguage
+            }
           }
         })
       )
       
       setTranslatedStories(translated)
     } catch (error) {
-      setTranslatedStories(stories)
+      console.error('❌ Общая ошибка перевода:', error)
+      setTranslatedStories(stories.map(story => ({
+        ...story,
+        _needsTranslation: false,
+        _targetLanguage: currentLanguage
+      })))
     } finally {
       setTranslating(false)
     }
-  }
+  }, [stories, currentLanguage, detectLanguage])
 
-  // Лайк истории - ОБНОВЛЕННАЯ ФУНКЦИЯ
+  // Лайк истории
   const handleLikeStory = async (storyId) => {
     if (!currentUser) {
       navigate('/auth')
@@ -406,22 +492,27 @@ useEffect(() => {
       const data = await response.json()
       
       if (data.success) {
-        // Обновляем состояние в реальном времени
+        // Устанавливаем флаг, чтобы не вызывать перевод
+        skipTranslationRef.current = true
+        
         const wasLiked = likedStories.has(storyId)
         const isLikedNow = data.isLiked
         
+        // Обновляем stories с флагом "не переводить"
         setStories(prevStories => 
           prevStories.map(story => 
             story.id === storyId 
               ? { 
                   ...story, 
                   likes_count: data.likes,
-                  is_liked: isLikedNow
+                  is_liked: isLikedNow,
+                  _needsTranslation: false // Помечаем, что не нужно переводить
                 }
               : story
           )
         )
         
+        // Обновляем translatedStories, сохраняя перевод
         setTranslatedStories(prevTranslated => 
           prevTranslated.map(story => 
             story.id === storyId 
@@ -441,23 +532,27 @@ useEffect(() => {
           } else {
             newSet.delete(storyId)
           }
-          // Сохраняем в localStorage
           saveLikesToStorage(newSet)
           return newSet
         })
         
-        // Обновляем имена полей в stories для согласованности
-        setStories(prev => 
-          prev.map(story => 
-            story.id === storyId 
-              ? { ...story, is_liked: isLikedNow }
-              : story
-          )
-        )
+        // Обновляем WebSocket
+        if (socket) {
+          socket.emit('story:like', {
+            storyId: storyId,
+            userId: currentUser.id,
+            action: isLikedNow ? 'like' : 'unlike'
+          })
+        }
         
+        // Сбрасываем флаг через небольшой таймаут
+        setTimeout(() => {
+          skipTranslationRef.current = false
+        }, 100)
       }
     } catch (error) {
       console.error('❌ Ошибка при лайке:', error)
+      skipTranslationRef.current = false
     }
   }
 
@@ -507,26 +602,39 @@ useEffect(() => {
         })
         setShowCreateModal(false)
         
-        alert(t('storyCreatedSuccess') || 'История успешно создана! Она появится после проверки модератором.')
+        showNotification('success', 
+          t('storyCreatedSuccess') || 'История успешно создана!', 
+          t('storyCreatedDesc') || 'Она появится после проверки модератором.'
+        )
       } else {
-        alert(data.message || 'Ошибка при создании истории')
+        showNotification('error', 
+          t('error') || 'Ошибка', 
+          data.message || t('storyCreateError') || 'Ошибка при создании истории'
+        )
       }
     } catch (error) {
       console.error('❌ Ошибка при создании истории:', error)
-      alert('Ошибка при создании истории: ' + error.message)
+      showNotification('error', 
+        t('error') || 'Ошибка', 
+        t('storyCreateError') || 'Ошибка при создании истории'
+      )
     } finally {
       setCreatingStory(false)
     }
   }
 
-  // Удаление моей истории
-  const handleDeleteStory = async (storyId) => {
-    if (!window.confirm(t('confirmDeleteStory') || 'Вы уверены, что хотите удалить эту историю?')) {
-      return
-    }
+  // Открытие модального окна подтверждения удаления
+  const openDeleteConfirmation = (storyId) => {
+    setStoryToDelete(storyId)
+    setShowDeleteModal(true)
+  }
+
+  // Удаление моей истории (после подтверждения)
+  const handleDeleteStory = async () => {
+    if (!storyToDelete) return
 
     try {
-      const response = await fetch(`/api/stories/${storyId}`, {
+      const response = await fetch(`/api/stories/${storyToDelete}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -542,13 +650,26 @@ useEffect(() => {
         } else {
           loadAllStories(storiesFilter, selectedCategory, currentPage)
         }
-        alert(t('storyDeletedSuccess') || 'История успешно удалена')
+        
+        showNotification('success', 
+          t('storyDeletedSuccess') || 'История успешно удалена', 
+          t('storyDeletedDesc') || 'История была удалена из вашего профиля.'
+        )
       } else {
-        alert(data.message || 'Ошибка при удалении истории')
+        showNotification('error', 
+          t('error') || 'Ошибка', 
+          data.message || t('storyDeleteError') || 'Ошибка при удалении истории'
+        )
       }
     } catch (error) {
       console.error('❌ Ошибка при удалении истории:', error)
-      alert('Ошибка при удаления истории')
+      showNotification('error', 
+        t('error') || 'Ошибка', 
+        t('storyDeleteError') || 'Ошибка при удалении истории'
+      )
+    } finally {
+      setShowDeleteModal(false)
+      setStoryToDelete(null)
     }
   }
 
@@ -647,12 +768,12 @@ useEffect(() => {
     loadCategories()
   }, [])
 
-  // Перевод историй при изменении языка или историй
+  // ВСЕГДА переводим при изменении языка или историй
   useEffect(() => {
     if (stories.length > 0) {
       translateStories()
     }
-  }, [currentLanguage, stories])
+  }, [currentLanguage, stories, translateStories])
 
   // Применение темы
   useEffect(() => {
@@ -683,18 +804,17 @@ useEffect(() => {
     switch(status) {
       case 'published': return '#4caf50'
       case 'pending': return '#ff9800'
+      case 'draft': return '#757575'
       default: return '#666'
     }
   }
 
   // Получение состояния лайка для конкретной истории
   const isStoryLiked = (storyId) => {
-    // Проверяем сначала в локальном состоянии likedStories
     if (likedStories.has(storyId)) {
       return true
     }
     
-    // Затем проверяем в stories и translatedStories
     const story = stories.find(s => s.id === storyId)
     if (story && story.is_liked) {
       return true
@@ -889,6 +1009,12 @@ useEffect(() => {
                 >
                   {t('statusPending') || 'На проверке'}
                 </button>
+                <button 
+                  className={`reviews-status-btn ${statusFilter === 'draft' ? 'reviews-status-btn-active' : ''}`}
+                  onClick={() => handleStatusFilterChange('draft')}
+                >
+                  {t('draft') || 'Черновик'}
+                </button>
               </div>
             </div>
           )}
@@ -956,7 +1082,6 @@ useEffect(() => {
                     ? story.content.substring(0, 200) + '...'
                     : story.content
                   
-                  // Используем функцию isStoryLiked для определения состояния лайка
                   const isLiked = isStoryLiked(story.id)
                   
                   return (
@@ -1017,7 +1142,7 @@ useEffect(() => {
                           {activeTab === 'my' && (
                             <button 
                               className="reviews-delete-btn"
-                              onClick={() => handleDeleteStory(story.id)}
+                              onClick={() => openDeleteConfirmation(story.id)}
                               title={t('deleteStory') || 'Удалить историю'}
                             >
                               🗑️
@@ -1032,137 +1157,235 @@ useEffect(() => {
               
               {renderPagination()}
             </>
-          )}
+          )}  
         </div>
       </div>
 
+      {/* Модальное окно создания истории */}
       {showCreateModal && (
-  <>
-    <div className="reviews-modal-overlay" onClick={() => !creatingStory && setShowCreateModal(false)} />
-    
-    <div className="reviews-create-modal">
-      <div className="reviews-modal-header">
-        <h3>{t('createStoryTitle') || 'Написать историю'}</h3>
-        <button 
-          className="reviews-modal-close" 
-          onClick={() => !creatingStory && setShowCreateModal(false)}
-          disabled={creatingStory}
-        >
-          ✕
-        </button>
-      </div>
-      
-      {/* Ключевое: Убираем overflow: visible из div, добавляем относительное позиционирование */}
-      <div className="reviews-modal-body-no-scroll" style={{ position: 'relative' }}>
-        <div className="reviews-form-group">
-          <label>{t('storyTitle') || 'Заголовок'} *</label>
-          <input 
-            type="text"
-            value={newStory.title}
-            onChange={(e) => setNewStory({...newStory, title: e.target.value})}
-            placeholder={t('storyTitlePlaceholder') || 'Например: Как я начал сортировать мусор'}
-            className="reviews-form-input"
-            disabled={creatingStory}
-          />
-        </div>
-        
-        <div className="reviews-form-group">
-          <label>{t('storyContent') || 'Содержание'} *</label>
-          <textarea 
-            value={newStory.content}
-            onChange={(e) => setNewStory({...newStory, content: e.target.value})}
-            placeholder={t('storyContentPlaceholder') || 'Расскажите вашу историю...'}
-            className="reviews-form-textarea"
-            rows="6"
-            disabled={creatingStory}
-          />
-        </div>
-        
-        {/* Кастомный дропдаун для категории - теперь внутри relative контейнера */}
-        <div className="reviews-form-group">
-          <label>{t('category') || 'Категория'} *</label>
-          <div 
-            className="reviews-category-dropdown-wrapper"
-            ref={categoryDropdownRef}
-          >
-            <div 
-              className={`reviews-category-dropdown-trigger ${isCategoryDropdownOpen ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                !creatingStory && setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
-              }}
-            >
-              <span className="reviews-category-dropdown-selected">
-                {getSelectedCategoryName()}
-              </span>
-              <svg 
-                className={`reviews-category-dropdown-arrow ${isCategoryDropdownOpen ? 'rotated' : ''}`}
-                width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
+        <>
+          <div className="reviews-modal-overlay" onClick={() => !creatingStory && setShowCreateModal(false)} />
+          
+          <div className="reviews-create-modal">
+            <div className="reviews-modal-header">
+              <h3>{t('createStoryTitle') || 'Написать историю'}</h3>
+              <button 
+                className="reviews-modal-close" 
+                onClick={() => !creatingStory && setShowCreateModal(false)}
+                disabled={creatingStory}
               >
-                <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" 
-                  fill="currentColor"
-                />
-              </svg>
+                ✕
+              </button>
             </div>
             
-            {isCategoryDropdownOpen && (
-              <div className="reviews-category-dropdown-options">
-                {categories.map(category => (
-                  <div
-                    key={category.category}
-                    className={`reviews-category-dropdown-option ${newStory.category === category.category ? 'selected' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCategorySelect(category.category);
-                    }}
+            <div className="reviews-modal-body-no-scroll">
+              <div className="reviews-modal-form-container">
+                <div className="reviews-form-group">
+                  <label>{t('storyTitle') || 'Заголовок'} *</label>
+                  <input 
+                    type="text"
+                    value={newStory.title}
+                    onChange={(e) => setNewStory({...newStory, title: e.target.value})}
+                    placeholder={t('storyTitlePlaceholder') || 'Например: Как я начал сортировать мусор'}
+                    className="reviews-form-input"
+                    disabled={creatingStory}
+                  />
+                </div>
+                
+                <div className="reviews-form-group">
+                  <label>{t('storyContent') || 'Содержание'} *</label>
+                  <textarea 
+                    value={newStory.content}
+                    onChange={(e) => setNewStory({...newStory, content: e.target.value})}
+                    placeholder={t('storyContentPlaceholder') || 'Расскажите вашу историю...'}
+                    className="reviews-form-textarea"
+                    rows="6"
+                    disabled={creatingStory}
+                  />
+                </div>
+                
+                {/* Кастомный дропдаун для категории */}
+                <div className="reviews-form-group">
+                  <label>{t('category') || 'Категория'} *</label>
+                  <div 
+                    className="reviews-category-dropdown-wrapper"
+                    ref={categoryDropdownRef}
                   >
-                    {translateCategory(category.category, currentLanguage)}
+                    <div 
+                      className={`reviews-category-dropdown-trigger ${isCategoryDropdownOpen ? 'active' : ''}`}
+                      onClick={() => !creatingStory && setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                    >
+                      <span className="reviews-category-dropdown-selected">
+                        {getSelectedCategoryName()}
+                      </span>
+                      <svg 
+                        className={`reviews-category-dropdown-arrow ${isCategoryDropdownOpen ? 'rotated' : ''}`}
+                        width="12" height="12" viewBox="0 0 8 5" fill="none" xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d="M0.168642 0.052783C-0.0130542 0.174845 -0.0534312 0.41567 0.0744293 0.600412C0.182101 0.758763 3.66462 4.84949 3.75883 4.93196C3.85304 5.01443 4.12559 5.02433 4.21644 4.94845C4.31401 4.87258 7.95131 0.583917 7.97822 0.514639C8.03879 0.362886 7.96813 0.148453 7.82681 0.052783C7.78307 0.0230923 7.68213 0 7.58791 0C7.44323 0 7.41631 0.0131955 7.28509 0.145154C7.2077 0.224329 6.44053 1.12165 5.57916 2.13773C4.71778 3.15711 4.00782 3.98845 3.99773 3.98845C3.98763 3.98845 3.27094 3.14722 2.39947 2.12124C1.528 1.09526 0.760838 0.197938 0.693543 0.128659C0.579142 0.0131955 0.548859 0 0.404175 0C0.313326 0 0.212384 0.0230923 0.168642 0.052783Z" 
+                          fill="currentColor"
+                        />
+                      </svg>
+                    </div>
+                    
+                    {isCategoryDropdownOpen && (
+                      <div className="reviews-category-dropdown-options">
+                        {categories.map(category => (
+                          <div
+                            key={category.category}
+                            className={`reviews-category-dropdown-option ${newStory.category === category.category ? 'selected' : ''}`}
+                            onClick={() => handleCategorySelect(category.category)}
+                          >
+                            {translateCategory(category.category, currentLanguage)}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
+                </div>
+                
+                <div className="reviews-form-group">
+                  <label>{t('carbonSaved') || 'Сохранено CO₂ (кг)'}</label>
+                  <input 
+                    type="number"
+                    value={newStory.carbon_saved}
+                    onChange={(e) => setNewStory({...newStory, carbon_saved: parseFloat(e.target.value) || 0})}
+                    placeholder={t('carbonSavedPlaceholder') || '0'}
+                    className="reviews-form-input"
+                    disabled={creatingStory}
+                    min="0"
+                    step="0.1"
+                  />
+                  <div className="reviews-form-hint">
+                    {t('carbonSavedHint') || 'Примерное количество сэкономленного CO₂ в килограммах'}
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
+            
+            <div className="reviews-modal-footer">
+              <button 
+                className="reviews-btn-secondary" 
+                onClick={() => !creatingStory && setShowCreateModal(false)}
+                disabled={creatingStory}
+              >
+                {t('cancel') || 'Отмена'}
+              </button>
+              <button 
+                className="reviews-btn-primary" 
+                onClick={handleCreateStory}
+                disabled={creatingStory || !newStory.title.trim() || !newStory.content.trim() || !newStory.category}
+              >
+                {creatingStory 
+                  ? (t('creatingStory') || 'Создание...')
+                  : (t('createStoryButton') || 'Создать историю')
+                }
+              </button>
+            </div>
           </div>
-        </div>
-        
-        <div className="reviews-form-group">
-          <label>{t('carbonSaved') || 'Сохранено CO₂ (кг)'}</label>
-          <input 
-            type="number"
-            value={newStory.carbon_saved}
-            onChange={(e) => setNewStory({...newStory, carbon_saved: parseFloat(e.target.value) || 0})}
-            placeholder="0"
-            className="reviews-form-input"
-            disabled={creatingStory}
-            min="0"
-            step="0.1"
-          />
-          <div className="reviews-form-hint">
-            {t('carbonSavedHint') || 'Примерное количество сэкономленного CO₂ в килограммах'}
+        </>
+      )}
+
+      {/* Модальное окно подтверждения удаления */}
+      {showDeleteModal && (
+        <>
+          <div className="reviews-modal-overlay" onClick={() => setShowDeleteModal(false)} />
+          
+          <div className="reviews-confirm-modal">
+            <div className="reviews-confirm-modal-content">
+              <div className="reviews-confirm-modal-icon">🗑️</div>
+              <h3 className="reviews-confirm-modal-title">
+                {t('confirmDeleteTitle') || 'Удалить историю?'}
+              </h3>
+              <p className="reviews-confirm-modal-message">
+                {t('confirmDeleteMessage') || 'Вы уверены, что хотите удалить эту историю? Это действие нельзя отменить.'}
+              </p>
+              <div className="reviews-confirm-modal-buttons">
+                <button 
+                  className="reviews-confirm-modal-btn reviews-confirm-modal-btn-cancel"
+                  onClick={() => setShowDeleteModal(false)}
+                >
+                  {t('cancel') || 'Отмена'}
+                </button>
+                <button 
+                  className="reviews-confirm-modal-btn reviews-confirm-modal-btn-delete"
+                  onClick={handleDeleteStory}
+                >
+                  {t('delete') || 'Удалить'}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-      <div className="reviews-modal-footer">
-        <button 
-          className="reviews-btn-secondary" 
-          onClick={() => setShowCreateModal(false)}
-          disabled={creatingStory}
-        >
-          {t('cancel') || 'Отмена'}
-        </button>
-        <button 
-          className="reviews-btn-primary" 
-          onClick={handleCreateStory}
-          disabled={creatingStory || !newStory.title.trim() || !newStory.content.trim()}
-        >
-          {creatingStory 
-            ? (t('creatingStory') || 'Создание...')
-            : (t('createStory') || 'Создать историю')
-          }
-        </button>
-      </div>
-    </div>
-  </>
-)}
+        </>
+      )}
+
+      {/* Временное уведомление об успехе/ошибке */}
+      {tempNotification.show && (
+        <>
+          <div className="reviews-modal-overlay" onClick={() => setTempNotification({ show: false, title: '', body: '', type: 'success' })} />
+          <div 
+            className="reviews-notification-modal"
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 2002
+            }}
+          >
+            <div className="reviews-notification-header">
+              <h3 style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                width: '100%',
+                gap: '8px'
+              }}>
+                <span 
+                  className="material-icons" 
+                  style={{ 
+                    color: tempNotification.type === 'success' ? '#10b981' : '#ef4444'
+                  }}
+                >
+                  {tempNotification.type === 'success' ? 'check_circle' : 'error'}
+                </span>
+                {tempNotification.title}
+              </h3>
+              <button 
+                className="reviews-notification-close"
+                onClick={() => setTempNotification({ show: false, title: '', body: '', type: 'success' })}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="reviews-notification-body">
+              <p style={{ textAlign: 'center', fontSize: '16px', marginBottom: '20px' }}>
+                {tempNotification.body}
+              </p>
+              <div style={{ textAlign: 'center', margin: '20px 0' }}>
+                <span 
+                  className="material-icons" 
+                  style={{ 
+                    fontSize: '64px', 
+                    color: tempNotification.type === 'success' ? '#10b981' : '#ef4444' 
+                  }}
+                >
+                  {tempNotification.type === 'success' ? 'thumb_up' : 'warning'}
+                </span>
+              </div>
+            </div>
+            <div className="reviews-notification-footer">
+              <button 
+                className="reviews-notification-btn reviews-notification-btn-ok"
+                onClick={() => setTempNotification({ show: false, title: '', body: '', type: 'success' })}
+                style={{ width: '100%' }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
