@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS users (
     eco_coins INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP,
+    login_streak INTEGER DEFAULT 0,
+    last_daily_login TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP DEFAULT NULL
 );
 
@@ -142,11 +145,17 @@ CREATE TABLE IF NOT EXISTS achievements (
     description TEXT NOT NULL,
     category VARCHAR(50) NOT NULL,
     icon VARCHAR(10) NOT NULL,
-    requirement_type VARCHAR(50) NOT NULL,
+    event_type VARCHAR(50) NOT NULL, -- 'first_login', 'daily_login', 'story_created', 'comment_added' и т.д.
+    requirement_type VARCHAR(50) NOT NULL CHECK (requirement_type IN ('count', 'streak', 'value', 'boolean')),
     requirement_value INTEGER NOT NULL,
     points INTEGER DEFAULT 10,
     rarity VARCHAR(20) DEFAULT 'common' CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    -- Дополнительные параметры
+    is_active BOOLEAN DEFAULT TRUE, -- Можно отключать достижения
+    is_hidden BOOLEAN DEFAULT FALSE, -- Скрытые достижения
+    sort_order INTEGER DEFAULT 0, -- Порядок отображения
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============ ДОСТИЖЕНИЯ ПОЛЬЗОВАТЕЛЕЙ ============
@@ -155,12 +164,17 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     achievement_id INTEGER REFERENCES achievements(id) ON DELETE CASCADE,
     progress INTEGER DEFAULT 0,
+    current_value INTEGER DEFAULT 0, 
     completed BOOLEAN DEFAULT FALSE,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
-    claimed_at TIMESTAMP, -- Время получения награды
+    claimed_at TIMESTAMP,
+    metadata JSONB DEFAULT '{}', -- Хранение дополнительной информации
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, achievement_id)
 );
+
 -- ============ ИСТОРИЯ ЭКОИНОВ ============
 CREATE TABLE IF NOT EXISTS eco_coins_history (
     id SERIAL PRIMARY KEY,
@@ -169,6 +183,16 @@ CREATE TABLE IF NOT EXISTS eco_coins_history (
     type VARCHAR(50) NOT NULL,
     achievement_id INTEGER REFERENCES achievements(id) ON DELETE SET NULL,
     description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ ИСТОРИЯ СОБЫТИЙ ============
+CREATE TABLE IF NOT EXISTS achievement_events (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    event_type VARCHAR(50) NOT NULL,
+    event_data JSONB DEFAULT '{}',
+    processed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 -- ============ ВОПРОСЫ В ПОДДЕРЖКУ ============
@@ -238,6 +262,15 @@ CREATE INDEX IF NOT EXISTS idx_ban_history_user_id ON ban_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_ban_history_created_by ON ban_history(created_by);
 CREATE INDEX IF NOT EXISTS idx_ban_history_unbanned_at ON ban_history(unbanned_at);
 CREATE INDEX IF NOT EXISTS idx_ban_history_created_at ON ban_history(created_at);
+-- Индексы для быстрого поиска
+CREATE INDEX IF NOT EXISTS idx_achievements_event_type ON achievements(event_type);
+CREATE INDEX IF NOT EXISTS idx_achievements_category ON achievements(category);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_achievements_completed ON user_achievements(completed);
+CREATE INDEX IF NOT EXISTS idx_achievement_events_user_id ON achievement_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_achievement_events_event_type ON achievement_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_eco_coins_history_user_id ON eco_coins_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_eco_coins_history_achievement_id ON eco_coins_history(achievement_id);
 
 -- Индексы для настроек
 CREATE INDEX IF NOT EXISTS idx_user_settings_user ON user_settings(user_id);
@@ -789,7 +822,22 @@ DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
 CREATE TRIGGER update_support_tickets_updated_at
     BEFORE UPDATE ON support_tickets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Триггер для обновления updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
+CREATE TRIGGER update_achievements_updated_at 
+    BEFORE UPDATE ON achievements 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_achievements_updated_at 
+    BEFORE UPDATE ON user_achievements 
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 -- Триггер для создания настроек при регистрации нового пользователя
 DROP TRIGGER IF EXISTS trigger_create_user_settings ON users;
 CREATE TRIGGER trigger_create_user_settings
@@ -1097,43 +1145,195 @@ UPDATE teams SET member_count = (
     SELECT COUNT(*) FROM team_members WHERE team_id = teams.id
 );
 
--- Создаем достижения (без поля updated_at)
-INSERT INTO achievements (code, name, description, category, icon, requirement_type, requirement_value, points, rarity) VALUES
-    ('carbon_100', 'Первые 100 кг', 'Сэкономить 100 кг CO₂', 'general', '🌍', 'carbon_saved', 100, 25, 'common'),
-    ('carbon_500', '500 кг CO₂', 'Сэкономить 500 кг CO₂', 'general', '🌍', 'carbon_saved', 500, 75, 'rare'),
-    ('carbon_1000', '1 тонна CO₂', 'Сэкономить 1000 кг CO₂', 'general', '🌍', 'carbon_saved', 1000, 150, 'epic'),
-    ('first_day', 'Первый день', 'Зарегистрироваться в EcoSteps', 'general', '🌱', 'count', 1, 5, 'common'),
-    ('week_active', 'Неделя активности', 'Быть активным 7 дней подряд', 'general', '📅', 'days', 7, 20, 'common'),
-    ('bike_10km', 'Первые 10 км', 'Проехать 10 км на велосипеде', 'transport', '🚴', 'distance', 10, 10, 'common'),
-    ('public_transport_7', 'Неделя без авто', 'Использовать общественный транспорт 7 дней подряд', 'transport', '🚌', 'days', 7, 15, 'common'),
-    ('recycle_first', 'Первая сортировка', 'Начать раздельный сбор мусора', 'waste', '♻️', 'count', 1, 10, 'common'),
-    ('vegan_7', 'Неделя веганства', 'Питаться веганской пищей 7 дней', 'food', '🥗', 'days', 7, 25, 'common'),
-    ('water_save_100', 'Экономия воды', 'Сэкономить 100 литров воды', 'water', '💧', 'count', 100, 20, 'common'),
-    ('join_team', 'Командный игрок', 'Присоединиться к команде', 'social', '🤝', 'count', 1, 20, 'common'),
-    ('create_team', 'Лидер команды', 'Создать свою команду', 'social', '👑', 'count', 1, 50, 'rare'),
-    ('share_story', 'Рассказчик', 'Поделиться своей эко-историей', 'social', '📝', 'count', 1, 15, 'common')
+-- Создаем достижения для EcoSteps (исправленный)
+INSERT INTO achievements (
+    code, 
+    name, 
+    description, 
+    category, 
+    icon, 
+    event_type,
+    requirement_type, 
+    requirement_value, 
+    points, 
+    rarity,
+    is_hidden,
+    sort_order
+) VALUES
+    -- Достижения для регистрации и входа
+    ('first_login', 'Добро пожаловать!', 'Зарегистрируйтесь в системе', 'registration', '🎉', 'first_login', 'boolean', 1, 50, 'common', false, 1),
+    ('daily_login_1', 'Начало пути', 'Войдите в систему', 'login', '🔓', 'daily_login', 'count', 1, 10, 'common', false, 2),
+    ('daily_login_3', 'Привычка', 'Войдите в систему 3 дня подряд', 'login', '🔥', 'daily_login', 'streak', 3, 30, 'rare', false, 3),
+    ('daily_login_7', 'Верный друг', 'Войдите в систему 7 дней подряд', 'login', '🏆', 'daily_login', 'streak', 7, 70, 'epic', false, 4),
+    ('daily_login_30', 'Легенда', 'Войдите в систему 30 дней подряд', 'login', '👑', 'daily_login', 'streak', 30, 300, 'legendary', false, 5),
+    
+    -- Достижения для историй (создание)
+    ('first_story', 'Первый рассказ', 'Напишите свою первую историю', 'stories', '✍️', 'story_created', 'count', 1, 100, 'rare', false, 10),
+    ('story_5', 'Рассказчик', 'Напишите 5 историй', 'stories', '📚', 'story_created', 'count', 5, 250, 'epic', false, 11),
+    ('story_10', 'Опытный писатель', 'Напишите 10 историй', 'stories', '📖', 'story_created', 'count', 10, 400, 'epic', false, 12),
+    ('story_20', 'Мастер слов', 'Напишите 20 историй', 'stories', '🏰', 'story_created', 'count', 20, 500, 'legendary', false, 13),
+    
+    -- Достижения для лайков историй
+    ('first_like', 'Первая оценка', 'Поставьте первый лайк истории', 'likes', '❤️', 'story_liked', 'count', 1, 15, 'common', false, 20),
+    ('like_10', 'Активный читатель', 'Поставьте 10 лайков историям', 'likes', '👍', 'story_liked', 'count', 10, 50, 'common', false, 21),
+    ('like_50', 'Щедрый ценитель', 'Поставьте 50 лайков', 'likes', '👏', 'story_liked', 'count', 50, 150, 'epic', false, 22),
+    ('like_100', 'Эксперт оценок', 'Поставьте 100 лайков историям', 'likes', '🏆', 'story_liked', 'count', 100, 300, 'legendary', false, 23),
+    
+    -- Достижения для получения лайков на свои истории
+    ('story_popular_5', 'Популярность', 'Ваша история получила 5 лайков', 'popularity', '⭐', 'story_received_like', 'value', 5, 100, 'rare', false, 30),
+    ('story_popular_10', 'Звезда', 'Ваша история получила 10 лайков', 'popularity', '🌟', 'story_received_like', 'value', 10, 200, 'epic', false, 31),
+    ('story_popular_25', 'Вирусная история', 'Ваша история получила 25 лайков', 'popularity', '🔥', 'story_received_like', 'value', 25, 400, 'legendary', false, 32),
+    
+    -- Достижения для экономии CO₂
+    ('carbon_100', 'Первые 100 кг', 'Сэкономить 100 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 100, 25, 'common', false, 40),
+    ('carbon_500', '500 кг CO₂', 'Сэкономить 500 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 500, 75, 'rare', false, 41),
+    ('carbon_1000', '1 тонна CO₂', 'Сэкономить 1000 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 1000, 150, 'epic', false, 42),
+    
+    -- Достижения для просмотра страниц
+    ('page_achievements', 'Любознательный', 'Посетите страницу достижений', 'exploration', '🏆', 'achievements_page_viewed', 'boolean', 1, 20, 'common', false, 50),
+    ('page_stories', 'Читатель', 'Посетите страницу историй', 'exploration', '📚', 'stories_page_viewed', 'boolean', 1, 15, 'common', false, 51),
+    ('page_profile', 'Знакомство', 'Посетите страницу профиля', 'exploration', '👤', 'profile_page_viewed', 'boolean', 1, 10, 'common', false, 52),
+    
+    -- Скрытые достижения (сюрпризы)
+    ('story_deleted', 'Переосмысление', 'Удалите свою историю', 'special', '🗑️', 'story_deleted', 'count', 1, 25, 'rare', true, 100),
+    ('like_own_story', 'Самолюбование', 'Поставьте лайк своей истории', 'special', '😊', 'like_own_story', 'boolean', 1, 10, 'common', true, 101),
+    ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', false, 102)
+    
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
-    description = EXCLUDED.description;
+    description = EXCLUDED.description,
+    event_type = EXCLUDED.event_type,
+    requirement_type = EXCLUDED.requirement_type,
+    requirement_value = EXCLUDED.requirement_value,
+    points = EXCLUDED.points,
+    rarity = EXCLUDED.rarity,
+    category = EXCLUDED.category,
+    icon = EXCLUDED.icon,
+    is_hidden = EXCLUDED.is_hidden,
+    sort_order = EXCLUDED.sort_order,
+    updated_at = CURRENT_TIMESTAMP;
 
--- Создаем достижения пользователей
-INSERT INTO user_achievements (user_id, achievement_id, progress, completed, completed_at) VALUES
-(1, 1, 100, TRUE, CURRENT_TIMESTAMP - INTERVAL '30 days'),
-(1, 2, 500, TRUE, CURRENT_TIMESTAMP - INTERVAL '20 days'),
-(1, 3, 1000, TRUE, CURRENT_TIMESTAMP - INTERVAL '10 days'),
-(1, 4, 1, TRUE, CURRENT_TIMESTAMP - INTERVAL '60 days'),
-(1, 5, 7, TRUE, CURRENT_TIMESTAMP - INTERVAL '5 days'),
-(2, 1, 100, TRUE, CURRENT_TIMESTAMP - INTERVAL '25 days'),
-(2, 4, 1, TRUE, CURRENT_TIMESTAMP - INTERVAL '55 days'),
-(2, 6, 10, TRUE, CURRENT_TIMESTAMP - INTERVAL '15 days'),
-(3, 1, 100, TRUE, CURRENT_TIMESTAMP - INTERVAL '28 days'),
-(3, 4, 1, TRUE, CURRENT_TIMESTAMP - INTERVAL '58 days'),
-(3, 8, 1, TRUE, CURRENT_TIMESTAMP - INTERVAL '12 days')
+-- Обновляем сортировку для старых достижений
+UPDATE achievements 
+SET sort_order = CASE 
+    WHEN category = 'registration' THEN 1
+    WHEN category = 'login' THEN 2
+    WHEN category = 'stories' THEN 3
+    WHEN category = 'likes' THEN 4
+    WHEN category = 'popularity' THEN 5
+    WHEN category = 'carbon' THEN 6
+    WHEN category = 'exploration' THEN 7
+    WHEN category = 'special' THEN 8
+    ELSE 9
+END * 10 + sort_order
+WHERE sort_order < 10;
+
+-- Проверяем созданные достижения
+SELECT 
+    code, 
+    name, 
+    category,
+    event_type, 
+    requirement_type, 
+    requirement_value,
+    points,
+    rarity,
+    is_hidden
+FROM achievements 
+ORDER BY category, sort_order, points;
+
+-- Тестовые данные для пользовательских достижений (если нужно)
+-- Удаляем старые тестовые данные если они есть
+DELETE FROM user_achievements WHERE user_id IN (1, 2, 3);
+
+-- Создаем тестовые достижения для пользователей
+INSERT INTO user_achievements (
+    user_id, 
+    achievement_id, 
+    progress, 
+    current_value,
+    completed, 
+    completed_at,
+    started_at
+) 
+SELECT 
+    u.id as user_id,
+    a.id as achievement_id,
+    CASE 
+        WHEN a.code = 'first_login' THEN 1
+        WHEN a.code = 'daily_login_1' THEN 1
+        WHEN a.code = 'first_story' THEN RANDOM()::int % 2  -- 0 или 1
+        ELSE 0
+    END as progress,
+    CASE 
+        WHEN a.code = 'first_login' THEN 1
+        WHEN a.code = 'daily_login_1' THEN 1
+        WHEN a.code = 'first_story' THEN RANDOM()::int % 2
+        ELSE 0
+    END as current_value,
+    CASE 
+        WHEN a.code = 'first_login' THEN true
+        WHEN a.code = 'daily_login_1' THEN true
+        WHEN a.code = 'first_story' THEN (RANDOM()::int % 2)::boolean
+        ELSE false
+    END as completed,
+    CASE 
+        WHEN a.code = 'first_login' THEN CURRENT_TIMESTAMP - INTERVAL '60 days'
+        WHEN a.code = 'daily_login_1' THEN CURRENT_TIMESTAMP - INTERVAL '5 days'
+        WHEN a.code = 'first_story' AND (RANDOM()::int % 2) = 1 THEN CURRENT_TIMESTAMP - INTERVAL '15 days'
+        ELSE NULL
+    END as completed_at,
+    CURRENT_TIMESTAMP - INTERVAL '60 days' as started_at
+FROM users u
+CROSS JOIN achievements a
+WHERE u.id IN (1, 2, 3)  -- Тестовые пользователи
+  AND a.code IN ('first_login', 'daily_login_1', 'first_story')
 ON CONFLICT (user_id, achievement_id) DO UPDATE SET
-    progress = GREATEST(user_achievements.progress, EXCLUDED.progress),
+    progress = EXCLUDED.progress,
+    current_value = EXCLUDED.current_value,
     completed = EXCLUDED.completed,
-    completed_at = CASE WHEN EXCLUDED.completed = TRUE AND user_achievements.completed = FALSE THEN EXCLUDED.completed_at ELSE user_achievements.completed_at END;
+    completed_at = CASE 
+        WHEN EXCLUDED.completed = true AND user_achievements.completed = false 
+        THEN EXCLUDED.completed_at 
+        ELSE user_achievements.completed_at 
+    END,
+    updated_at = CURRENT_TIMESTAMP;
 
+-- Обновляем историю экоинов для тестовых пользователей
+INSERT INTO eco_coins_history (
+    user_id,
+    amount,
+    type,
+    achievement_id,
+    description,
+    created_at
+)
+SELECT 
+    ua.user_id,
+    a.points,
+    'achievement_unlocked',
+    ua.achievement_id,
+    'Достижение: ' || a.name,
+    ua.completed_at
+FROM user_achievements ua
+JOIN achievements a ON ua.achievement_id = a.id
+WHERE ua.completed = true 
+  AND ua.user_id IN (1, 2, 3)
+  AND NOT EXISTS (
+    SELECT 1 FROM eco_coins_history ech 
+    WHERE ech.user_id = ua.user_id 
+      AND ech.achievement_id = ua.achievement_id
+  )
+ON CONFLICT DO NOTHING;
+
+-- Обновляем общее количество экоинов у пользователей
+UPDATE users u
+SET eco_coins = COALESCE((
+    SELECT SUM(amount) 
+    FROM eco_coins_history ech 
+    WHERE ech.user_id = u.id
+), 0)
+WHERE u.id IN (1, 2, 3);
 -- Создаем истории успеха для всех пользователей (все опубликованные)
 INSERT INTO success_stories (user_id, title, content, category, carbon_saved, likes_count, status) VALUES
     (1, 'Администрирование экологии', 'Как администратор EcoSteps, я помогаю тысячам людей начать свой путь к экологичной жизни. Вместе мы уже сэкономили тонны CO₂!', 'Общее', 2500, 45, 'published'),

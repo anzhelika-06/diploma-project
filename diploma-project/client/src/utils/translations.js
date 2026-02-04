@@ -787,7 +787,8 @@ ticketClosedSuccess: "Обращение {ticketNumber} закрыто",
       loading: "Загрузка достижений...",
       userNotFound: "Пользователь не найден. Пожалуйста, войдите в систему.",
       loadError: "Не удалось загрузить достижения",
-      
+      youWillReceive:"Вы получите",
+      getReward:"Получить награду",
       // Статистика
       completed: "Выполнено",
       points: "Очки",
@@ -819,7 +820,9 @@ ticketClosedSuccess: "Обращение {ticketNumber} закрыто",
       // Пустые состояния
       noAchievements: "Достижения не найдены",
       noAchievementsHint: "Выполняйте задания, чтобы открыть достижения",
-      
+      showingAchievements: "Показано",
+ofTotal: "из",
+achievements: "достижений",
       // Категории (если будут добавлены позже)
       allCategories: "Все категории",
       daily: "Ежедневные",
@@ -1771,7 +1774,9 @@ banned: "Banned",
   ofTotal: "of",
   carbonSavedKg: "kg",
   carbonSaved: "CO₂ saved",
-  
+  showingAchievements: "Showing",
+ofTotal: "of",
+achievements: "achievements",
   // Leaderboard translations
   leaderboardTitle: "Leaderboard by CO₂ Saved",
   yourPosition: "Your Position",
@@ -1816,7 +1821,8 @@ banned: "Banned",
    completed: "Completed",
    claimed: "Claimed",
    claimReward: "Claim Reward",
-   
+   youWillReceive:"You will receive",
+   getReward:"Get reward",
    // Модальное окно
    confirmClaim: "Confirm Reward",
    reward: "Reward",
@@ -2294,7 +2300,9 @@ banned: "Banned",
     showingStories: "Паказана",
     ofTotal: "з",
     carbonSavedKg: "кг",
-
+    showingAchievements: "Паказана",
+    ofTotal: "з",
+    achievements: "дасягненняў",
     // Меню сайдбара
     menuPet: "Хатні жывёлы",
     menuTeams: "Каманды",
@@ -2659,7 +2667,8 @@ editResponse: "Рэдагаваць адказ",
   userRemovedAdminSuccess: 'Карыстальнік пазбаўлены правоў адміністратара',
   userBannedSuccess: 'Карыстальнік забанаваны',
   userUnbannedSuccess: 'Карыстальнік разбанаваны',
-  
+  youWillReceive:"Вы атрымаеце",
+  getReward:"Атрымаць узнагароду",
   // Памылкі
   errorLoadingUsers: 'Памылка загрузкі карыстальнікаў',
   networkError: 'Памылка сеткі. Праверце падключэнне.',

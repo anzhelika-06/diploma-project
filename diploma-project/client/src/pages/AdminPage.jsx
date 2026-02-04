@@ -159,7 +159,6 @@ const AdminPage = () => {
   const tabs = [
     { id: 'users', label: t('adminTabUsers') || 'Пользователи', icon: 'people' },
     { id: 'funds', label: t('adminTabFunds') || 'Фонды', icon: 'account_balance' },
-    { id: 'achievements', label: t('adminTabAchievements') || 'Достижения', icon: 'emoji_events' },
     { id: 'reports', label: t('adminTabReports') || 'Жалобы', icon: 'report' },
     { id: 'reviews', label: t('adminTabReviews') || 'Отзывы', icon: 'rate_review' },
     { id: 'support', label: t('adminTabSupport') || 'Вопросы', icon: 'help_outline' }
@@ -2960,16 +2959,6 @@ const AdminPage = () => {
             <div className="admin-empty-state">
               <span className="material-icons">account_balance</span>
               <p>{t('fundsComingSoon') || 'Здесь будет управление экологическими фондами и их финансированием'}</p>
-            </div>
-          </div>
-        );
-      case 'achievements':
-        return (
-          <div className="admin-section">
-            <h2>{t('manageAchievements') || 'Управление достижениями'}</h2>
-            <div className="admin-empty-state">
-              <span className="material-icons">emoji_events</span>
-              <p>{t('achievementsComingSoon') || 'Здесь будет управление достижениями пользователей и наградами'}</p>
             </div>
           </div>
         );

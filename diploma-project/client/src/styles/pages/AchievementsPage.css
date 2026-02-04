@@ -95,6 +95,7 @@
   border: 2px solid #e0e0e0;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
 }
 
 .stat-card:hover {
@@ -121,6 +122,26 @@
 .stat-total {
   font-size: 14px;
   color: #888888;
+}
+
+.stat-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+.stat-badge.new .material-icons {
+  font-size: 16px;
 }
 
 .stat-progress {
@@ -170,6 +191,7 @@
   transition: all 0.3s ease;
   min-width: 200px;
   justify-content: center;
+  position: relative;
 }
 
 .tab-btn.active {
@@ -189,12 +211,32 @@
   font-size: 20px;
 }
 
+.tab-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.4);
+}
+
+.tab-badge.new {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
 /* Список достижений */
 .achievements-list {
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
   min-height: 400px;
+  align-content: start; /* ДОБАВЛЕНО: предотвращает растягивание одного элемента */
 }
 
 /* Карточка достижения */
@@ -206,6 +248,11 @@
   border-left: 8px solid;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
+  min-height: 180px; /* ДОБАВЛЕНО: фиксированная минимальная высота */
+  display: flex; /* ДОБАВЛЕНО */
+  flex-direction: column; /* ДОБАВЛЕНО */
+  justify-content: space-between; /* ДОБАВЛЕНО */
 }
 
 .achievement-card:hover {
@@ -216,6 +263,33 @@
 .achievement-card.completed {
   border-color: #4caf50;
   background: rgba(76, 175, 80, 0.05);
+}
+
+.achievement-card.unclaimed {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+/* Бейдж незабранной награды */
+.achievement-unclaimed-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  z-index: 1;
+}
+
+.achievement-unclaimed-badge .material-icons {
+  font-size: 14px;
 }
 
 /* Цвета редкостей */
@@ -248,6 +322,11 @@
 .achievement-card.completed .achievement-icon {
   background: rgba(76, 175, 80, 0.1);
   border-color: #4caf50;
+}
+
+.achievement-card.unclaimed .achievement-icon {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
 }
 
 .achievement-info {
@@ -317,6 +396,10 @@
   color: #4caf50;
 }
 
+.achievement-card.unclaimed .progress-percentage {
+  color: #f59e0b;
+}
+
 .progress-bar {
   height: 8px;
   background: #e0e0e0;
@@ -345,6 +428,7 @@
   gap: 16px;
   padding-top: 16px;
   border-top: 1px solid #e0e0e0;
+  margin-top: auto; /* ДОБАВЛЕНО: чтобы футер всегда был внизу */
 }
 
 .achievement-meta {
@@ -370,6 +454,22 @@
 .achievement-card.rare .meta-rarity { color: #3b82f6; }
 .achievement-card.epic .meta-rarity { color: #8b5cf6; }
 .achievement-card.legendary .meta-rarity { color: #f59e0b; }
+
+.meta-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #f8f9fa;
+  border-radius: var(--radius-lg);
+  font-size: 12px;
+  color: #666666;
+}
+
+.meta-date .material-icons {
+  font-size: 14px;
+  color: #999;
+}
 
 /* Кнопки действий */
 .achievement-actions {
@@ -405,6 +505,14 @@
   cursor: not-allowed;
 }
 
+.claim-btn.primary {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+}
+
+.claim-btn.primary:hover {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
 /* Бейджи статуса */
 .claimed-badge,
 .progress-badge,
@@ -434,6 +542,86 @@
   background: rgba(76, 175, 80, 0.1);
   color: #2e7d32;
   border: 1px solid #4caf50;
+}
+
+/* Пагинация - НОВАЯ как в leaderboard */
+.achievements-pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: var(--radius-md);
+  border: 1px solid #e0e0e0;
+}
+
+.achievements-pagination-info {
+  font-size: 14px;
+  color: #666666;
+}
+
+.achievements-pagination-info strong {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.achievements-pagination-buttons {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.achievements-pagination-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.achievements-pagination-button:hover:not(:disabled) {
+  background: #f0f0f0;
+  border-color: #999999;
+  color: #1a1a1a;
+  transform: translateY(-1px);
+}
+
+.achievements-pagination-button.active {
+  background: #4caf50;
+  border-color: #4caf50;
+  color: #ffffff;
+}
+
+.achievements-pagination-button.active:hover {
+  background: #45a049;
+  border-color: #45a049;
+}
+
+.achievements-pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.achievements-pagination-button .material-icons {
+  font-size: 18px;
+}
+
+.achievements-pagination-ellipsis {
+  padding: 0 8px;
+  color: #999999;
+  font-weight: 500;
+  user-select: none;
 }
 
 /* Состояние загрузки */
@@ -838,6 +1026,11 @@
   background: rgba(76, 175, 80, 0.1);
 }
 
+[data-theme="dark"] .achievement-card.unclaimed {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+}
+
 [data-theme="dark"] .achievement-icon {
   background: var(--bg-secondary);
   border-color: var(--border-color);
@@ -859,6 +1052,15 @@
   background: var(--bg-secondary);
 }
 
+[data-theme="dark"] .meta-date {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .meta-date .material-icons {
+  color: var(--text-secondary);
+}
+
 [data-theme="dark"] .progress-bar {
   background: var(--border-color);
 }
@@ -876,6 +1078,49 @@
   border-color: var(--border-color);
 }
 
+/* Пагинация в темной теме */
+[data-theme="dark"] .achievements-pagination-container {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .achievements-pagination-info {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .achievements-pagination-info strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .achievements-pagination-button {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .achievements-pagination-button:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .achievements-pagination-button.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .achievements-pagination-button.active:hover {
+  background: #45a049;
+  border-color: #45a049;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .achievements-pagination-ellipsis {
+  color: var(--text-secondary);
+}
+
+/* Модальное окно в темной теме */
 [data-theme="dark"] .modal-content {
   background: var(--bg-secondary);
   border-color: var(--border-color);
@@ -1060,6 +1305,21 @@
     justify-content: center;
   }
   
+  /* Пагинация на мобильных */
+  .achievements-pagination-container {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .achievements-pagination-info {
+    order: 2;
+  }
+  
+  .achievements-pagination-buttons {
+    order: 1;
+  }
+  
   /* Модальное окно на мобильных */
   .modal-overlay {
     padding: 15px;
@@ -1128,6 +1388,12 @@
     font-size: 13px;
   }
   
+  /* Пагинация на маленьких экранах */
+  .achievements-pagination-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
   .modal-content {
     border-radius: 8px 8px 0 0;
   }
@@ -1189,4 +1455,129 @@
 
 [data-theme="dark"] .modal-content::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+/* ДИЗАЙН С ТЕКСТОМ СЛЕВА И ЗНАЧЕНИЕМ СПРАВА */
+.reward-section-inline {
+  margin: 24px 0;
+}
+
+.reward-inline-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(76, 175, 80, 0.04);
+  border-radius: 12px;
+  border: 1px solid rgba(76, 175, 80, 0.15);
+  transition: all 0.2s ease;
+}
+
+.reward-inline-container:hover {
+  background: rgba(76, 175, 80, 0.07);
+  border-color: rgba(76, 175, 80, 0.25);
+}
+
+.reward-text-left {
+  display: flex;
+  align-items: center;
+}
+
+.reward-label-inline {
+  font-size: 15px;
+  color: #666;
+  font-weight: 500;
+}
+
+.reward-value-right {
+  display: flex;
+  align-items: center;
+  gap: 2px; /* Уменьшили отступ между элементами */
+}
+
+.reward-plus-inline {
+  font-size: 20px;
+  font-weight: 600;
+  color: #4caf50;
+  margin-right: -2px; /* Сдвигаем плюс ближе к цифрам */
+}
+
+.reward-number-inline {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4caf50;
+  letter-spacing: -0.5px;
+  min-width: 36px; /* Уменьшили минимальную ширину */
+  text-align: right;
+}
+
+.reward-icon-inline {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  opacity: 0.9;
+  margin-left: 6px; /* Уменьшили отступ от цифр */
+}
+
+/* ТЕМНАЯ ТЕМА */
+[data-theme="dark"] .reward-label-inline {
+  color: #ffffff; /* Белый цвет в темной теме */
+}
+
+[data-theme="dark"] .reward-inline-container {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: rgba(76, 175, 80, 0.25);
+}
+
+[data-theme="dark"] .reward-inline-container:hover {
+  background: rgba(76, 175, 80, 0.12);
+  border-color: rgba(76, 175, 80, 0.35);
+}
+
+[data-theme="dark"] .reward-plus-inline,
+[data-theme="dark"] .reward-number-inline {
+  color: #66bb6a; /* Светло-зеленый для темной темы */
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .reward-inline-container {
+    padding: 14px 16px;
+  }
+  
+  .reward-number-inline {
+    font-size: 22px;
+    min-width: 32px;
+  }
+  
+  .reward-plus-inline {
+    font-size: 18px;
+    margin-right: -1px;
+  }
+  
+  .reward-label-inline {
+    font-size: 14px;
+  }
+  
+  .reward-icon-inline {
+    width: 22px;
+    height: 22px;
+    margin-left: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reward-inline-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .reward-value-right {
+    align-self: flex-end;
+    gap: 1px;
+  }
+  
+  .reward-icon-inline {
+    margin-left: 4px;
+  }
 }

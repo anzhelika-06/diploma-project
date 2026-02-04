@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken'); // Добавляем JWT
+const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
 
 const router = express.Router();
@@ -10,23 +10,29 @@ const isValidEmail = (email) => {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailRegex.test(email);
 };
+
+// Middleware логирования
 router.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Request body:', req.body);
   next();
 });
-// Добавьте в authRoutes.js после импортов, до других роутов
+
+// Health check
 router.get('/health', (req, res) => {
-  console.log('Health check requested');
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.json({ 
+    success: true,
     status: 'OK', 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || 'development'
   });
 });
-// Регистрация пользователя с токеном
+
+// Регистрация пользователя
 router.post('/register', async (req, res) => {
+  console.log('=== НАЧАЛО ОБРАБОТКИ РЕГИСТРАЦИИ ===');
+  
+  let client;
+  
   try {
     const { login, nickname, password, birthdate, gender } = req.body;
 
@@ -39,7 +45,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Валидация никнейма - только английские буквы, цифры и подчеркивания
+    // Валидация никнейма
     const nicknameRegex = /^[a-zA-Z0-9_]{3,20}$/;
     if (!nicknameRegex.test(nickname)) {
       return res.status(400).json({
@@ -93,14 +99,20 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Получаем соединение с базой
+    client = await pool.connect();
+    await client.query('BEGIN');
+
     // Проверка существования пользователя
     const existingUserQuery = `
       SELECT id FROM users WHERE email = $1 OR nickname = $2
     `;
     
-    const existingUserResult = await pool.query(existingUserQuery, [login, nickname]);
+    const existingUserResult = await client.query(existingUserQuery, [login, nickname]);
 
     if (existingUserResult.rows.length > 0) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(409).json({
         success: false,
         error: 'USER_EXISTS',
@@ -114,9 +126,11 @@ router.post('/register', async (req, res) => {
 
     // Получаем gender_id по коду пола
     const genderQuery = `SELECT id FROM genders WHERE code = $1`;
-    const genderResult = await pool.query(genderQuery, [gender]);
+    const genderResult = await client.query(genderQuery, [gender]);
     
     if (genderResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(400).json({
         success: false,
         error: 'INVALID_GENDER',
@@ -126,14 +140,14 @@ router.post('/register', async (req, res) => {
     
     const genderId = genderResult.rows[0].id;
 
-    // Создание пользователя
+    // Создание пользователя с начальным балансом 0 экоинов
     const insertUserQuery = `
-      INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, created_at)
-      VALUES ($1, $2, $3, $4, $5, NOW())
-      RETURNING id, email, nickname, created_at, is_admin, carbon_saved, eco_level, avatar_emoji
+      INSERT INTO users (email, nickname, password_hash, date_of_birth, gender_id, created_at, eco_coins)
+      VALUES ($1, $2, $3, $4, $5, NOW(), 0)
+      RETURNING id, email, nickname, created_at, is_admin, carbon_saved, eco_level, avatar_emoji, eco_coins
     `;
     
-    const newUserResult = await pool.query(insertUserQuery, [
+    const newUserResult = await client.query(insertUserQuery, [
       login,
       nickname,
       passwordHash,
@@ -142,20 +156,77 @@ router.post('/register', async (req, res) => {
     ]);
 
     const newUser = newUserResult.rows[0];
+    console.log('Пользователь успешно создан:', { 
+      id: newUser.id, 
+      nickname: newUser.nickname 
+    });
 
-    // Генерация токена для нового пользователя
+    // ✅ ПРИСВАИВАЕМ ДОСТИЖЕНИЕ first_login (согласно вашей структуре таблиц)
+    try {
+      // Получаем достижение по коду
+      const achievementQuery = `
+        SELECT id, points FROM achievements WHERE code = 'first_login'
+      `;
+      const achievementResult = await client.query(achievementQuery);
+      
+      if (achievementResult.rows.length > 0) {
+        const achievement = achievementResult.rows[0];
+        
+        // Создаем запись в user_achievements согласно вашей структуре таблиц
+        const achievementInsertQuery = `
+          INSERT INTO user_achievements (
+            user_id, 
+            achievement_id, 
+            progress, 
+            current_value, 
+            completed, 
+            completed_at,
+            metadata
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING id
+        `;
+        
+        await client.query(achievementInsertQuery, [
+          newUser.id, 
+          achievement.id, 
+          1, // progress
+          1, // current_value
+          true, // completed
+          new Date(), // completed_at
+          JSON.stringify({ 
+            points_earned: achievement.points,
+            event_type: 'first_login',
+            description: 'Достижение за регистрацию'
+          }) // metadata
+        ]);
+        
+        console.log(`✅ Достижение first_login присвоено пользователю ${newUser.id}`);
+        console.log(`ℹ️ Награда (${achievement.points} экоинов) будет начислена после клика "Забрать награду"`);
+      } else {
+        console.warn(`⚠️ Достижение first_login не найдено в базе данных`);
+      }
+    } catch (achievementError) {
+      console.error('❌ Ошибка при создании достижения:', achievementError);
+      // Не прерываем регистрацию из-за ошибки достижения
+    }
+
+    // Коммитим транзакцию
+    await client.query('COMMIT');
+
+    // Генерация токена
     const token = jwt.sign(
       {
         userId: newUser.id,
         email: newUser.email,
         nickname: newUser.nickname,
-        is_admin: newUser.is_admin, // ДОБАВЛЕНО!
-        isAdmin: newUser.is_admin    // И camelCase
+        is_admin: newUser.is_admin,
+        isAdmin: newUser.is_admin
       },
       process.env.JWT_SECRET || 'ecosteps-secret-key-2024',
       { expiresIn: '30d' }
     );
-    // Успешная регистрация с токеном
+
+    // Успешная регистрация
     res.status(201).json({
       success: true,
       message: 'Регистрация успешна',
@@ -165,35 +236,49 @@ router.post('/register', async (req, res) => {
         email: newUser.email,
         nickname: newUser.nickname,
         isAdmin: newUser.is_admin || false,
+        is_admin: newUser.is_admin || false,
         carbonSaved: newUser.carbon_saved || 0,
+        ecoCoins: newUser.eco_coins || 0,
         ecoLevel: newUser.eco_level || 'Эко-новичок',
         avatarEmoji: newUser.avatar_emoji || '🌱',
         createdAt: newUser.created_at
       }
     });
 
+    console.log('=== КОНЕЦ ОБРАБОТКИ РЕГИСТРАЦИИ (УСПЕХ) ===');
+
   } catch (error) {
-    console.error('Ошибка регистрации:', error);
+    console.error('=== НЕОБРАБОТАННАЯ ОШИБКА В РЕГИСТРАЦИИ ===');
+    console.error('Ошибка:', error);
+    
+    if (client) {
+      await client.query('ROLLBACK');
+      client.release();
+    }
+    
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',
       message: 'Внутренняя ошибка сервера'
     });
+    
+    console.log('=== КОНЕЦ ОБРАБОТКИ РЕГИСТРАЦИИ (ОШИБКА) ===');
   }
 });
 
-// authRoutes.js - обновите login роут
+// Вход пользователя
 router.post('/login', async (req, res) => {
-  console.log('=== START LOGIN HANDLER ===');
+  console.log('=== НАЧАЛО ОБРАБОТКИ ВХОДА ===');
+  
+  let client;
   
   try {
     const { login, password } = req.body;
 
-    console.log('Login attempt for:', login);
+    console.log('Попытка входа для:', login);
     
     // Валидация входных данных
     if (!login || !password) {
-      console.log('Validation failed: missing fields');
       return res.status(400).json({
         success: false,
         error: 'MISSING_FIELDS',
@@ -201,32 +286,24 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.log('Attempting to query database...');
-    
-    // Поиск пользователя по email ИЛИ никнейму - ВАЖНО: добавить is_admin в запрос
+    // Получаем соединение с базой
+    client = await pool.connect();
+    await client.query('BEGIN');
+
+    // Поиск пользователя по email или никнейму
     const userQuery = `
       SELECT id, email, nickname, password_hash, is_admin,
-             carbon_saved, eco_level, avatar_emoji, is_banned
+             carbon_saved, eco_level, avatar_emoji, is_banned,
+             last_login_at, login_streak, eco_coins
       FROM users 
       WHERE email = $1 OR nickname = $1
     `;
     
-    let userResult;
-    try {
-      userResult = await pool.query(userQuery, [login]);
-      console.log('Database query successful, rows found:', userResult.rows.length);
-    } catch (dbError) {
-      console.error('Database query failed:', dbError);
-      console.error('Stack trace:', dbError.stack);
-      return res.status(500).json({
-        success: false,
-        error: 'DB_QUERY_ERROR',
-        message: 'Ошибка запроса к базе данных'
-      });
-    }
+    const userResult = await client.query(userQuery, [login]);
 
     if (userResult.rows.length === 0) {
-      console.log('User not found in database');
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(401).json({
         success: false,
         error: 'USER_NOT_FOUND',
@@ -235,15 +312,11 @@ router.post('/login', async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    console.log('User found:', { 
-      id: user.id, 
-      email: user.email,
-      is_admin: user.is_admin 
-    });
 
     // Проверка на бан
     if (user.is_banned) {
-      console.log('User is banned');
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(403).json({
         success: false,
         error: 'USER_BANNED',
@@ -252,13 +325,13 @@ router.post('/login', async (req, res) => {
     }
 
     // Проверка пароля
-    console.log('Checking password...');
     let isPasswordValid = false;
     try {
       isPasswordValid = await bcrypt.compare(password, user.password_hash);
-      console.log('Password check result:', isPasswordValid);
     } catch (bcryptError) {
-      console.error('Bcrypt comparison failed:', bcryptError);
+      console.error('Ошибка сравнения пароля:', bcryptError);
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(500).json({
         success: false,
         error: 'PASSWORD_CHECK_ERROR',
@@ -267,7 +340,8 @@ router.post('/login', async (req, res) => {
     }
 
     if (!isPasswordValid) {
-      console.log('Invalid password');
+      await client.query('ROLLBACK');
+      client.release();
       return res.status(401).json({
         success: false,
         error: 'INVALID_CREDENTIALS',
@@ -275,38 +349,116 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.log('Password valid, generating JWT token...');
+    // Обновляем информацию о последнем входе и стрике
+    const now = new Date();
+    let newStreak = 1;
     
-    // Генерация JWT токена - ВАЖНО: включаем is_admin!
-    const JWT_SECRET = process.env.JWT_SECRET;
-    console.log('JWT_SECRET exists?', !!JWT_SECRET);
+    if (user.last_login_at) {
+      const lastLogin = new Date(user.last_login_at);
+      const daysDiff = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === 1) {
+        // Входил вчера - увеличиваем стрик
+        newStreak = (user.login_streak || 0) + 1;
+      } else if (daysDiff > 1) {
+        // Пропустил день - сбрасываем стрик
+        newStreak = 1;
+      } else {
+        // Входил сегодня - оставляем текущий стрик
+        newStreak = user.login_streak || 1;
+      }
+    }
     
-    let token;
+    // Обновляем запись пользователя
+    const updateQuery = `
+      UPDATE users 
+      SET last_login_at = $1, login_streak = $2
+      WHERE id = $3
+      RETURNING login_streak, eco_coins
+    `;
+    
+    const updateResult = await client.query(updateQuery, [now, newStreak, user.id]);
+    console.log('Стрик входа обновлен:', newStreak);
+
+    // ✅ ОБРАБАТЫВАЕМ ДОСТИЖЕНИЯ ДЛЯ ВХОДА
     try {
-      token = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          nickname: user.nickname,
-          is_admin: user.is_admin, // ДОБАВЛЕНО!
-          isAdmin: user.is_admin   // И camelCase вариант тоже
-        },
-        JWT_SECRET || 'ecosteps-secret-key-2024',
-        { expiresIn: '30d' }
-      );
-      console.log('JWT token generated successfully');
-    } catch (jwtError) {
-      console.error('JWT generation failed:', jwtError);
-      return res.status(500).json({
-        success: false,
-        error: 'JWT_GENERATION_ERROR',
-        message: 'Ошибка создания токена'
-      });
+      // Проверяем достижения для ежедневного входа по стрику
+      const achievementQuery = `
+        SELECT id, code, points FROM achievements 
+        WHERE event_type = 'daily_login' 
+        AND requirement_type = 'streak' 
+        AND requirement_value = $1
+      `;
+      
+      const achievementResult = await client.query(achievementQuery, [newStreak]);
+      
+      if (achievementResult.rows.length > 0) {
+        const achievement = achievementResult.rows[0];
+        
+        // Проверяем, не получено ли уже это достижение
+        const existingAchievementQuery = `
+          SELECT id FROM user_achievements 
+          WHERE user_id = $1 AND achievement_id = $2
+        `;
+        
+        const existingResult = await client.query(existingAchievementQuery, [user.id, achievement.id]);
+        
+        if (existingResult.rows.length === 0) {
+          // Присваиваем достижение (без начисления экоинов)
+          const achievementInsertQuery = `
+            INSERT INTO user_achievements (
+              user_id, 
+              achievement_id, 
+              progress, 
+              current_value, 
+              completed, 
+              completed_at,
+              metadata
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id
+          `;
+          
+          await client.query(achievementInsertQuery, [
+            user.id, 
+            achievement.id, 
+            newStreak, // progress
+            newStreak, // current_value
+            true, // completed
+            new Date(), // completed_at
+            JSON.stringify({ 
+              points_earned: achievement.points,
+              event_type: 'daily_login',
+              streak: newStreak,
+              description: `Ежедневный вход (стрик ${newStreak} дней)`
+            }) // metadata
+          ]);
+          
+          console.log(`🎉 Получено достижение: ${achievement.code} (стрик: ${newStreak} дней)`);
+          console.log(`ℹ️ Награда (${achievement.points} экоинов) будет начислена после клика "Забрать награду"`);
+        }
+      }
+    } catch (achievementError) {
+      console.error('❌ Ошибка при обработке достижений входа:', achievementError);
+      // Не прерываем вход из-за ошибки достижений
     }
 
-    console.log('Sending successful response...');
-    
-    // Успешная авторизация с токеном
+    // Коммитим транзакцию
+    await client.query('COMMIT');
+
+    // Генерация JWT токена
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        nickname: user.nickname,
+        is_admin: user.is_admin,
+        isAdmin: user.is_admin
+      },
+      process.env.JWT_SECRET || 'ecosteps-secret-key-2024',
+      { expiresIn: '30d' }
+    );
+
+    // Успешная авторизация
     const responseData = {
       success: true,
       message: 'Авторизация успешна',
@@ -316,44 +468,40 @@ router.post('/login', async (req, res) => {
         email: user.email,
         nickname: user.nickname,
         isAdmin: user.is_admin || false,
-        is_admin: user.is_admin || false, // Добавляем и snake_case
+        is_admin: user.is_admin || false,
         carbonSaved: user.carbon_saved || 0,
+        ecoCoins: updateResult.rows[0].eco_coins || user.eco_coins || 0,
         ecoLevel: user.eco_level || 'Эко-новичок',
-        avatarEmoji: user.avatar_emoji || '🌱'
+        avatarEmoji: user.avatar_emoji || '🌱',
+        loginStreak: newStreak,
+        lastLoginAt: now.toISOString()
       }
     };
     
-    console.log('Response data:', JSON.stringify(responseData, null, 2));
-    
-    // Важно: явно указываем Content-Type
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.json(responseData);
     
-    console.log('=== END LOGIN HANDLER (SUCCESS) ===');
+    console.log('=== КОНЕЦ ОБРАБОТКИ ВХОДА (УСПЕХ) ===');
 
   } catch (error) {
-    console.error('=== UNHANDLED ERROR IN LOGIN HANDLER ===');
-    console.error('Error:', error);
-    console.error('Stack trace:', error.stack);
+    console.error('=== НЕОБРАБОТАННАЯ ОШИБКА ВО ВХОДЕ ===');
+    console.error('Ошибка:', error);
     
-    try {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.status(500).json({
-        success: false,
-        error: 'SERVER_ERROR',
-        message: 'Внутренняя ошибка сервера',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    } catch (sendError) {
-      console.error('Failed to send error response:', sendError);
+    if (client) {
+      await client.query('ROLLBACK');
+      client.release();
     }
     
-    console.log('=== END LOGIN HANDLER (ERROR) ===');
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+    
+    console.log('=== КОНЕЦ ОБРАБОТКИ ВХОДА (ОШИБКА) ===');
   }
 });
 
 // Проверка токена (верификация)
-// Обновите функцию verify
 router.get('/verify', async (req, res) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -371,9 +519,9 @@ router.get('/verify', async (req, res) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ecosteps-secret-key-2024');
       
-      // Получаем актуальные данные пользователя из БД
+      // Получаем актуальные данные пользователя
       const userQuery = `
-        SELECT id, email, nickname, is_admin, carbon_saved, eco_level, avatar_emoji, is_banned
+        SELECT id, email, nickname, is_admin, carbon_saved, eco_level, avatar_emoji, is_banned, eco_coins
         FROM users WHERE id = $1
       `;
       
@@ -407,6 +555,7 @@ router.get('/verify', async (req, res) => {
           isAdmin: user.is_admin || false,
           is_admin: user.is_admin || false,
           carbonSaved: user.carbon_saved || 0,
+          ecoCoins: user.eco_coins || 0,
           ecoLevel: user.eco_level || 'Эко-новичок',
           avatarEmoji: user.avatar_emoji || '🌱'
         }
@@ -421,7 +570,8 @@ router.get('/verify', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Ошибка верификации токена:', error);
+    console.error('Ошибка в верификации токена:', error);
+    
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',
@@ -429,40 +579,8 @@ router.get('/verify', async (req, res) => {
     });
   }
 });
-router.get('/test', (req, res) => {
-  console.log('Тестовый запрос получен')
-  res.json({ success: true, message: 'Auth API работает!', timestamp: new Date().toISOString() })
-})
 
-router.post('/test-post', (req, res) => {
-  console.log('Тестовый POST запрос:', req.body)
-  res.json({ 
-    success: true, 
-    message: 'POST запрос работает!',
-    received: req.body,
-    timestamp: new Date().toISOString() 
-  })
-})
-// Тестовый маршрут для проверки подключения к БД
-router.get('/test-db', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT COUNT(*) as user_count FROM users');
-    res.json({
-      success: true,
-      message: 'Подключение к БД работает',
-      userCount: result.rows[0].user_count
-    });
-  } catch (error) {
-    console.error('Ошибка подключения к БД:', error);
-    res.status(500).json({
-      success: false,
-      error: 'DB_CONNECTION_ERROR',
-      message: 'Ошибка подключения к базе данных'
-    });
-  }
-});
-
-// Обновление токена (refresh token)
+// Обновление токена
 router.post('/refresh', async (req, res) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -497,7 +615,9 @@ router.post('/refresh', async (req, res) => {
         {
           userId: decoded.userId,
           email: decoded.email,
-          nickname: decoded.nickname
+          nickname: decoded.nickname,
+          is_admin: decoded.is_admin,
+          isAdmin: decoded.isAdmin
         },
         process.env.JWT_SECRET || 'ecosteps-secret-key-2024',
         { expiresIn: '30d' }
@@ -518,11 +638,205 @@ router.post('/refresh', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Ошибка обновления токена:', error);
+    console.error('Ошибка в обновлении токена:', error);
+    
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',
       message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+// Добавьте эти функции в конец auth.js, перед module.exports
+
+// Функция для проверки ежедневного входа и достижений
+const checkDailyLoginAchievements = async (client, userId) => {
+  try {
+    const now = new Date();
+    const mskOffset = 3; // MSK timezone (UTC+3)
+    const nowMSK = new Date(now.getTime() + (mskOffset * 60 * 60 * 1000));
+    
+    // Определяем начало текущих суток по MSK
+    const startOfDayMSK = new Date(nowMSK);
+    startOfDayMSK.setHours(0, 0, 0, 0);
+    
+    // Конвертируем обратно в UTC
+    const startOfDayUTC = new Date(startOfDayMSK.getTime() - (mskOffset * 60 * 60 * 1000));
+
+    // Получаем информацию о пользователе
+    const userQuery = `
+      SELECT id, login_streak, last_daily_login 
+      FROM users WHERE id = $1
+    `;
+    
+    const userResult = await client.query(userQuery, [userId]);
+    
+    if (userResult.rows.length === 0) {
+      return { updated: false, streak: 1 };
+    }
+    
+    const user = userResult.rows[0];
+    const lastDailyLogin = user.last_daily_login ? new Date(user.last_daily_login) : null;
+    let updated = false;
+    let newStreak = user.login_streak || 1;
+    
+    // Проверяем, заходил ли пользователь сегодня по MSK
+    if (!lastDailyLogin || lastDailyLogin < startOfDayUTC) {
+      updated = true;
+      
+      // Обновляем дату последнего ежедневного входа
+      await client.query(
+        `UPDATE users SET last_daily_login = $1 WHERE id = $2`,
+        [now, userId]
+      );
+      
+      // Вычисляем новый стрик
+      if (lastDailyLogin) {
+        const yesterdayMSK = new Date(startOfDayMSK);
+        yesterdayMSK.setDate(yesterdayMSK.getDate() - 1);
+        const yesterdayUTC = new Date(yesterdayMSK.getTime() - (mskOffset * 60 * 60 * 1000));
+        
+        const timeDiff = yesterdayUTC.getTime() - lastDailyLogin.getTime();
+        const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        
+        if (Math.abs(daysDiff) === 1) {
+          newStreak = (user.login_streak || 0) + 1;
+        } else if (Math.abs(daysDiff) > 1) {
+          newStreak = 1;
+        }
+      } else {
+        newStreak = 1;
+      }
+      
+      // Обновляем стрик
+      await client.query(
+        `UPDATE users SET login_streak = $1 WHERE id = $2`,
+        [newStreak, userId]
+      );
+      
+      console.log(`✅ Daily login засчитан для пользователя ${userId} (стрик: ${newStreak} дней)`);
+      
+      // Проверяем достижения для нового стрика
+      await checkStreakAchievements(client, userId, newStreak);
+    }
+    
+    return { updated, streak: newStreak };
+    
+  } catch (error) {
+    console.error('❌ Ошибка при проверке ежедневного входа:', error);
+    return { updated: false, streak: 1 };
+  }
+};
+
+// Функция для проверки достижений за стрик
+const checkStreakAchievements = async (client, userId, streak) => {
+  try {
+    // Проверяем достижения для разных уровней стрика
+    const achievementLevels = [3, 7, 30];
+    
+    for (const level of achievementLevels) {
+      if (streak === level) {
+        // Ищем достижение для этого стрика
+        const achievementQuery = `
+          SELECT id, code, title, points 
+          FROM achievements 
+          WHERE code = $1 OR (event_type = 'daily_login' AND requirement_value = $2)
+        `;
+        
+        const code = `daily_streak_${level}`;
+        const achievementResult = await client.query(achievementQuery, [code, level]);
+        
+        if (achievementResult.rows.length > 0) {
+          const achievement = achievementResult.rows[0];
+          
+          // Проверяем, не получено ли уже это достижение
+          const existingQuery = `
+            SELECT id FROM user_achievements 
+            WHERE user_id = $1 AND achievement_id = $2
+          `;
+          
+          const existingResult = await client.query(existingQuery, [userId, achievement.id]);
+          
+          if (existingResult.rows.length === 0) {
+            // Присваиваем достижение
+            const insertQuery = `
+              INSERT INTO user_achievements (
+                user_id, 
+                achievement_id, 
+                progress, 
+                current_value, 
+                completed, 
+                completed_at,
+                metadata
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+              RETURNING id
+            `;
+            
+            await client.query(insertQuery, [
+              userId, 
+              achievement.id, 
+              100, // progress 100%
+              streak, // current_value
+              true, // completed
+              new Date(), // completed_at
+              JSON.stringify({ 
+                points_earned: achievement.points,
+                streak: streak,
+                earned_at: new Date().toISOString(),
+                description: `Достижение за ${streak} дней подряд`
+              })
+            ]);
+            
+            console.log(`🎉 Пользователь ${userId} получил достижение: ${achievement.code} (стрик: ${streak} дней)`);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при проверке достижений:', error);
+  }
+};
+
+// Новый эндпоинт для проверки ежедневного входа (можно вызывать с фронтенда)
+router.get('/check-daily', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'NO_TOKEN',
+        message: 'Требуется авторизация'
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ecosteps-secret-key-2024');
+    const userId = decoded.userId;
+    
+    const client = await pool.connect();
+    
+    try {
+      const result = await checkDailyLoginAchievements(client, userId);
+      
+      res.json({
+        success: true,
+        updated: result.updated,
+        streak: result.streak,
+        message: result.updated 
+          ? `🎉 Ежедневный вход засчитан! Ваш стрик: ${result.streak} дней` 
+          : 'Вы уже заходили сегодня'
+      });
+    } finally {
+      await client.release();
+    }
+    
+  } catch (error) {
+    console.error('Ошибка при проверке daily login:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Ошибка при проверке ежедневного входа'
     });
   }
 });

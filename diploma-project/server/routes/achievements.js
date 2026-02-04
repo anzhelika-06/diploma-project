@@ -10,6 +10,205 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
+// ============ ОСНОВНЫЕ ФУНКЦИИ ============
+
+// Функция для обработки событий достижений
+// Функция для обработки событий достижений
+const processAchievementEvent = async (userId, eventType, eventData = {}) => {
+  let client;
+  try {
+    client = await pool.connect();
+    
+    console.log(`🎯 Обработка события достижения: ${eventType} для пользователя ${userId}`);
+    
+    // 1. Записываем событие в историю
+    await client.query(`
+      INSERT INTO achievement_events (user_id, event_type, event_data)
+      VALUES ($1, $2, $3)
+    `, [userId, eventType, JSON.stringify(eventData)]);
+    
+    // 2. Получаем все активные достижения для этого типа события
+    const achievementsQuery = `
+      SELECT * FROM achievements 
+      WHERE event_type = $1 
+        AND is_active = true
+      ORDER BY requirement_value ASC
+    `;
+    
+    const achievementsResult = await client.query(achievementsQuery, [eventType]);
+    
+    if (achievementsResult.rows.length === 0) {
+      console.log(`ℹ️ Нет достижений для события: ${eventType}`);
+      return { unlocked: [], updated: [] };
+    }
+    
+    const unlockedAchievements = [];
+    const updatedAchievements = [];
+    
+    // 3. Обрабатываем каждое достижение
+    for (const achievement of achievementsResult.rows) {
+      console.log(`🔍 Проверяем достижение: ${achievement.name} (${achievement.requirement_type})`);
+      
+      // Получаем текущий прогресс пользователя
+      const userAchievementQuery = `
+        SELECT * FROM user_achievements 
+        WHERE user_id = $1 AND achievement_id = $2
+      `;
+      
+      const userAchievementResult = await client.query(userAchievementQuery, [userId, achievement.id]);
+      const userAchievement = userAchievementResult.rows[0];
+      
+      // Рассчитываем новый прогресс в зависимости от типа требования
+      let newProgress = 0;
+      let newCurrentValue = 0;
+      let completed = false;
+      
+      switch (achievement.requirement_type) {
+        case 'count':
+          // Просто увеличиваем счетчик
+          newProgress = (userAchievement?.progress || 0) + 1;
+          newCurrentValue = newProgress;
+          completed = newProgress >= achievement.requirement_value;
+          break;
+          
+        case 'streak':
+          // Для стриков - используем текущее значение из eventData или увеличиваем на 1
+          const currentStreak = eventData.consecutiveDays || eventData.streak || 1;
+          newProgress = currentStreak;
+          newCurrentValue = currentStreak;
+          completed = currentStreak >= achievement.requirement_value;
+          break;
+          
+        case 'value':
+          // Для значений (например, количество слов)
+          const increment = eventData.value || eventData.increment || 1;
+          newProgress = (userAchievement?.progress || 0) + increment;
+          newCurrentValue = eventData.currentValue || increment;
+          completed = newProgress >= achievement.requirement_value;
+          break;
+          
+        case 'boolean':
+          // Булевое достижение - либо выполнено, либо нет
+          newProgress = 1;
+          newCurrentValue = 1;
+          completed = true;
+          break;
+          
+        default:
+          newProgress = (userAchievement?.progress || 0) + 1;
+          completed = newProgress >= achievement.requirement_value;
+      }
+      
+      // Определяем, было ли достижение разблокировано сейчас
+      const wasCompleted = userAchievement?.completed || false;
+      const isNewlyCompleted = completed && !wasCompleted;
+      
+      // Обновляем или создаем запись
+      const upsertQuery = `
+        INSERT INTO user_achievements (
+          user_id, achievement_id, progress, current_value, 
+          completed, completed_at, metadata
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (user_id, achievement_id) 
+        DO UPDATE SET
+          progress = EXCLUDED.progress,
+          current_value = EXCLUDED.current_value,
+          completed = EXCLUDED.completed,
+          completed_at = CASE 
+            WHEN EXCLUDED.completed AND user_achievements.completed = false 
+            THEN EXCLUDED.completed_at 
+            ELSE user_achievements.completed_at 
+          END,
+          metadata = EXCLUDED.metadata,
+          updated_at = CURRENT_TIMESTAMP
+        RETURNING *
+      `;
+      
+      const completedAt = isNewlyCompleted ? new Date() : userAchievement?.completed_at;
+      
+      const result = await client.query(upsertQuery, [
+        userId,
+        achievement.id,
+        newProgress,
+        newCurrentValue,
+        completed,
+        completedAt,
+        JSON.stringify(eventData)
+      ]);
+      
+      updatedAchievements.push({
+        id: achievement.id,
+        name: achievement.name,
+        progress: newProgress,
+        completed: completed,
+        wasCompleted: wasCompleted,
+        newlyCompleted: isNewlyCompleted
+      });
+      
+      // Если достижение только что выполнено - добавляем в разблокированные
+      if (isNewlyCompleted) {
+        unlockedAchievements.push({
+          id: achievement.id,
+          name: achievement.name,
+          description: achievement.description,
+          icon: achievement.icon,
+          points: achievement.points,
+          rarity: achievement.rarity
+        });
+        
+        console.log(`🏆 Разблокировано достижение: ${achievement.name} (${achievement.points} очков)`);
+        console.log(`ℹ️ Награда будет получена только после клика "Забрать награду"`);
+      }
+    }
+    
+    return {
+      success: true,
+      unlocked: unlockedAchievements,
+      updated: updatedAchievements,
+      eventType: eventType,
+      timestamp: new Date().toISOString()
+    };
+    
+  } catch (error) {
+    console.error('❌ Ошибка обработки события достижения:', error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+};
+// ============ ЭНДПОИНТЫ ============
+
+// Трекинг события достижения (главный эндпоинт для других сервисов)
+router.post('/track', async (req, res) => {
+  try {
+    const { userId, achievementType, data, timestamp } = req.body;
+    
+    console.log('📥 Получен запрос на трекинг:', { userId, achievementType });
+    
+    if (!userId || !achievementType) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: 'Отсутствуют userId или achievementType'
+      });
+    }
+    
+    // Обрабатываем событие
+    const result = await processAchievementEvent(userId, achievementType, data || {});
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error('❌ Ошибка в /track:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message
+    });
+  }
+});
+
 // Получить все достижения
 router.get('/', async (req, res) => {
   let client;
@@ -26,12 +225,17 @@ router.get('/', async (req, res) => {
         description,
         category,
         icon,
+        event_type,
         requirement_type,
         requirement_value,
         points,
-        rarity
+        rarity,
+        is_active,
+        is_hidden,
+        sort_order
       FROM achievements
-      ORDER BY category, points ASC
+      WHERE is_active = true
+      ORDER BY sort_order ASC, category, points ASC
     `;
     
     console.log('Выполняем запрос:', query);
@@ -72,7 +276,7 @@ router.get('/user/:userId', async (req, res) => {
     
     client = await pool.connect();
     
-    // Проверяем существование пользователя с COALESCE для eco_coins
+    // Проверяем существование пользователя
     const userCheck = await client.query(
       `SELECT id, COALESCE(eco_coins, 0) as eco_coins 
        FROM users 
@@ -96,18 +300,24 @@ router.get('/user/:userId', async (req, res) => {
         a.description,
         a.category,
         a.icon,
+        a.event_type,
         a.requirement_type,
         a.requirement_value,
         a.points,
         a.rarity,
         COALESCE(ua.progress, 0) as progress,
+        COALESCE(ua.current_value, 0) as current_value,
         COALESCE(ua.completed, false) as completed,
         ua.completed_at,
-        ua.claimed_at
+        ua.claimed_at,
+        ua.started_at,
+        a.is_hidden
       FROM achievements a
       LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = $1
+      WHERE a.is_active = true
       ORDER BY 
         CASE WHEN COALESCE(ua.completed, false) THEN 0 ELSE 1 END,
+        a.sort_order ASC,
         a.category,
         a.points ASC
     `;
@@ -117,23 +327,30 @@ router.get('/user/:userId', async (req, res) => {
     
     console.log(`Найдено достижений для пользователя: ${result.rows.length}`);
     
+    // Фильтруем скрытые достижения, которые еще не начаты
+    const visibleAchievements = result.rows.filter(ach => 
+      !ach.is_hidden || ach.progress > 0 || ach.completed
+    );
+    
     // Подсчитываем статистику
-    const completed = result.rows.filter(a => a.completed).length;
-    const total = result.rows.length;
-    const totalPoints = result.rows
-      .filter(a => a.completed && a.claimed_at)
-      .reduce((sum, a) => sum + a.points, 0);
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const completedAchievements = visibleAchievements.filter(a => a.completed);
+    const claimedAchievements = completedAchievements.filter(a => a.claimed_at);
+    
+    const completedCount = completedAchievements.length;
+    const totalCount = visibleAchievements.length;
+    const totalPoints = claimedAchievements.reduce((sum, a) => sum + a.points, 0);
+    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
     
     res.json({
       success: true,
-      achievements: result.rows,
+      achievements: visibleAchievements,
       ecoCoins: userCheck.rows[0].eco_coins || 0,
       stats: {
-        completed,
-        total,
-        totalPoints,
-        percentage
+        completed: completedCount,
+        total: totalCount,
+        totalPoints: totalPoints,
+        percentage: percentage,
+        unclaimed: completedAchievements.filter(a => !a.claimed_at).length
       }
     });
     
@@ -149,83 +366,7 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
-// Обновить прогресс достижения
-router.post('/progress', async (req, res) => {
-  let client;
-  try {
-    const { userId, achievementCode, progress } = req.body;
-    console.log('POST /api/achievements/progress - обновление прогресса');
-    
-    if (!userId || !achievementCode || progress === undefined) {
-      return res.status(400).json({
-        success: false,
-        error: 'MISSING_FIELDS',
-        message: 'Отсутствуют обязательные поля'
-      });
-    }
-    
-    client = await pool.connect();
-    
-    // Получаем достижение по коду
-    const achievementResult = await client.query(
-      'SELECT id, requirement_value FROM achievements WHERE code = $1',
-      [achievementCode]
-    );
-    
-    if (achievementResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'ACHIEVEMENT_NOT_FOUND'
-      });
-    }
-    
-    const achievement = achievementResult.rows[0];
-    const completed = progress >= achievement.requirement_value;
-    const completedAt = completed ? new Date() : null;
-    
-    // Обновляем или создаем запись прогресса
-    const updateQuery = `
-      INSERT INTO user_achievements (user_id, achievement_id, progress, completed, completed_at)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (user_id, achievement_id) 
-      DO UPDATE SET 
-        progress = EXCLUDED.progress,
-        completed = EXCLUDED.completed,
-        completed_at = CASE WHEN EXCLUDED.completed AND user_achievements.completed = false 
-                          THEN EXCLUDED.completed_at 
-                          ELSE user_achievements.completed_at END,
-        updated_at = CURRENT_TIMESTAMP
-      RETURNING *
-    `;
-    
-    const result = await client.query(updateQuery, [
-      userId, 
-      achievement.id, 
-      progress, 
-      completed, 
-      completedAt
-    ]);
-    
-    const unlocked = completed && !result.rows[0].completed;
-    
-    res.json({
-      success: true,
-      userAchievement: result.rows[0],
-      unlocked
-    });
-    
-  } catch (error) {
-    console.error('Ошибка обновления прогресса:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: error.message
-    });
-  } finally {
-    if (client) client.release();
-  }
-});
-
+// Получить награду за достижение
 // Получить награду за достижение
 router.post('/claim', async (req, res) => {
   let client;
@@ -255,7 +396,7 @@ router.post('/claim', async (req, res) => {
           ua.claimed_at
         FROM achievements a
         LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = $1
-        WHERE a.id = $2
+        WHERE a.id = $2 AND a.is_active = true
       `;
       
       const achievementResult = await client.query(achievementQuery, [userId, achievementId]);
@@ -284,24 +425,24 @@ router.post('/claim', async (req, res) => {
         RETURNING *
       `, [userId, achievementId]);
       
-      // Добавляем экоины пользователю (используем COALESCE)
+      // ⭐ НАЧИСЛЯЕМ ЭКОИНЫ ТОЛЬКО ЗДЕСЬ!
+      // Увеличиваем баланс экоинов пользователя
       await client.query(`
         UPDATE users 
-        SET eco_coins = COALESCE(eco_coins, 0) + $1,
-            updated_at = CURRENT_TIMESTAMP
+        SET eco_coins = COALESCE(eco_coins, 0) + $1
         WHERE id = $2
       `, [achievement.points, userId]);
       
-      // Записываем в историю
+      // Записываем в историю экоинов
       await client.query(`
         INSERT INTO eco_coins_history (user_id, amount, type, achievement_id, description)
         VALUES ($1, $2, $3, $4, $5)
       `, [
         userId,
         achievement.points,
-        'achievement_reward',
+        'achievement_claimed',
         achievementId,
-        `Награда за достижение: ${achievement.name}`
+        `Награда получена за достижение: ${achievement.name}`
       ]);
       
       // Получаем новый баланс экоинов
@@ -311,6 +452,8 @@ router.post('/claim', async (req, res) => {
       );
       
       await client.query('COMMIT');
+      
+      console.log(`💰 Начислено экоинов пользователю ${userId}: +${achievement.points}`);
       
       res.json({
         success: true,
@@ -378,7 +521,8 @@ router.get('/eco-history/:userId', async (req, res) => {
       SELECT 
         ech.*,
         a.name as achievement_name,
-        a.icon as achievement_icon
+        a.icon as achievement_icon,
+        a.code as achievement_code
       FROM eco_coins_history ech
       LEFT JOIN achievements a ON ech.achievement_id = a.id
       WHERE ech.user_id = $1
@@ -413,6 +557,64 @@ router.get('/eco-history/:userId', async (req, res) => {
   }
 });
 
+// Получить историю событий пользователя
+router.get('/event-history/:userId', async (req, res) => {
+  let client;
+  try {
+    const { userId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+    
+    console.log(`GET /api/achievements/event-history/${userId} - получение истории событий`);
+    
+    if (!userId || isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_USER_ID'
+      });
+    }
+    
+    client = await pool.connect();
+    
+    const query = `
+      SELECT 
+        id,
+        event_type,
+        event_data,
+        processed,
+        created_at
+      FROM achievement_events
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+    
+    const result = await client.query(query, [userId, limit, offset]);
+    
+    const totalResult = await client.query(
+      'SELECT COUNT(*) FROM achievement_events WHERE user_id = $1',
+      [userId]
+    );
+    
+    res.json({
+      success: true,
+      events: result.rows,
+      total: parseInt(totalResult.rows[0].count, 10),
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10)
+    });
+    
+  } catch (error) {
+    console.error('Ошибка получения истории событий:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message
+    });
+  } finally {
+    if (client) client.release();
+  }
+});
+
 // Тестовый эндпоинт для проверки соединения с БД
 router.get('/test-db', async (req, res) => {
   let client;
@@ -426,21 +628,21 @@ router.get('/test-db', async (req, res) => {
       SELECT table_name 
       FROM information_schema.tables 
       WHERE table_schema = 'public' 
-        AND table_name IN ('users', 'achievements', 'user_achievements', 'eco_coins_history')
+        AND table_name IN ('users', 'achievements', 'user_achievements', 'eco_coins_history', 'achievement_events')
     `);
     
-    // Проверяем колонку eco_coins в таблице users
-    const columnsCheck = await client.query(`
-      SELECT column_name, data_type 
+    // Проверяем структуру таблицы achievements
+    const achievementsColumns = await client.query(`
+      SELECT column_name, data_type, is_nullable
       FROM information_schema.columns 
-      WHERE table_name = 'users' 
-        AND column_name IN ('eco_coins', 'id', 'email')
+      WHERE table_name = 'achievements'
+      ORDER BY ordinal_position
     `);
     
     res.json({
       success: true,
       tables: tablesCheck.rows.map(r => r.table_name),
-      user_columns: columnsCheck.rows,
+      achievements_columns: achievementsColumns.rows,
       message: 'Соединение с БД установлено'
     });
     
@@ -453,6 +655,39 @@ router.get('/test-db', async (req, res) => {
     });
   } finally {
     if (client) client.release();
+  }
+});
+
+// Тестовый эндпоинт для симуляции события
+router.post('/test-event', async (req, res) => {
+  try {
+    const { userId, eventType, eventData } = req.body;
+    
+    console.log('POST /api/achievements/test-event - тестовое событие');
+    
+    if (!userId || !eventType) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: 'Отсутствуют userId или eventType'
+      });
+    }
+    
+    const result = await processAchievementEvent(userId, eventType, eventData || {});
+    
+    res.json({
+      success: true,
+      message: 'Тестовое событие обработано',
+      ...result
+    });
+    
+  } catch (error) {
+    console.error('Ошибка тестового события:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message
+    });
   }
 });
 

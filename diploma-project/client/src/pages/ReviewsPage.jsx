@@ -10,9 +10,11 @@ import {
 } from '../utils/translations'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useEventTracker } from '../hooks/useEventTracker' // Импортируем хук
 
 const ReviewsPage = () => {
   const { currentLanguage, t } = useLanguage()
+  const { trackEvent } = useEventTracker() // Используем хук
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('all')
   const [storiesFilter, setStoriesFilter] = useState('all')
@@ -53,12 +55,12 @@ const ReviewsPage = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [storyToDelete, setStoryToDelete] = useState(null)
   
-  // Состояния для уведомлений (как в SettingsPage)
+  // Состояния для уведомлений
   const [tempNotification, setTempNotification] = useState({ 
     show: false, 
     title: '', 
     body: '',
-    type: 'success' // 'success' или 'error'
+    type: 'success'
   })
 
   // Флаг для предотвращения перевода при обновлении лайков
@@ -126,7 +128,6 @@ const ReviewsPage = () => {
       body
     });
     
-    // Автоматически скрыть через 3 секунды
     setTimeout(() => {
       setTempNotification({ show: false, title: '', body: '', type: 'success' });
     }, 3000);
@@ -151,10 +152,8 @@ const ReviewsPage = () => {
       }
     })
     
-    // Объединяем серверные данные с локальными
     setLikedStories(prev => {
       const combined = new Set([...prev, ...serverLikes])
-      // Сохраняем объединенные данные
       saveLikesToStorage(combined)
       return combined
     })
@@ -182,10 +181,8 @@ const ReviewsPage = () => {
     newSocket.on('story:like:update', (data) => {
       console.log('🔄 WebSocket обновление лайков:', data)
       
-      // Устанавливаем флаг, чтобы не вызывать перевод
       skipTranslationRef.current = true
       
-      // Обновляем только лайки
       setStories(prevStories => 
         prevStories.map(story => 
           story.id === data.storyId 
@@ -194,7 +191,6 @@ const ReviewsPage = () => {
         )
       )
       
-      // Обновляем translatedStories, сохраняя перевод
       setTranslatedStories(prevTranslated => 
         prevTranslated.map(story => 
           story.id === data.storyId 
@@ -203,7 +199,6 @@ const ReviewsPage = () => {
         )
       )
       
-      // Сбрасываем флаг после обновления
       setTimeout(() => {
         skipTranslationRef.current = false
       }, 100)
@@ -243,15 +238,12 @@ const ReviewsPage = () => {
           sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         }
         
-        // Добавляем флаг, что эти истории нужно перевести
         const storiesWithTranslationFlag = sortedStories.map(story => ({
           ...story,
           _needsTranslation: true
         }))
         
         setStories(storiesWithTranslationFlag)
-        
-        // Обновляем лайки из серверных данных
         updateLikesFromServer(sortedStories)
         
         const totalFromServer = data.pagination?.total || data.total || data.stories.length
@@ -267,7 +259,6 @@ const ReviewsPage = () => {
         setTotalStories(totalFromServer)
         setTotalPages(totalPagesFromServer)
         
-        // Сбрасываем расширенные истории при загрузке новой страницы
         if (page !== currentPage) {
           setExpandedStories(new Set())
         }
@@ -301,15 +292,12 @@ const ReviewsPage = () => {
         let sortedStories = [...data.stories]
         sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         
-        // Добавляем флаг, что эти истории нужно перевести
         const storiesWithTranslationFlag = sortedStories.map(story => ({
           ...story,
           _needsTranslation: true
         }))
         
         setStories(storiesWithTranslationFlag)
-        
-        // Обновляем лайки из серверных данных
         updateLikesFromServer(sortedStories)
         
         const totalFromServer = data.pagination?.total || data.total || data.stories.length
@@ -377,7 +365,6 @@ const ReviewsPage = () => {
 
   // Перевод историй
   const translateStories = useCallback(async () => {
-    // Проверяем флаг - если true, пропускаем перевод
     if (skipTranslationRef.current) {
       console.log('⏭️ Пропуск перевода из-за флага')
       return
@@ -396,11 +383,9 @@ const ReviewsPage = () => {
     setTranslating(true)
     
     try {
-      // Фильтруем истории, которые нужно перевести
       const storiesToTranslate = stories.filter(story => story._needsTranslation !== false)
       
       if (storiesToTranslate.length === 0) {
-        // Если все истории уже переведены, просто обновляем translatedStories
         setTranslatedStories(stories)
         return
       }
@@ -410,7 +395,6 @@ const ReviewsPage = () => {
       const translated = await Promise.all(
         stories.map(async (story) => {
           try {
-            // Если история не требует перевода, возвращаем как есть
             if (story._needsTranslation === false) {
               return story
             }
@@ -444,7 +428,6 @@ const ReviewsPage = () => {
               ...story,
               title: translatedTitle,
               content: translatedContent,
-              // Помечаем как переведенную
               _needsTranslation: false,
               _translatedAt: new Date().toISOString(),
               _targetLanguage: currentLanguage
@@ -453,7 +436,7 @@ const ReviewsPage = () => {
             console.error('❌ Ошибка при переводе истории:', error)
             return {
               ...story,
-              _needsTranslation: false, // Помечаем, чтобы не пытаться снова
+              _needsTranslation: false,
               _targetLanguage: currentLanguage
             }
           }
@@ -492,13 +475,11 @@ const ReviewsPage = () => {
       const data = await response.json()
       
       if (data.success) {
-        // Устанавливаем флаг, чтобы не вызывать перевод
         skipTranslationRef.current = true
         
         const wasLiked = likedStories.has(storyId)
         const isLikedNow = data.isLiked
         
-        // Обновляем stories с флагом "не переводить"
         setStories(prevStories => 
           prevStories.map(story => 
             story.id === storyId 
@@ -506,13 +487,12 @@ const ReviewsPage = () => {
                   ...story, 
                   likes_count: data.likes,
                   is_liked: isLikedNow,
-                  _needsTranslation: false // Помечаем, что не нужно переводить
+                  _needsTranslation: false
                 }
               : story
           )
         )
         
-        // Обновляем translatedStories, сохраняя перевод
         setTranslatedStories(prevTranslated => 
           prevTranslated.map(story => 
             story.id === storyId 
@@ -536,7 +516,23 @@ const ReviewsPage = () => {
           return newSet
         })
         
-        // Обновляем WebSocket
+        // Отслеживаем событие лайка
+        if (isLikedNow) {
+          trackEvent('story_liked', {
+            userId: currentUser.id,
+            storyId: storyId,
+            action: 'like',
+            totalLikes: data.likes
+          })
+        } else {
+          trackEvent('story_unliked', {
+            userId: currentUser.id,
+            storyId: storyId,
+            action: 'unlike',
+            totalLikes: data.likes
+          })
+        }
+        
         if (socket) {
           socket.emit('story:like', {
             storyId: storyId,
@@ -545,7 +541,6 @@ const ReviewsPage = () => {
           })
         }
         
-        // Сбрасываем флаг через небольшой таймаут
         setTimeout(() => {
           skipTranslationRef.current = false
         }, 100)
@@ -594,6 +589,35 @@ const ReviewsPage = () => {
           loadAllStories(storiesFilter, selectedCategory, 1)
         }
         
+        // Отслеживаем событие создания истории
+        trackEvent('story_created', {
+          userId: currentUser.id,
+          storyId: data.story?.id,
+          category: newStory.category,
+          title: newStory.title,
+          contentLength: newStory.content.length,
+          carbonSaved: newStory.carbon_saved,
+          status: 'pending',
+          wordCount: newStory.content.split(' ').length
+        })
+        
+        // Отслеживаем создание первой истории
+        if (stories.length === 0 && activeTab === 'my') {
+          trackEvent('first_story', {
+            userId: currentUser.id,
+            storyId: data.story?.id
+          })
+        }
+        
+        // Отслеживаем создание истории определенной категории
+        if (newStory.category === 'ecology') {
+          trackEvent('ecology_story_created', {
+            userId: currentUser.id,
+            storyId: data.story?.id,
+            category: newStory.category
+          })
+        }
+        
         setNewStory({
           title: '',
           content: '',
@@ -629,7 +653,7 @@ const ReviewsPage = () => {
     setShowDeleteModal(true)
   }
 
-  // Удаление моей истории (после подтверждения)
+  // Удаление моей истории
   const handleDeleteStory = async () => {
     if (!storyToDelete) return
 
@@ -645,6 +669,12 @@ const ReviewsPage = () => {
       const data = await response.json()
       
       if (data.success) {
+        // Отслеживаем событие удаления истории
+        trackEvent('story_deleted', {
+          userId: currentUser.id,
+          storyId: storyToDelete
+        })
+        
         if (activeTab === 'my') {
           loadMyStories(statusFilter, selectedCategory, currentPage)
         } else {
@@ -684,12 +714,30 @@ const ReviewsPage = () => {
       }
       return newSet
     })
+    
+    // Отслеживаем просмотр истории
+    if (currentUser) {
+      trackEvent('story_viewed', {
+        userId: currentUser.id,
+        storyId: storyId,
+        action: 'expand'
+      })
+    }
   }
 
   // Обработчик смены вкладки
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     setCurrentPage(1)
+    
+    // Отслеживаем переключение вкладок
+    if (currentUser) {
+      trackEvent('stories_tab_changed', {
+        userId: currentUser.id,
+        tab: tab,
+        previousTab: activeTab
+      })
+    }
     
     if (tab === 'my') {
       setStatusFilter('all')
@@ -702,6 +750,15 @@ const ReviewsPage = () => {
   const handleFilterChange = (newFilter) => {
     setCurrentPage(1)
     setStoriesFilter(newFilter)
+    
+    // Отслеживаем изменение фильтра
+    if (currentUser) {
+      trackEvent('stories_filter_changed', {
+        userId: currentUser.id,
+        filter: newFilter,
+        category: selectedCategory
+      })
+    }
   }
 
   // Обработчик изменения статуса фильтра
@@ -714,6 +771,14 @@ const ReviewsPage = () => {
   const handleCategoryChange = (category) => {
     setSelectedCategory(category)
     setCurrentPage(1)
+    
+    // Отслеживаем изменение категории
+    if (currentUser) {
+      trackEvent('stories_category_changed', {
+        userId: currentUser.id,
+        category: category
+      })
+    }
   }
 
   // Обработчик выбора категории в модалке
@@ -727,6 +792,15 @@ const ReviewsPage = () => {
     if (page < 1 || page > totalPages) return
     
     setCurrentPage(page)
+    
+    // Отслеживаем смену страницы
+    if (currentUser) {
+      trackEvent('stories_page_changed', {
+        userId: currentUser.id,
+        page: page,
+        totalPages: totalPages
+      })
+    }
     
     if (activeTab === 'all') {
       loadAllStories(storiesFilter, selectedCategory, page)
@@ -745,6 +819,26 @@ const ReviewsPage = () => {
     const category = categories.find(c => c.category === newStory.category)
     return category ? translateCategory(category.category, currentLanguage) : newStory.category
   }
+
+  // Отслеживаем просмотр страницы историй
+  useEffect(() => {
+    if (currentUser) {
+      trackEvent('stories_page_viewed', {
+        userId: currentUser.id,
+        timestamp: new Date().toISOString(),
+        activeTab: activeTab
+      })
+    }
+  }, [currentUser, activeTab, trackEvent])
+
+  // Отслеживаем открытие модалки создания истории
+  useEffect(() => {
+    if (showCreateModal && currentUser) {
+      trackEvent('create_story_modal_opened', {
+        userId: currentUser.id
+      })
+    }
+  }, [showCreateModal, currentUser, trackEvent])
 
   // Загрузка данных при изменении фильтров
   useEffect(() => {
