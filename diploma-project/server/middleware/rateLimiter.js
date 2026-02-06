@@ -55,7 +55,7 @@ const calculatorLimiter = rateLimit({
 });
 const createStoryLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 час
-  max: 10, // максимум 10 историй в час
+  max: 50, // максимум 50 историй в час
   message: {
     success: false,
     error: 'TOO_MANY_STORIES',

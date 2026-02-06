@@ -31,8 +31,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
-    login_streak INTEGER DEFAULT 0,
-    last_daily_login TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP DEFAULT NULL
 );
 
@@ -609,7 +607,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Функция для логирования создания истории успеха
--- Функция для логирования создания истории успеха
 CREATE OR REPLACE FUNCTION log_story_creation()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1160,13 +1157,8 @@ INSERT INTO achievements (
     is_hidden,
     sort_order
 ) VALUES
-    -- Достижения для регистрации и входа
+    -- Достижения для регистрации 
     ('first_login', 'Добро пожаловать!', 'Зарегистрируйтесь в системе', 'registration', '🎉', 'first_login', 'boolean', 1, 50, 'common', false, 1),
-    ('daily_login_1', 'Начало пути', 'Войдите в систему', 'login', '🔓', 'daily_login', 'count', 1, 10, 'common', false, 2),
-    ('daily_login_3', 'Привычка', 'Войдите в систему 3 дня подряд', 'login', '🔥', 'daily_login', 'streak', 3, 30, 'rare', false, 3),
-    ('daily_login_7', 'Верный друг', 'Войдите в систему 7 дней подряд', 'login', '🏆', 'daily_login', 'streak', 7, 70, 'epic', false, 4),
-    ('daily_login_30', 'Легенда', 'Войдите в систему 30 дней подряд', 'login', '👑', 'daily_login', 'streak', 30, 300, 'legendary', false, 5),
-    
     -- Достижения для историй (создание)
     ('first_story', 'Первый рассказ', 'Напишите свою первую историю', 'stories', '✍️', 'story_created', 'count', 1, 100, 'rare', false, 10),
     ('story_5', 'Рассказчик', 'Напишите 5 историй', 'stories', '📚', 'story_created', 'count', 5, 250, 'epic', false, 11),
@@ -1197,7 +1189,7 @@ INSERT INTO achievements (
     -- Скрытые достижения (сюрпризы)
     ('story_deleted', 'Переосмысление', 'Удалите свою историю', 'special', '🗑️', 'story_deleted', 'count', 1, 25, 'rare', true, 100),
     ('like_own_story', 'Самолюбование', 'Поставьте лайк своей истории', 'special', '😊', 'like_own_story', 'boolean', 1, 10, 'common', true, 101),
-    ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', false, 102)
+    ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', true, 102)
     
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,

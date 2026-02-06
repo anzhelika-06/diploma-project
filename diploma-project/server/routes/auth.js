@@ -267,6 +267,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Вход пользователя
+// Вход пользователя
 router.post('/login', async (req, res) => {
   console.log('=== НАЧАЛО ОБРАБОТКИ ВХОДА ===');
   
@@ -294,7 +295,7 @@ router.post('/login', async (req, res) => {
     const userQuery = `
       SELECT id, email, nickname, password_hash, is_admin,
              carbon_saved, eco_level, avatar_emoji, is_banned,
-             last_login_at, login_streak, eco_coins
+             last_login_at, eco_coins
       FROM users 
       WHERE email = $1 OR nickname = $1
     `;
@@ -349,92 +350,70 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Обновляем информацию о последнем входе и стрике
+    // Просто обновляем время последнего входа
     const now = new Date();
-    let newStreak = 1;
     
-    if (user.last_login_at) {
-      const lastLogin = new Date(user.last_login_at);
-      const daysDiff = Math.floor((now - lastLogin) / (1000 * 60 * 60 * 24));
-      
-      if (daysDiff === 1) {
-        // Входил вчера - увеличиваем стрик
-        newStreak = (user.login_streak || 0) + 1;
-      } else if (daysDiff > 1) {
-        // Пропустил день - сбрасываем стрик
-        newStreak = 1;
-      } else {
-        // Входил сегодня - оставляем текущий стрик
-        newStreak = user.login_streak || 1;
-      }
-    }
-    
-    // Обновляем запись пользователя
     const updateQuery = `
       UPDATE users 
-      SET last_login_at = $1, login_streak = $2
-      WHERE id = $3
-      RETURNING login_streak, eco_coins
+      SET last_login_at = $1
+      WHERE id = $2
+      RETURNING eco_coins
     `;
     
-    const updateResult = await client.query(updateQuery, [now, newStreak, user.id]);
-    console.log('Стрик входа обновлен:', newStreak);
+    const updateResult = await client.query(updateQuery, [now, user.id]);
 
-    // ✅ ОБРАБАТЫВАЕМ ДОСТИЖЕНИЯ ДЛЯ ВХОДА
+    // ✅ ОБРАБАТЫВАЕМ ДОСТИЖЕНИЯ ДЛЯ ВХОДА (только first_login при первом входе)
     try {
-      // Проверяем достижения для ежедневного входа по стрику
-      const achievementQuery = `
-        SELECT id, code, points FROM achievements 
-        WHERE event_type = 'daily_login' 
-        AND requirement_type = 'streak' 
-        AND requirement_value = $1
-      `;
-      
-      const achievementResult = await client.query(achievementQuery, [newStreak]);
-      
-      if (achievementResult.rows.length > 0) {
-        const achievement = achievementResult.rows[0];
-        
-        // Проверяем, не получено ли уже это достижение
-        const existingAchievementQuery = `
-          SELECT id FROM user_achievements 
-          WHERE user_id = $1 AND achievement_id = $2
+      // Проверяем, первый ли это вход (last_login_at был NULL)
+      if (!user.last_login_at) {
+        // Ищем достижение first_login
+        const achievementQuery = `
+          SELECT id, points FROM achievements WHERE code = 'first_login'
         `;
+        const achievementResult = await client.query(achievementQuery);
         
-        const existingResult = await client.query(existingAchievementQuery, [user.id, achievement.id]);
-        
-        if (existingResult.rows.length === 0) {
-          // Присваиваем достижение (без начисления экоинов)
-          const achievementInsertQuery = `
-            INSERT INTO user_achievements (
-              user_id, 
-              achievement_id, 
-              progress, 
-              current_value, 
-              completed, 
-              completed_at,
-              metadata
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id
+        if (achievementResult.rows.length > 0) {
+          const achievement = achievementResult.rows[0];
+          
+          // Проверяем, не получено ли уже это достижение
+          const existingAchievementQuery = `
+            SELECT id FROM user_achievements 
+            WHERE user_id = $1 AND achievement_id = $2
           `;
           
-          await client.query(achievementInsertQuery, [
-            user.id, 
-            achievement.id, 
-            newStreak, // progress
-            newStreak, // current_value
-            true, // completed
-            new Date(), // completed_at
-            JSON.stringify({ 
-              points_earned: achievement.points,
-              event_type: 'daily_login',
-              streak: newStreak,
-              description: `Ежедневный вход (стрик ${newStreak} дней)`
-            }) // metadata
-          ]);
+          const existingResult = await client.query(existingAchievementQuery, [user.id, achievement.id]);
           
-          console.log(`🎉 Получено достижение: ${achievement.code} (стрик: ${newStreak} дней)`);
-          console.log(`ℹ️ Награда (${achievement.points} экоинов) будет начислена после клика "Забрать награду"`);
+          if (existingResult.rows.length === 0) {
+            // Присваиваем достижение (без начисления экоинов)
+            const achievementInsertQuery = `
+              INSERT INTO user_achievements (
+                user_id, 
+                achievement_id, 
+                progress, 
+                current_value, 
+                completed, 
+                completed_at,
+                metadata
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+              RETURNING id
+            `;
+            
+            await client.query(achievementInsertQuery, [
+              user.id, 
+              achievement.id, 
+              1, // progress
+              1, // current_value
+              true, // completed
+              new Date(), // completed_at
+              JSON.stringify({ 
+                points_earned: achievement.points,
+                event_type: 'first_login',
+                description: 'Достижение за первый вход'
+              }) // metadata
+            ]);
+            
+            console.log(`🎉 Получено достижение: first_login за первый вход`);
+          }
         }
       }
     } catch (achievementError) {
@@ -473,7 +452,6 @@ router.post('/login', async (req, res) => {
         ecoCoins: updateResult.rows[0].eco_coins || user.eco_coins || 0,
         ecoLevel: user.eco_level || 'Эко-новичок',
         avatarEmoji: user.avatar_emoji || '🌱',
-        loginStreak: newStreak,
         lastLoginAt: now.toISOString()
       }
     };
@@ -647,198 +625,6 @@ router.post('/refresh', async (req, res) => {
     });
   }
 });
-// Добавьте эти функции в конец auth.js, перед module.exports
 
-// Функция для проверки ежедневного входа и достижений
-const checkDailyLoginAchievements = async (client, userId) => {
-  try {
-    const now = new Date();
-    const mskOffset = 3; // MSK timezone (UTC+3)
-    const nowMSK = new Date(now.getTime() + (mskOffset * 60 * 60 * 1000));
-    
-    // Определяем начало текущих суток по MSK
-    const startOfDayMSK = new Date(nowMSK);
-    startOfDayMSK.setHours(0, 0, 0, 0);
-    
-    // Конвертируем обратно в UTC
-    const startOfDayUTC = new Date(startOfDayMSK.getTime() - (mskOffset * 60 * 60 * 1000));
-
-    // Получаем информацию о пользователе
-    const userQuery = `
-      SELECT id, login_streak, last_daily_login 
-      FROM users WHERE id = $1
-    `;
-    
-    const userResult = await client.query(userQuery, [userId]);
-    
-    if (userResult.rows.length === 0) {
-      return { updated: false, streak: 1 };
-    }
-    
-    const user = userResult.rows[0];
-    const lastDailyLogin = user.last_daily_login ? new Date(user.last_daily_login) : null;
-    let updated = false;
-    let newStreak = user.login_streak || 1;
-    
-    // Проверяем, заходил ли пользователь сегодня по MSK
-    if (!lastDailyLogin || lastDailyLogin < startOfDayUTC) {
-      updated = true;
-      
-      // Обновляем дату последнего ежедневного входа
-      await client.query(
-        `UPDATE users SET last_daily_login = $1 WHERE id = $2`,
-        [now, userId]
-      );
-      
-      // Вычисляем новый стрик
-      if (lastDailyLogin) {
-        const yesterdayMSK = new Date(startOfDayMSK);
-        yesterdayMSK.setDate(yesterdayMSK.getDate() - 1);
-        const yesterdayUTC = new Date(yesterdayMSK.getTime() - (mskOffset * 60 * 60 * 1000));
-        
-        const timeDiff = yesterdayUTC.getTime() - lastDailyLogin.getTime();
-        const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-        
-        if (Math.abs(daysDiff) === 1) {
-          newStreak = (user.login_streak || 0) + 1;
-        } else if (Math.abs(daysDiff) > 1) {
-          newStreak = 1;
-        }
-      } else {
-        newStreak = 1;
-      }
-      
-      // Обновляем стрик
-      await client.query(
-        `UPDATE users SET login_streak = $1 WHERE id = $2`,
-        [newStreak, userId]
-      );
-      
-      console.log(`✅ Daily login засчитан для пользователя ${userId} (стрик: ${newStreak} дней)`);
-      
-      // Проверяем достижения для нового стрика
-      await checkStreakAchievements(client, userId, newStreak);
-    }
-    
-    return { updated, streak: newStreak };
-    
-  } catch (error) {
-    console.error('❌ Ошибка при проверке ежедневного входа:', error);
-    return { updated: false, streak: 1 };
-  }
-};
-
-// Функция для проверки достижений за стрик
-const checkStreakAchievements = async (client, userId, streak) => {
-  try {
-    // Проверяем достижения для разных уровней стрика
-    const achievementLevels = [3, 7, 30];
-    
-    for (const level of achievementLevels) {
-      if (streak === level) {
-        // Ищем достижение для этого стрика
-        const achievementQuery = `
-          SELECT id, code, title, points 
-          FROM achievements 
-          WHERE code = $1 OR (event_type = 'daily_login' AND requirement_value = $2)
-        `;
-        
-        const code = `daily_streak_${level}`;
-        const achievementResult = await client.query(achievementQuery, [code, level]);
-        
-        if (achievementResult.rows.length > 0) {
-          const achievement = achievementResult.rows[0];
-          
-          // Проверяем, не получено ли уже это достижение
-          const existingQuery = `
-            SELECT id FROM user_achievements 
-            WHERE user_id = $1 AND achievement_id = $2
-          `;
-          
-          const existingResult = await client.query(existingQuery, [userId, achievement.id]);
-          
-          if (existingResult.rows.length === 0) {
-            // Присваиваем достижение
-            const insertQuery = `
-              INSERT INTO user_achievements (
-                user_id, 
-                achievement_id, 
-                progress, 
-                current_value, 
-                completed, 
-                completed_at,
-                metadata
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-              RETURNING id
-            `;
-            
-            await client.query(insertQuery, [
-              userId, 
-              achievement.id, 
-              100, // progress 100%
-              streak, // current_value
-              true, // completed
-              new Date(), // completed_at
-              JSON.stringify({ 
-                points_earned: achievement.points,
-                streak: streak,
-                earned_at: new Date().toISOString(),
-                description: `Достижение за ${streak} дней подряд`
-              })
-            ]);
-            
-            console.log(`🎉 Пользователь ${userId} получил достижение: ${achievement.code} (стрик: ${streak} дней)`);
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error('❌ Ошибка при проверке достижений:', error);
-  }
-};
-
-// Новый эндпоинт для проверки ежедневного входа (можно вызывать с фронтенда)
-router.get('/check-daily', async (req, res) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'NO_TOKEN',
-        message: 'Требуется авторизация'
-      });
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ecosteps-secret-key-2024');
-    const userId = decoded.userId;
-    
-    const client = await pool.connect();
-    
-    try {
-      const result = await checkDailyLoginAchievements(client, userId);
-      
-      res.json({
-        success: true,
-        updated: result.updated,
-        streak: result.streak,
-        message: result.updated 
-          ? `🎉 Ежедневный вход засчитан! Ваш стрик: ${result.streak} дней` 
-          : 'Вы уже заходили сегодня'
-      });
-    } finally {
-      await client.release();
-    }
-    
-  } catch (error) {
-    console.error('Ошибка при проверке daily login:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'Ошибка при проверке ежедневного входа'
-    });
-  }
-});
 
 module.exports = router;

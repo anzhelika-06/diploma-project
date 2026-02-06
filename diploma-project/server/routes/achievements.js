@@ -218,25 +218,25 @@ router.get('/', async (req, res) => {
     client = await pool.connect();
     
     const query = `
-      SELECT 
-        id,
-        code,
-        name,
-        description,
-        category,
-        icon,
-        event_type,
-        requirement_type,
-        requirement_value,
-        points,
-        rarity,
-        is_active,
-        is_hidden,
-        sort_order
-      FROM achievements
-      WHERE is_active = true
-      ORDER BY sort_order ASC, category, points ASC
-    `;
+  SELECT 
+    id,
+    code,
+    name,
+    description,
+    category,
+    icon,
+    event_type,
+    requirement_type,
+    requirement_value,
+    points,
+    rarity,
+    is_active,
+    is_hidden,
+    sort_order
+  FROM achievements
+  WHERE is_active = true
+  ORDER BY sort_order ASC, category, points ASC
+`;
     
     console.log('Выполняем запрос:', query);
     const result = await client.query(query);
@@ -292,7 +292,8 @@ router.get('/user/:userId', async (req, res) => {
     }
     
     // Получаем достижения с прогрессом пользователя
-    const query = `
+    // Вместо текущего запроса используйте этот:
+      const query = `
       SELECT 
         a.id,
         a.code,
@@ -315,12 +316,19 @@ router.get('/user/:userId', async (req, res) => {
       FROM achievements a
       LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = $1
       WHERE a.is_active = true
+        AND (
+          a.is_hidden = false -- Показываем все НЕ скрытые достижения
+          OR 
+          ua.progress > 0 -- Или скрытые, в которых есть прогресс
+          OR 
+          ua.completed = true -- Или уже выполненные скрытые
+        )
       ORDER BY 
         CASE WHEN COALESCE(ua.completed, false) THEN 0 ELSE 1 END,
         a.sort_order ASC,
         a.category,
         a.points ASC
-    `;
+      `;
     
     console.log('Выполняем запрос для пользователя');
     const result = await client.query(query, [userId]);

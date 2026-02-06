@@ -9,32 +9,24 @@ const AchievementsPage = () => {
   const { currentLanguage, t } = useLanguage()
   const { trackEvent } = useEventTracker()
   
-  // Константы для фильтрации - выносим в область компонента
-  const HIDDEN_EVENT_TYPES = [
-    'story_created', 
-    'story_shared',
-    'new_user'
-  ];
-  
   const [activeTab, setActiveTab] = useState('all')
   const [ecoCoins, setEcoCoins] = useState(0)
   const [allAchievements, setAllAchievements] = useState([])
+  const [visibleAchievements, setVisibleAchievements] = useState([])
   const [translatedAchievements, setTranslatedAchievements] = useState([])
-  const [userAchievements, setUserAchievements] = useState([])
+  const [allUserAchievements, setAllUserAchievements] = useState([])
   const [loading, setLoading] = useState(true)
   const [translating, setTranslating] = useState(false)
   const [error, setError] = useState(null)
   
-  // Статистика - только 3 блока
   const [stats, setStats] = useState({
     total: 0,
     completed: 0,
     percentage: 0
   })
   
-  // Пагинация
   const [currentPage, setCurrentPage] = useState(1)
-  const achievementsPerPage = 10 // Можно изменить на 5
+  const achievementsPerPage = 10
   
   const [showClaimModal, setShowClaimModal] = useState(false)
   const [selectedAchievement, setSelectedAchievement] = useState(null)
@@ -60,7 +52,6 @@ const AchievementsPage = () => {
           return
         }
         
-        // Отслеживаем просмотр страницы достижений
         trackEvent('achievements_page_viewed', {
           userId: user.id,
           timestamp: new Date().toISOString()
@@ -74,23 +65,15 @@ const AchievementsPage = () => {
           throw new Error(achievementsData.error || t('loadError'))
         }
         
-        const achievements = achievementsData.achievements || []
-        // Фильтруем достижения, скрываем категории типа "story_created"
-        const filteredAchievements = achievements.filter(ach => {
-          // Используем HIDDEN_EVENT_TYPES из области компонента
-          if (ach.event_type && HIDDEN_EVENT_TYPES.includes(ach.event_type)) {
-            return false
-          }
-          
-          // Скрываем достижения с категорией "new"
-          if (ach.category === 'new') {
-            return false
-          }
-          
-          return true
+        const allSystemAchievements = achievementsData.achievements || []
+        
+        setAllAchievements(allSystemAchievements)
+        
+        const visibleSystemAchievements = allSystemAchievements.filter(ach => {
+          return ach.is_hidden !== true
         })
         
-        setAllAchievements(filteredAchievements)
+        setVisibleAchievements(visibleSystemAchievements)
         
         const userRes = await fetch(`/api/achievements/user/${user.id}`)
         if (!userRes.ok) throw new Error(`HTTP ${userRes.status}`)
@@ -100,39 +83,30 @@ const AchievementsPage = () => {
           throw new Error(userData.error || t('loadUserError'))
         }
         
-        // Фильтруем user achievements - используем HIDDEN_EVENT_TYPES
-        const filteredUserAchievements = (userData.achievements || []).filter(ua => {
-          const achievement = achievements.find(a => a.id === ua.id)
-          return achievement && !HIDDEN_EVENT_TYPES.includes(achievement.event_type)
-        })
+        const allUserAchievementsData = userData.achievements || []
         
-        setUserAchievements(filteredUserAchievements)
+        setAllUserAchievements(allUserAchievementsData)
         setEcoCoins(userData.ecoCoins || 0)
         
-        // Расчет статистики (только 3 показателя)
-        const totalAchievements = filteredAchievements.length
-        const completedAchievements = filteredUserAchievements.filter(ach => ach.completed).length
-        
-        // Расчет процента завершения
-        const percentage = totalAchievements > 0 
-          ? Math.round((completedAchievements / totalAchievements) * 100) 
+        const totalAll = allSystemAchievements.length
+        const completedAll = allUserAchievementsData.filter(ach => ach.completed).length
+        const percentageAll = totalAll > 0 
+          ? Math.round((completedAll / totalAll) * 100) 
           : 0
         
         setStats({
-          total: totalAchievements,
-          completed: completedAchievements,
-          percentage: percentage
+          total: totalAll,
+          completed: completedAll,
+          percentage: percentageAll
         })
         
-        // Проверяем наличие недавно разблокированных достижений
-        const recentlyUnlocked = filteredUserAchievements.filter(ach => 
+        const recentlyUnlocked = allUserAchievementsData.filter(ach => 
           ach.completed && !ach.claimed_at && 
           ach.completed_at && 
-          (new Date() - new Date(ach.completed_at)) < 24 * 60 * 60 * 1000 // В течение 24 часов
+          (new Date() - new Date(ach.completed_at)) < 24 * 60 * 60 * 1000
         ) || []
         
         if (recentlyUnlocked.length > 0) {
-          // Показываем уведомление о новых достижениях
           recentlyUnlocked.forEach(achievement => {
             showAchievementNotification(achievement)
           })
@@ -149,7 +123,6 @@ const AchievementsPage = () => {
     loadData()
   }, [t, trackEvent])
 
-  // Функция для показа уведомления о новом достижении
   const showAchievementNotification = (achievement) => {
     const notificationEvent = new CustomEvent('showNotification', {
       detail: {
@@ -164,7 +137,6 @@ const AchievementsPage = () => {
     window.dispatchEvent(notificationEvent)
   }
 
-  // Функция для определения языка текста
   const detectLanguage = (text) => {
     if (!text) return 'ru'
     
@@ -189,31 +161,24 @@ const AchievementsPage = () => {
     return detectedLang
   }
 
-  // Перевод достижений при изменении языка или загрузке новых данных
   useEffect(() => {
     const translateAchievements = async () => {
-      if (allAchievements.length === 0) {
+      if (visibleAchievements.length === 0) {
         setTranslatedAchievements([])
         return
       }
 
       if (!('Translator' in self)) {
         console.warn('Chrome Translator API не поддерживается')
-        setTranslatedAchievements(allAchievements)
+        setTranslatedAchievements(visibleAchievements)
         return
       }
-
-      console.log('🔄 Начинаем перевод достижений:', {
-        achievementsCount: allAchievements.length,
-        currentLanguage,
-        firstAchievement: allAchievements[0]?.name
-      })
 
       setTranslating(true)
       
       try {
         const translated = await Promise.all(
-          allAchievements.map(async (achievement) => {
+          visibleAchievements.map(async (achievement) => {
             try {
               const nameLanguage = detectLanguage(achievement.name)
               const descLanguage = detectLanguage(achievement.description)
@@ -222,22 +187,18 @@ const AchievementsPage = () => {
               let translatedName = achievement.name
               let translatedDescription = achievement.description
               
-              // Переводим название если нужно
               if (nameLanguage !== targetLang) {
                 try {
                   translatedName = await translateStoryContent(achievement.name, currentLanguage, nameLanguage)
                 } catch (error) {
-                  console.error(`❌ ОШИБКА ПЕРЕВОДА НАЗВАНИЯ:`, error)
                   translatedName = achievement.name
                 }
               }
               
-              // Переводим описание если нужно
               if (descLanguage !== targetLang) {
                 try {
                   translatedDescription = await translateStoryContent(achievement.description, currentLanguage, descLanguage)
                 } catch (error) {
-                  console.error(`❌ Ошибка перевода описания:`, error)
                   translatedDescription = achievement.description
                 }
               }
@@ -248,81 +209,115 @@ const AchievementsPage = () => {
                 description: translatedDescription
               }
             } catch (error) {
-              console.warn(`❌ Ошибка перевода достижения ${achievement.id}:`, error)
               return achievement
             }
           })
         )
         
-        console.log('✅ Перевод достижений завершен')
-        
         setTranslatedAchievements(translated)
       } catch (error) {
-        console.error('❌ Критическая ошибка перевода:', error)
-        setTranslatedAchievements(allAchievements)
+        setTranslatedAchievements(visibleAchievements)
       } finally {
         setTranslating(false)
       }
     }
 
     translateAchievements()
-  }, [currentLanguage, allAchievements])
+  }, [currentLanguage, visibleAchievements])
 
   const getAchievementsWithProgress = () => {
-    const achievementsToUse = translating ? allAchievements : translatedAchievements
+    let achievementsToShow = []
     
-    return achievementsToUse.map(achievement => {
-      const userAchievement = userAchievements.find(ua => ua.id === achievement.id)
+    if (activeTab === 'my') {
+      // Вкладка "Мои достижения" - показываем все достижения пользователя
+      achievementsToShow = allUserAchievements.map(userAch => {
+        const achievementInfo = allAchievements.find(a => a.id === userAch.id)
+        
+        if (!achievementInfo) {
+          return {
+            id: userAch.id,
+            name: userAch.name || `Достижение #${userAch.id}`,
+            description: userAch.description || '',
+            icon: userAch.icon || '🏆',
+            points: userAch.points || 0,
+            requirement_type: userAch.requirement_type || 'count',
+            requirement_value: userAch.requirement_value || 1,
+            rarity: userAch.rarity || 'common',
+            is_hidden: userAch.is_hidden || true,
+            progress: userAch.progress || 0,
+            current_value: userAch.current_value || 0,
+            completed: userAch.completed || false,
+            completed_at: userAch.completed_at || null,
+            claimed_at: userAch.claimed_at || null,
+            claimed: !!userAch.claimed_at,
+            started_at: userAch.started_at || null
+          }
+        }
+        
+        return {
+          ...achievementInfo,
+          progress: userAch.progress || 0,
+          current_value: userAch.current_value || 0,
+          completed: userAch.completed || false,
+          completed_at: userAch.completed_at || null,
+          claimed_at: userAch.claimed_at || null,
+          claimed: !!userAch.claimed_at,
+          started_at: userAch.started_at || null
+        }
+      })
       
-      return {
-        ...achievement,
-        progress: userAchievement?.progress || 0,
-        current_value: userAchievement?.current_value || 0,
-        completed: userAchievement?.completed || false,
-        completed_at: userAchievement?.completed_at || null,
-        claimed_at: userAchievement?.claimed_at || null,
-        claimed: !!userAchievement?.claimed_at,
-        started_at: userAchievement?.started_at || null
-      }
-    })
+      // Показываем только достижения с прогрессом
+      achievementsToShow = achievementsToShow.filter(a => a.progress > 0)
+      
+    } else {
+      // Вкладка "Все достижения" - показываем только видимые
+      const achievementsToUse = translating ? visibleAchievements : translatedAchievements
+      
+      achievementsToShow = achievementsToUse.map(achievement => {
+        const userAchievement = allUserAchievements.find(ua => ua.id === achievement.id)
+        
+        return {
+          ...achievement,
+          progress: userAchievement?.progress || 0,
+          current_value: userAchievement?.current_value || 0,
+          completed: userAchievement?.completed || false,
+          completed_at: userAchievement?.completed_at || null,
+          claimed_at: userAchievement?.claimed_at || null,
+          claimed: !!userAchievement?.claimed_at,
+          started_at: userAchievement?.started_at || null
+        }
+      })
+    }
+    
+    return achievementsToShow
   }
 
   const getCurrentAchievements = () => {
-    const achievementsWithProgress = getAchievementsWithProgress()
-    
-    if (activeTab === 'my') {
-      return achievementsWithProgress.filter(a => a.progress > 0)
-    } else {
-      return achievementsWithProgress
-    }
+    return getAchievementsWithProgress()
   }
 
-  // Фильтруем и сортируем достижения для текущей страницы
   const getPaginatedAchievements = () => {
     let allFiltered = getCurrentAchievements()
     
-    // СОРТИРОВКА: незабранные награды вверху, затем завершенные, затем остальные
     allFiltered.sort((a, b) => {
-      // Сначала проверяем, можно ли забрать награду (completed и не claimed)
       const aCanClaim = a.completed && !a.claimed
       const bCanClaim = b.completed && !b.claimed
       
       if (aCanClaim && !bCanClaim) return -1
       if (!aCanClaim && bCanClaim) return 1
       
-      // Затем сортируем по завершенности
       if (a.completed && !b.completed) return -1
       if (!a.completed && b.completed) return 1
       
-      // Затем сортируем по прогрессу (больший прогресс выше)
-      if (a.progress > b.progress) return -1
-      if (a.progress < b.progress) return 1
+      const aProgress = a.progress / (a.requirement_value || 1)
+      const bProgress = b.progress / (b.requirement_value || 1)
       
-      // И наконец по ID или названию
+      if (aProgress > bProgress) return -1
+      if (aProgress < bProgress) return 1
+      
       return a.id - b.id
     })
     
-    // Вычисляем индексы для пагинации
     const indexOfLastAchievement = currentPage * achievementsPerPage
     const indexOfFirstAchievement = indexOfLastAchievement - achievementsPerPage
     const currentAchievements = allFiltered.slice(indexOfFirstAchievement, indexOfLastAchievement)
@@ -351,7 +346,7 @@ const AchievementsPage = () => {
 
   const handleTabChange = (tab) => {
     setActiveTab(tab)
-    setCurrentPage(1) // Сбрасываем на первую страницу при смене таба
+    setCurrentPage(1)
     
     const userStr = localStorage.getItem('user')
     if (userStr) {
@@ -415,24 +410,23 @@ const AchievementsPage = () => {
       const result = await response.json()
       
       if (result.success) {
-        // Обновляем состояние
-        const updatedUserAchievements = userAchievements.map(ua => 
+        const updatedAllUserAchievements = allUserAchievements.map(ua => 
           ua.id === selectedAchievement.id 
             ? { ...ua, claimed_at: new Date().toISOString() }
             : ua
         )
-        setUserAchievements(updatedUserAchievements)
+        
+        setAllUserAchievements(updatedAllUserAchievements)
         setEcoCoins(result.ecoCoins)
         
-        // Обновляем статистику - увеличиваем счетчик выполненных
+        const updatedCompletedCount = updatedAllUserAchievements.filter(ach => ach.completed).length
+        
         setStats(prev => ({
-          ...prev,
-          completed: prev.completed + 1,
-          // Пересчитываем процент
-          percentage: prev.total > 0 ? Math.round(((prev.completed + 1) / prev.total) * 100) : 0
+          total: prev.total,
+          completed: updatedCompletedCount,
+          percentage: prev.total > 0 ? Math.round((updatedCompletedCount / prev.total) * 100) : 0
         }))
         
-        // Отслеживаем событие
         trackEvent('achievement_reward_claimed', {
           userId: user.id,
           achievementId: selectedAchievement.id,
@@ -441,7 +435,6 @@ const AchievementsPage = () => {
           newBalance: result.ecoCoins
         })
         
-        // Показываем уведомление об успехе
         const notificationEvent = new CustomEvent('showNotification', {
           detail: {
             type: 'success',
@@ -454,7 +447,6 @@ const AchievementsPage = () => {
         window.dispatchEvent(notificationEvent)
         
       } else {
-        console.error(t('claimError'), result.error)
         alert(result.message || t('claimError'))
       }
     } catch (err) {
@@ -479,7 +471,6 @@ const AchievementsPage = () => {
     })
   }
 
-  // Функции пагинации - НОВАЯ ПАГИНАЦИЯ
   const goToNextPage = () => {
     const { totalPages } = getPaginatedAchievements()
     if (currentPage < totalPages) {
@@ -500,14 +491,12 @@ const AchievementsPage = () => {
     }
   }
 
-  // Функция для генерации кнопок пагинации
   const renderPaginationButtons = () => {
     const { totalPages } = getPaginatedAchievements()
     const buttons = []
     
     if (totalPages <= 1) return null
     
-    // Кнопка "Назад"
     buttons.push(
       <button
         key="prev"
@@ -519,7 +508,6 @@ const AchievementsPage = () => {
       </button>
     )
     
-    // Первая страница
     buttons.push(
       <button
         key="1"
@@ -530,7 +518,6 @@ const AchievementsPage = () => {
       </button>
     )
     
-    // Многоточие если нужно
     if (currentPage > 3) {
       buttons.push(
         <span key="ellipsis-start" className="achievements-pagination-ellipsis">
@@ -539,7 +526,6 @@ const AchievementsPage = () => {
       )
     }
     
-    // Средние страницы
     const startPage = Math.max(2, currentPage - 1)
     const endPage = Math.min(totalPages - 1, currentPage + 1)
     
@@ -557,7 +543,6 @@ const AchievementsPage = () => {
       }
     }
     
-    // Многоточие если нужно
     if (currentPage < totalPages - 2) {
       buttons.push(
         <span key="ellipsis-end" className="achievements-pagination-ellipsis">
@@ -566,7 +551,6 @@ const AchievementsPage = () => {
       )
     }
     
-    // Последняя страница (если не первая)
     if (totalPages > 1) {
       buttons.push(
         <button
@@ -579,7 +563,6 @@ const AchievementsPage = () => {
       )
     }
     
-    // Кнопка "Вперед"
     buttons.push(
       <button
         key="next"
@@ -593,6 +576,13 @@ const AchievementsPage = () => {
     
     return buttons
   }
+
+  const visibleCompletedCount = allUserAchievements.filter(ua => {
+    const achievement = allAchievements.find(a => a.id === ua.id)
+    return ua.completed && achievement && achievement.is_hidden !== true
+  }).length
+
+  const visibleTotalCount = visibleAchievements.length
 
   if (loading) {
     return (
@@ -629,6 +619,19 @@ const AchievementsPage = () => {
   const { achievements, totalPages, totalAchievements } = getPaginatedAchievements()
   const { total, completed, percentage } = stats
 
+  const getStatTranslations = () => {
+    return {
+      allAchievementsLabel: t('allAchievements') || 'All Achievements',
+      completedLabel: t('completed') || 'Completed',
+      progressLabel: t('progress') || 'Progress',
+      visibleHint: t('visibleHint') || 'visible',
+      fromAll: t('fromAll') || 'from all',
+      visibleAchievements: t('visibleAchievements') || 'visible achievements'
+    }
+  }
+
+  const translations = getStatTranslations()
+
   return (
     <div className="achievements-page">
       <div className="achievements-container">
@@ -637,7 +640,7 @@ const AchievementsPage = () => {
           <div className="eco-coins-balance">
             <img 
               src={ecoinsImage} 
-              alt="Экоины" 
+              alt={t('ecoCoins') || 'Eco Coins'} 
               className="eco-coins-icon"
             />
             <span className="eco-coins-amount">{ecoCoins}</span>
@@ -645,19 +648,27 @@ const AchievementsPage = () => {
           </div>
         </div>
 
-        {/* БЛОК СТАТИСТИКИ - ТОЛЬКО 3 БЛОКА В НОВОМ ПОРЯДКЕ БЕЗ ПРОГРЕСС-БАРА */}
         <div className="achievements-stats">
           <div className="stat-card">
             <div className="stat-value">{total}</div>
-            <div className="stat-label">{t('allAchievements')}</div>
+            <div className="stat-label">{translations.allAchievementsLabel}</div>
+            <div className="stat-hint">
+              ({visibleTotalCount} {translations.visibleHint})
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{completed}</div>
-            <div className="stat-label">{t('completed')}</div>
+            <div className="stat-label">{translations.completedLabel}</div>
+            <div className="stat-hint">
+              ({visibleCompletedCount} {translations.visibleHint})
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{percentage}%</div>
-            <div className="stat-label">{t('progress')}</div>
+            <div className="stat-label">{translations.progressLabel}</div>
+            <div className="stat-hint">
+              {translations.fromAll} {translations.visibleAchievements.toLowerCase()}
+            </div>
           </div>
         </div>
 
@@ -679,10 +690,10 @@ const AchievementsPage = () => {
         </div>
 
         <div className="achievements-list">
-          {translating ? (
+          {translating && activeTab === 'all' ? (
             <div className="loading-container">
               <div className="loading-spinner"></div>
-              <p>{t('achievementsTranslating') || 'Переводим достижения...'}</p>
+              <p>{t('achievementsTranslating') || 'Translating achievements...'}</p>
             </div>
           ) : achievements.length === 0 ? (
             <div className="empty-state">
@@ -724,6 +735,11 @@ const AchievementsPage = () => {
                       </div>
                       <div className="achievement-points">
                         <span className="points-value">+{achievement.points}</span>
+                        <img 
+                          src={ecoinsImage} 
+                          alt={t('ecoCoins') || 'Eco Coins'} 
+                          className="points-icon"
+                        />
                       </div>
                     </div>
 
@@ -731,7 +747,7 @@ const AchievementsPage = () => {
                       <div className="progress-info">
                         <span className="progress-text">
                           {achievement.progress} / {achievement.requirement_value}
-                          {achievement.requirement_type === 'streak' && ' дней'}
+                          {achievement.requirement_type === 'streak' && ` ${t('days') || 'days'}`}
                         </span>
                         <span className="progress-percentage">{progressPercentage}%</span>
                       </div>
@@ -749,7 +765,7 @@ const AchievementsPage = () => {
                           className="meta-rarity"
                           style={{ color: getRarityColor(achievement.rarity) }}
                         >
-                          {t(`${achievement.rarity}`)}
+                          {t(`${achievement.rarity}`) || achievement.rarity}
                         </span>
                         {achievement.completed_at && (
                           <span className="meta-date">
@@ -793,14 +809,13 @@ const AchievementsPage = () => {
           )}
         </div>
 
-            {/* ПАГИНАЦИЯ - НОВАЯ ВЕРСИЯ */}
         {totalPages > 1 && (
           <div className="achievements-pagination-container">
             <div className="achievements-pagination-info">
-              {t('showingAchievements') || 'Показано'} <strong>
+              {t('showingAchievements') || 'Showing'} <strong>
                 {(currentPage - 1) * achievementsPerPage + 1}-
                 {Math.min(currentPage * achievementsPerPage, totalAchievements)}
-              </strong> {t('ofTotal') || 'из'} <strong>{totalAchievements}</strong>
+              </strong> {t('ofTotal') || 'of'} <strong>{totalAchievements}</strong>
             </div>
             <div className="achievements-pagination-buttons">
               {renderPaginationButtons()}
@@ -809,84 +824,82 @@ const AchievementsPage = () => {
         )}
       </div>
 
-{/* МОДАЛЬНОЕ ОКНО С НОВЫМ ДИЗАЙНОМ */}
-{showClaimModal && selectedAchievement && (
-  <div className="modal-overlay">
-    <div className="modal-content">
-      <div className="modal-header">
-        <h2 className="modal-title">
-          {t('confirmClaim')}
-        </h2>
-        <button 
-          className="modal-close-btn"
-          onClick={handleCloseModal}
-          disabled={claiming}
-        >
-          <span className="material-icons">close</span>
-        </button>
-      </div>
-      
-      <div className="modal-body">
-        <div className="achievement-preview">
-          <div className="preview-icon">
-            <span style={{ fontSize: '40px' }}>{selectedAchievement.icon}</span>
-          </div>
-          <div className="preview-info">
-            <h3 className="preview-name">{selectedAchievement.name}</h3>
-            <p className="preview-description">{selectedAchievement.description}</p>
+      {showClaimModal && selectedAchievement && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">
+                {t('confirmClaim')}
+              </h2>
+              <button 
+                className="modal-close-btn"
+                onClick={handleCloseModal}
+                disabled={claiming}
+              >
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="achievement-preview">
+                <div className="preview-icon">
+                  <span style={{ fontSize: '40px' }}>{selectedAchievement.icon}</span>
+                </div>
+                <div className="preview-info">
+                  <h3 className="preview-name">{selectedAchievement.name}</h3>
+                  <p className="preview-description">{selectedAchievement.description}</p>
+                </div>
+              </div>
+              
+              <div className="reward-section-inline">
+                <div className="reward-inline-container">
+                  <div className="reward-text-left">
+                    <span className="reward-label-inline">
+                      {t('youWillReceive')}
+                    </span>
+                  </div>
+                  <div className="reward-value-right">
+                    <span className="reward-plus-inline">+</span>
+                    <span className="reward-number-inline">{selectedAchievement.points}</span>
+                    <img 
+                      src={ecoinsImage} 
+                      alt={t('ecoCoins') || 'Eco Coins'} 
+                      className="reward-icon-inline"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="modal-btn cancel-btn"
+                onClick={handleCloseModal}
+                disabled={claiming}
+              >
+                {t('cancel')}
+              </button>
+              <button 
+                className="modal-btn confirm-btn"
+                onClick={handleConfirmClaim}
+                disabled={claiming}
+              >
+                {claiming ? (
+                  <>
+                    <div className="claim-spinner-minimal"></div>
+                    <span>{t('processing')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-icons" style={{ marginRight: '8px', fontSize: '18px' }}>redeem</span>
+                    {t('getReward')}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
-        
-        {/* БЛОК НАГРАДЫ С ТЕКСТОМ СЛЕВА И ЗНАЧЕНИЕМ СПРАВА */}
-        <div className="reward-section-inline">
-          <div className="reward-inline-container">
-            <div className="reward-text-left">
-              <span className="reward-label-inline">
-                {t('youWillReceive')}
-              </span>
-            </div>
-            <div className="reward-value-right">
-              <span className="reward-plus-inline">+</span>
-              <span className="reward-number-inline">{selectedAchievement.points}</span>
-              <img 
-                src={ecoinsImage} 
-                alt="Экоины" 
-                className="reward-icon-inline"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="modal-footer">
-        <button 
-          className="modal-btn cancel-btn"
-          onClick={handleCloseModal}
-          disabled={claiming}
-        >
-          {t('cancel')}
-        </button>
-        <button 
-          className="modal-btn confirm-btn"
-          onClick={handleConfirmClaim}
-          disabled={claiming}
-        >
-          {claiming ? (
-            <>
-              <div className="claim-spinner-minimal"></div>
-              <span>{t('processing')}</span>
-            </>
-          ) : (
-            <>
-              <span className="material-icons" style={{ marginRight: '8px', fontSize: '18px' }}>redeem</span>
-              {t('getReward')}
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   )
 }

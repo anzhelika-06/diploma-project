@@ -48,7 +48,7 @@ const trackAchievementEvent = async (client, userId, eventType, eventData = {}) 
         FROM achievements 
         WHERE event_type = $1 
         AND is_active = true
-        AND code != 'like_own_story' // Исключаем achievement для лайка своей истории
+        AND code != 'like_own_story' 
       `;
       queryParams = [eventType];
     }
@@ -966,9 +966,447 @@ router.delete('/:id', async (req, res) => {
 });
 
 // ==================== АДМИНСКИЕ ЭНДПОЙНТЫ ====================
+router.get('/admin/category-stats', async (req, res) => {
+  try {
+    console.log('📊 Запрос статистики по категориям для админа');
+    
+    // Уберите валидацию storyId, так как она не нужна для общей статистики
+    const query = `
+      SELECT 
+        COALESCE(NULLIF(TRIM(category), ''), 'Не указана') as category,
+        COUNT(*) as count,
+        COUNT(CASE WHEN status = 'published' THEN 1 END) as published_count,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft_count,
+        COALESCE(SUM(likes_count), 0) as total_likes,
+        COALESCE(SUM(carbon_saved), 0) as total_carbon_saved
+      FROM success_stories
+      GROUP BY COALESCE(NULLIF(TRIM(category), ''), 'Не указана')
+      ORDER BY count DESC, category
+    `;
+    
+    console.log('🔍 SQL запрос категорий:', query);
+    const result = await executeQueryWithLogging(pool, query);
+    
+    console.log('✅ Статистика по категориям получена:', result.rows.length, 'категорий');
+    
+    // Форматируем ответ
+    const formattedCategories = result.rows.map(row => ({
+      category: row.category,
+      count: parseInt(row.count) || 0,
+      published: parseInt(row.published_count) || 0,
+      pending: parseInt(row.pending_count) || 0,
+      draft: parseInt(row.draft_count) || 0,
+      total_likes: parseInt(row.total_likes) || 0,
+      total_carbon_saved: parseFloat(row.total_carbon_saved) || 0
+    }));
+    
+    res.json({
+      success: true,
+      categories: formattedCategories
+    });
+    
+  } catch (error) {
+    console.error('❌ Ошибка при получении статистики по категориям:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера',
+      details: error.message
+    });
+  }
+});
+router.get('/admin/stats', async (req, res) => {
+  try {
+    console.log('📊 Запрос общей статистики для админа');
+    
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total_stories,
+        COUNT(CASE WHEN status = 'published' THEN 1 END) as published_stories,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_stories,
+        COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft_stories,
+        COALESCE(SUM(likes_count), 0) as total_likes,
+        COALESCE(SUM(carbon_saved), 0) as total_carbon_saved
+      FROM success_stories
+    `;
+    
+    const statsResult = await executeQueryWithLogging(pool, statsQuery);
+    
+    // Статистика по категориям (упрощенная версия)
+    const categoriesQuery = `
+      SELECT 
+        COALESCE(NULLIF(TRIM(category), ''), 'Не указана') as category,
+        COUNT(*) as count,
+        COUNT(CASE WHEN status = 'published' THEN 1 END) as published_count
+      FROM success_stories
+      GROUP BY COALESCE(NULLIF(TRIM(category), ''), 'Не указана')
+      ORDER BY count DESC
+    `;
+    
+    const categoriesResult = await executeQueryWithLogging(pool, categoriesQuery);
+    
+    console.log('✅ Общая статистика получена:', statsResult.rows[0]);
+    
+    const statsData = statsResult.rows[0] || {};
+    
+    res.json({
+      success: true,
+      stats: {
+        total_stories: parseInt(statsData.total_stories) || 0,
+        published_stories: parseInt(statsData.published_stories) || 0,
+        pending_stories: parseInt(statsData.pending_stories) || 0,
+        draft_stories: parseInt(statsData.draft_stories) || 0,
+        total_likes: parseInt(statsData.total_likes) || 0,
+        total_carbon_saved: parseFloat(statsData.total_carbon_saved) || 0
+      },
+      categories: categoriesResult.rows.map(row => ({
+        category: row.category,
+        count: parseInt(row.count) || 0,
+        published_count: parseInt(row.published_count) || 0
+      }))
+    });
+  } catch (error) {
+    console.error('❌ Ошибка при получении статистики:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера',
+      details: error.message
+    });
+  }
+});
+router.get('/admin', async (req, res) => {
+  try {
+    const { 
+      status = 'all',
+      category = 'all',
+      page = 1,
+      limit = 10,
+      search = ''
+    } = req.query;
+    
+    console.log('📊 Запрос историй для админа:', { status, category, page, limit, search });
+    
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const offset = (pageNum - 1) * limitNum;
+    
+    let query = `
+      SELECT 
+        s.id,
+        s.title,
+        s.content,
+        s.carbon_saved,
+        s.likes_count,
+        s.created_at,
+        s.updated_at,
+        s.category,
+        s.status,
+        u.id as user_id,
+        u.nickname as user_nickname,
+        u.email as user_email,
+        u.avatar_emoji as user_avatar
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE 1=1
+    `;
+    
+    let queryParams = [];
+    let paramIndex = 1;
+    
+    if (status !== 'all') {
+      query += ` AND s.status = $${paramIndex}`;
+      queryParams.push(status);
+      paramIndex++;
+    }
+    
+    if (category !== 'all') {
+      query += ` AND COALESCE(NULLIF(TRIM(s.category), ''), 'Не указана') = $${paramIndex}`;
+      queryParams.push(category);
+      paramIndex++;
+    }
+    
+    if (search && search.trim()) {
+      query += ` AND (
+        s.title ILIKE $${paramIndex} 
+        OR s.content ILIKE $${paramIndex} 
+        OR u.nickname ILIKE $${paramIndex}
+        OR u.email ILIKE $${paramIndex}
+      )`;
+      queryParams.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+    
+    query += ' ORDER BY s.created_at DESC';
+    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(limitNum, offset);
+    
+    console.log('🔍 SQL Query (admin):', query);
+    console.log('🔍 Query Params:', queryParams);
+    
+    const result = await executeQueryWithLogging(pool, query, queryParams);
+    
+    // Получаем общее количество
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE 1=1
+    `;
+    
+    let countParams = [];
+    paramIndex = 1;
+    
+    if (status !== 'all') {
+      countQuery += ` AND s.status = $${paramIndex}`;
+      countParams.push(status);
+      paramIndex++;
+    }
+    
+    if (category !== 'all') {
+      countQuery += ` AND COALESCE(NULLIF(TRIM(s.category), ''), 'Не указана') = $${paramIndex}`;
+      countParams.push(category);
+      paramIndex++;
+    }
+    
+    if (search && search.trim()) {
+      countQuery += ` AND (
+        s.title ILIKE $${paramIndex} 
+        OR s.content ILIKE $${paramIndex} 
+        OR u.nickname ILIKE $${paramIndex}
+        OR u.email ILIKE $${paramIndex}
+      )`;
+      countParams.push(`%${search.trim()}%`);
+    }
+    
+    const countResult = await executeQueryWithLogging(pool, countQuery, countParams);
+    const total = parseInt(countResult.rows[0]?.total) || 0;
+    
+    // Форматируем ответ
+    const formattedStories = result.rows.map(story => ({
+      ...story,
+      id: story.id.toString(),
+      user_id: story.user_id.toString(),
+      carbon_saved: parseFloat(story.carbon_saved) || 0,
+      likes_count: parseInt(story.likes_count) || 0,
+      category: story.category || 'Не указана'
+    }));
+    
+    console.log('✅ Историй найдено:', total, 'Показано:', formattedStories.length);
+    
+    res.json({
+      success: true,
+      stories: formattedStories,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+        hasNext: offset + limitNum < total,
+        hasPrev: pageNum > 1
+      }
+    });
+  } catch (error) {
+    console.error('❌ Ошибка при получении историй для админа:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера',
+      details: error.message
+    });
+  }
+});
+// Получить все истории для админа (с пагинацией и фильтрацией)
+router.get('/admin/all', async (req, res) => {
+  try {
+    const { 
+      status = 'all',
+      category = 'all',
+      page = 1,
+      limit = 10,
+      search = ''
+    } = req.query;
+    
+    const pagination = validatePagination(page, limit);
+    
+    let query = `
+      SELECT 
+        s.id,
+        s.title,
+        s.content,
+        s.carbon_saved,
+        s.likes_count,
+        s.created_at,
+        s.updated_at,
+        s.category,
+        s.status,
+        u.id as user_id,
+        u.nickname as user_nickname,
+        u.email as user_email,
+        u.avatar_emoji as user_avatar,
+        u.is_admin as user_is_admin
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE 1=1
+    `;
+    
+    let queryParams = [];
+    let paramIndex = 1;
+    
+    if (status !== 'all') {
+      query += ` AND s.status = $${paramIndex}`;
+      queryParams.push(status);
+      paramIndex++;
+    }
+    
+    if (category !== 'all') {
+      query += ` AND s.category = $${paramIndex}`;
+      queryParams.push(category);
+      paramIndex++;
+    }
+    
+    if (search && search.trim()) {
+      query += ` AND (s.title ILIKE $${paramIndex} OR s.content ILIKE $${paramIndex} OR u.nickname ILIKE $${paramIndex})`;
+      queryParams.push(`%${search.trim()}%`);
+      paramIndex++;
+    }
+    
+    query += ' ORDER BY s.created_at DESC';
+    query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(pagination.limit, pagination.offset);
+    
+    console.log('🔍 SQL Query (admin all):', query);
+    console.log('🔍 Query Params:', queryParams);
+    
+    const result = await executeQueryWithLogging(pool, query, queryParams);
+    
+    // Получаем общее количество
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE 1=1
+    `;
+    
+    let countParams = [];
+    paramIndex = 1;
+    
+    if (status !== 'all') {
+      countQuery += ` AND s.status = $${paramIndex}`;
+      countParams.push(status);
+      paramIndex++;
+    }
+    
+    if (category !== 'all') {
+      countQuery += ` AND s.category = $${paramIndex}`;
+      countParams.push(category);
+      paramIndex++;
+    }
+    
+    if (search && search.trim()) {
+      countQuery += ` AND (s.title ILIKE $${paramIndex} OR s.content ILIKE $${paramIndex} OR u.nickname ILIKE $${paramIndex})`;
+      countParams.push(`%${search.trim()}%`);
+    }
+    
+    const countResult = await executeQueryWithLogging(pool, countQuery, countParams);
+    const total = parseInt(countResult.rows[0].total);
+    
+    res.json({
+      success: true,
+      stories: result.rows,
+      pagination: {
+        page: pagination.page,
+        limit: pagination.limit,
+        total,
+        totalPages: Math.ceil(total / pagination.limit),
+        hasNext: pagination.offset + pagination.limit < total,
+        hasPrev: pagination.page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка при получении историй для админа:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
 
-// Опубликовать историю
-router.post('/admin/:id/publish', authenticateTokenWithDB, isAdmin, async (req, res) => {
+
+// Получить детали конкретной истории для админа
+router.get('/admin/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const storyId = validateStoryId(id);
+    
+    if (!storyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STORY_ID',
+        message: 'Недопустимый ID истории'
+      });
+    }
+    
+    const query = `
+      SELECT 
+        s.*,
+        u.id as user_id,
+        u.nickname as user_nickname,
+        u.email as user_email,
+        u.avatar_emoji as user_avatar,
+        u.created_at as user_created_at,
+        u.carbon_saved,
+        u.is_admin as user_is_admin
+      FROM success_stories s
+      JOIN users u ON s.user_id = u.id
+      WHERE s.id = $1
+    `;
+    
+    const result = await executeQueryWithLogging(pool, query, [storyId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'STORY_NOT_FOUND',
+        message: 'История не найдена'
+      });
+    }
+    
+    // Получаем информацию о лайках
+    const likesQuery = `
+      SELECT 
+        sl.user_id,
+        u.nickname,
+        u.avatar_emoji,
+        sl.created_at
+      FROM story_likes sl
+      JOIN users u ON sl.user_id = u.id
+      WHERE sl.story_id = $1
+      ORDER BY sl.created_at DESC
+      LIMIT 10
+    `;
+    
+    const likesResult = await executeQueryWithLogging(pool, likesQuery, [storyId]);
+    
+    res.json({
+      success: true,
+      story: result.rows[0],
+      likes: likesResult.rows
+    });
+  } catch (error) {
+    console.error('Ошибка при получении истории для админа:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'Внутренняя ошибка сервера'
+    });
+  }
+});
+
+// Опубликовать историю (админ)
+router.post('/admin/:id/publish', async (req, res) => {
   let client;
   try {
     const { id } = req.params;
@@ -987,7 +1425,7 @@ router.post('/admin/:id/publish', authenticateTokenWithDB, isAdmin, async (req, 
     
     try {
       const currentCheck = await client.query(
-        'SELECT status, user_id, title, category FROM success_stories WHERE id = $1',
+        'SELECT status, user_id, title FROM success_stories WHERE id = $1',
         [storyId]
       );
       
@@ -998,7 +1436,6 @@ router.post('/admin/:id/publish', authenticateTokenWithDB, isAdmin, async (req, 
       const currentStatus = currentCheck.rows[0].status;
       const authorId = currentCheck.rows[0].user_id;
       const storyTitle = currentCheck.rows[0].title;
-      const storyCategory = currentCheck.rows[0].category;
       
       if (currentStatus === 'published') {
         throw new Error('ALREADY_PUBLISHED');
@@ -1018,56 +1455,14 @@ router.post('/admin/:id/publish', authenticateTokenWithDB, isAdmin, async (req, 
         throw new Error('STORY_NOT_FOUND');
       }
       
-      // Отслеживаем публикацию истории
-      await trackAchievementEvent(client, authorId, 'story_published', {
-        storyId: storyId,
-        title: storyTitle,
-        category: storyCategory,
-        publishedAt: new Date().toISOString()
-      });
-      
-      // Получаем количество опубликованных историй пользователя
-      const publishedCountResult = await client.query(
-        'SELECT COUNT(*) as count FROM success_stories WHERE user_id = $1 AND status = $2',
-        [authorId, 'published']
-      );
-      const publishedStoriesCount = parseInt(publishedCountResult.rows[0].count);
-      
-      // Отслеживаем достижения по количеству историй
-      if (publishedStoriesCount >= 5) {
-        await trackAchievementEvent(client, authorId, 'story_5', {
-          storyId: storyId,
-          totalStories: publishedStoriesCount
-        });
-      }
-      
-      if (publishedStoriesCount >= 10) {
-        await trackAchievementEvent(client, authorId, 'story_10', {
-          storyId: storyId,
-          totalStories: publishedStoriesCount
-        });
-      }
-      
-      if (publishedStoriesCount >= 20) {
-        await trackAchievementEvent(client, authorId, 'story_20', {
-          storyId: storyId,
-          totalStories: publishedStoriesCount
-        });
-      }
-      
       const io = req.app.get('io');
       if (io) {
-        sendToUser(io, authorId, 'notification:story', {
-          type: 'story_published',
-          storyId: storyId,
-          storyTitle: storyTitle,
-          timestamp: new Date()
-        });
-        
         broadcast(io, 'story:published', {
           storyId: storyId,
           story: result.rows[0]
         });
+        
+        console.log(`📡 WebSocket: уведомление о публикации истории ${storyId}`);
       }
       
       await client.query('COMMIT');
@@ -1109,8 +1504,8 @@ router.post('/admin/:id/publish', authenticateTokenWithDB, isAdmin, async (req, 
   }
 });
 
-// Отклонить/снять с публикации историю
-router.post('/admin/:id/reject', authenticateTokenWithDB, isAdmin, async (req, res) => {
+// Отклонить/снять с публикации историю (админ)
+router.post('/admin/:id/reject', async (req, res) => {
   let client;
   try {
     const { id } = req.params;
@@ -1143,16 +1538,13 @@ router.post('/admin/:id/reject', authenticateTokenWithDB, isAdmin, async (req, r
       const storyTitle = currentQuery.rows[0].title;
       let newStatus;
       let actionMessage;
-      let notificationType;
       
       if (currentStatus === 'published') {
         newStatus = 'draft';
         actionMessage = 'История снята с публикации';
-        notificationType = 'story_unpublished';
       } else {
         newStatus = 'draft';
         actionMessage = 'История отклонена';
-        notificationType = 'story_rejected';
       }
       
       const updateQuery = `
@@ -1166,20 +1558,10 @@ router.post('/admin/:id/reject', authenticateTokenWithDB, isAdmin, async (req, r
       const result = await client.query(updateQuery, [newStatus, storyId]);
       
       const io = req.app.get('io');
-      if (io) {
-        sendToUser(io, authorId, 'notification:story', {
-          type: notificationType,
-          storyId: storyId,
-          storyTitle: storyTitle,
-          reason: reason || 'Администратор отклонил вашу историю',
-          timestamp: new Date()
+      if (io && currentStatus === 'published') {
+        broadcast(io, 'story:unpublished', {
+          storyId: storyId
         });
-        
-        if (currentStatus === 'published') {
-          broadcast(io, 'story:unpublished', {
-            storyId: storyId
-          });
-        }
       }
       
       await client.query('COMMIT');
@@ -1187,6 +1569,7 @@ router.post('/admin/:id/reject', authenticateTokenWithDB, isAdmin, async (req, r
       res.json({
         success: true,
         message: actionMessage,
+        reason: reason || 'Причина не указана',
         story: result.rows[0]
       });
       
@@ -1216,9 +1599,114 @@ router.post('/admin/:id/reject', authenticateTokenWithDB, isAdmin, async (req, r
     if (client) client.release();
   }
 });
-
-// Получить детали конкретной истории для админа
-router.get('/admin/:id', authenticateTokenWithDB, isAdmin, async (req, res) => {
+// Снять с публикации историю (админ)
+router.post('/admin/:id/unpublish', async (req, res) => {
+  let client;
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const storyId = validateStoryId(id);
+    
+    if (!storyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'INVALID_STORY_ID',
+        message: 'Недопустимый ID истории'
+      });
+    }
+    
+    client = await pool.connect();
+    await client.query('BEGIN');
+    
+    try {
+      const currentCheck = await client.query(
+        'SELECT status, user_id, title FROM success_stories WHERE id = $1',
+        [storyId]
+      );
+      
+      if (currentCheck.rows.length === 0) {
+        throw new Error('STORY_NOT_FOUND');
+      }
+      
+      const currentStatus = currentCheck.rows[0].status;
+      const authorId = currentCheck.rows[0].user_id;
+      const storyTitle = currentCheck.rows[0].title;
+      
+      if (currentStatus !== 'published') {
+        throw new Error('NOT_PUBLISHED');
+      }
+      
+      const updateQuery = `
+        UPDATE success_stories 
+        SET status = 'draft', 
+            updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      const result = await client.query(updateQuery, [storyId]);
+      
+      // Отслеживаем событие снятия с публикации
+      await trackAchievementEvent(client, authorId, 'story_unpublished', {
+        storyId: storyId,
+        title: storyTitle,
+        previousStatus: 'published',
+        newStatus: 'draft'
+      });
+      
+      // Отправляем событие через WebSocket
+      const io = req.app.get('io');
+      if (io) {
+        broadcast(io, 'story:unpublished', {
+          storyId: storyId,
+          story: result.rows[0]
+        });
+        
+        console.log(`📡 WebSocket: уведомление о снятии с публикации истории ${storyId}`);
+      }
+      
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        message: 'История успешно снята с публикации',
+        reason: reason || 'Снято с публикации администратором',
+        story: result.rows[0]
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Ошибка при снятии с публикации истории:', error);
+    
+    let statusCode = 500;
+    let errorMessage = 'SERVER_ERROR';
+    
+    switch (error.message) {
+      case 'STORY_NOT_FOUND':
+        statusCode = 404;
+        errorMessage = 'STORY_NOT_FOUND';
+        break;
+      case 'NOT_PUBLISHED':
+        statusCode = 400;
+        errorMessage = 'NOT_PUBLISHED';
+        break;
+    }
+    
+    res.status(statusCode).json({
+      success: false,
+      error: errorMessage,
+      message: error.message
+    });
+  } finally {
+    if (client) client.release();
+  }
+});
+// Удалить историю (админ)
+router.delete('/admin/:id', async (req, res) => {
+  let client;
   try {
     const { id } = req.params;
     const storyId = validateStoryId(id);
@@ -1231,43 +1719,70 @@ router.get('/admin/:id', authenticateTokenWithDB, isAdmin, async (req, res) => {
       });
     }
     
-    const query = `
-      SELECT 
-        s.*,
-        u.id as user_id,
-        u.nickname as user_nickname,
-        u.email as user_email,
-        u.avatar_emoji as user_avatar_emoji,
-        u.created_at as user_created_at,
-        u.carbon_saved,
-        u.is_admin as user_is_admin
-      FROM success_stories s
-      JOIN users u ON s.user_id = u.id
-      WHERE s.id = $1
-    `;
+    client = await pool.connect();
+    await client.query('BEGIN');
     
-    const result = await executeQueryWithLogging(pool, query, [storyId]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'STORY_NOT_FOUND',
-        message: 'История не найдена'
+    try {
+      const storyCheck = await client.query(
+        'SELECT id, title FROM success_stories WHERE id = $1',
+        [storyId]
+      );
+      
+      if (storyCheck.rows.length === 0) {
+        throw new Error('STORY_NOT_FOUND');
+      }
+      
+      await client.query(
+        'DELETE FROM story_likes WHERE story_id = $1',
+        [storyId]
+      );
+      
+      await client.query(
+        'DELETE FROM success_stories WHERE id = $1',
+        [storyId]
+      );
+      
+      const io = req.app.get('io');
+      if (io) {
+        broadcast(io, 'story:deleted', {
+          storyId: storyId
+        });
+      }
+      
+      await client.query('COMMIT');
+      
+      res.json({
+        success: true,
+        message: 'История успешно удалена'
       });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Ошибка при удалении истории:', error);
+    
+    let statusCode = 500;
+    let errorMessage = 'SERVER_ERROR';
+    
+    switch (error.message) {
+      case 'STORY_NOT_FOUND':
+        statusCode = 404;
+        errorMessage = 'STORY_NOT_FOUND';
+        break;
     }
     
-    res.json({
-      success: true,
-      story: result.rows[0]
-    });
-  } catch (error) {
-    console.error('Ошибка при получении истории для админа:', error);
-    res.status(500).json({
+    res.status(statusCode).json({
       success: false,
-      error: 'SERVER_ERROR',
-      message: 'Внутренняя ошибка сервера'
+      error: errorMessage,
+      message: error.message
     });
+  } finally {
+    if (client) client.release();
   }
 });
+
+
 
 module.exports = router;

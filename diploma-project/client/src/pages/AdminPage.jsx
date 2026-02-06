@@ -612,6 +612,8 @@ const AdminPage = () => {
     try {
       const token = localStorage.getItem('token');
       
+      console.log('🔄 Загрузка статистики историй...');
+      
       const response = await fetch('/api/stories/admin/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -619,25 +621,59 @@ const AdminPage = () => {
         }
       });
       
+      console.log('📊 Ответ сервера stats:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Данные статистики:', data);
+        
         if (data.success) {
-          setStoryStats({
-            total: data.total || 0,
-            published: data.published || 0,
-            pending: data.pending || 0,
-            draft: data.draft || 0,
-          });
+          // Проверяем разные возможные структуры ответа
+          if (data.stats) {
+            // Структура: { stats: { total_stories, published_stories, pending_stories, draft_stories, ... } }
+            setStoryStats({
+              total: data.stats.total_stories || 0,
+              published: data.stats.published_stories || 0,
+              pending: data.stats.pending_stories || 0,
+              draft: data.stats.draft_stories || 0,
+            });
+            console.log('✅ Статистика загружена из data.stats:', data.stats);
+          } else if (data.total !== undefined) {
+            // Структура: { total, published, pending, draft, ... }
+            setStoryStats({
+              total: data.total || 0,
+              published: data.published || 0,
+              pending: data.pending || 0,
+              draft: data.draft || 0,
+            });
+            console.log('✅ Статистика загружена из прямой структуры:', data);
+          } else {
+            console.warn('⚠️ Неожиданная структура статистики:', data);
+            setStoryStats({
+              total: 0,
+              published: 0,
+              pending: 0,
+              draft: 0,
+            });
+          }
+        } else {
+          console.error('❌ Ошибка в ответе stats:', data.error);
         }
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Ошибка HTTP stats:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Error loading story stats:', error);
+      console.error('❌ Ошибка загрузки статистики историй:', error);
     }
   };
 
   const loadCategoryStats = async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      console.log('🔄 Загрузка статистики по категориям...');
+      console.log('🔑 Токен:', token ? 'есть' : 'нет');
       
       const response = await fetch('/api/stories/admin/category-stats', {
         headers: {
@@ -646,14 +682,26 @@ const AdminPage = () => {
         }
       });
       
+      console.log('📊 Ответ сервера:', response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          setCategoryStats(data.categories || []);
+        console.log('📊 Данные категорий:', data);
+        
+        if (data.success && data.categories) {
+          setCategoryStats(data.categories);
+          console.log('✅ Категории загружены:', data.categories.length, 'категорий');
+        } else {
+          console.warn('⚠️ Неожиданная структура данных категорий:', data);
+          setCategoryStats([]);
         }
+      } else {
+        console.error('❌ Ошибка HTTP:', response.status);
+        setCategoryStats([]);
       }
     } catch (error) {
-      console.error('Error loading category stats:', error);
+      console.error('❌ Ошибка загрузки статистики категорий:', error);
+      setCategoryStats([]);
     }
   };
 
@@ -682,7 +730,66 @@ const AdminPage = () => {
         params.append('search', filtersToUse.search);
       }
       
-      const response = await fetch(`/api/stories/admin?${params}`, {
+      console.log('🔄 Загрузка историй...', params.toString());
+      
+      // Пробуем оба возможных маршрута
+      const url = `/api/stories/admin?${params}`;
+      console.log('📡 Запрос к:', url);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('📊 Ответ сервера stories:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Данные историй:', data);
+        
+        if (data.success) {
+          setStories(data.stories || []);
+          setStoriesPagination(prev => ({
+            ...prev,
+            page: pageToUse,
+            total: data.pagination?.total || 0,
+            totalPages: data.pagination?.totalPages || 1
+          }));
+          console.log('✅ Истории загружены:', data.stories?.length || 0, 'шт.');
+        } else {
+          console.error('❌ Ошибка в ответе stories:', data.error);
+          // Попробуем альтернативный маршрут
+          await tryAlternativeStoriesRoute(filtersToUse, pageToUse);
+        }
+      } else if (response.status === 404) {
+        // Если 404, пробуем альтернативный маршрут
+        console.log('⚠️ Маршрут /api/stories/admin не найден, пробуем /api/stories/admin/all');
+        await tryAlternativeStoriesRoute(filtersToUse, pageToUse);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Ошибка HTTP stories:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('❌ Ошибка загрузки историй:', error);
+    }
+  };
+  
+  // Альтернативный маршрут для историй
+  const tryAlternativeStoriesRoute = async (filters, page) => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: storiesPagination.limit.toString()
+      });
+      
+      if (filters.status !== 'all') params.append('status', filters.status);
+      if (filters.category !== 'all') params.append('category', filters.category);
+      if (filters.search) params.append('search', filters.search);
+      
+      const response = await fetch(`/api/stories/admin/all?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -695,17 +802,19 @@ const AdminPage = () => {
           setStories(data.stories || []);
           setStoriesPagination(prev => ({
             ...prev,
-            page: pageToUse,
+            page: page,
             total: data.pagination?.total || 0,
             totalPages: data.pagination?.totalPages || 1
           }));
+          console.log('✅ Истории загружены через альтернативный маршрут:', data.stories?.length || 0, 'шт.');
         }
       }
     } catch (error) {
-      console.error('Error loading stories:', error);
-      throw error;
+      console.error('❌ Ошибка в альтернативном маршруте:', error);
     }
   };
+  
+  
 
   const handleStoryFilterChange = (type, value) => {
     const newFilters = { ...storyFilters, [type]: value };
