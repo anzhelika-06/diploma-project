@@ -1,9 +1,5 @@
 # Дипломный проект EcoSteps
 
-Веб-приложение для экологического трекинга с использованием Node.js, PostgreSQL, Redis и Docker.
-
-## Быстрый старт
-
 ### Требования
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (включает Docker Compose)
 - Git
