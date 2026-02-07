@@ -1,5 +1,21 @@
 import { getEmojiByCode, getEmojiByCarbon, getEcoLevelText } from './emojiMapper';
-
+export const getCurrentUser = () => {
+  try {
+    // Пытаемся получить пользователя из localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      console.log('📊 getCurrentUser из localStorage:', user);
+      return user;
+    }
+    
+    // Если нет в localStorage, пробуем декодировать токен
+    return getUserFromToken();
+  } catch (error) {
+    console.error('❌ Error in getCurrentUser:', error);
+    return null;
+  }
+};
 export const getUserFromToken = () => {
   try {
     const token = localStorage.getItem('token');

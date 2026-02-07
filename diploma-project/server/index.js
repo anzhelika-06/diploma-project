@@ -17,6 +17,7 @@ const achievementsRoutes = require('./routes/achievements');
 const leaderboardRoutes = require('./routes/leaderboard');
 const userSettingsRoutes = require('./routes/user-settings');
 const supportRoutes = require('./routes/support');
+const calculationsRouter = require('./routes/calculations');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -191,7 +192,7 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/user-settings', userSettingsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api/calculations', calculationsRouter); 
 // Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {
   console.log('GET /api/eco-tips/daily');

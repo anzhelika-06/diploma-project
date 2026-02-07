@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS genders (
 -- ============ ОСНОВНАЯ ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ ============
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    nickname VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(70) UNIQUE NOT NULL,
+    nickname VARCHAR(30) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     date_of_birth DATE,
     gender_id INTEGER REFERENCES genders(id),
@@ -112,18 +112,18 @@ CREATE TABLE IF NOT EXISTS team_members (
     UNIQUE(team_id, user_id)
 );
 
--- Проверьте структуру таблицы success_stories
+-- ============ ИСТОРИИ УСПЕХА ============
 CREATE TABLE IF NOT EXISTS success_stories (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  category VARCHAR(50) NOT NULL DEFAULT 'other',
-  carbon_saved DECIMAL(10, 2) DEFAULT 0,
-  likes_count INTEGER DEFAULT 0,
-  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('draft', 'pending', 'published')),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL DEFAULT 'other',
+    carbon_saved DECIMAL(10, 2) DEFAULT 0,
+    likes_count INTEGER DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('draft', 'pending', 'published')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============ ЛАЙКИ ИСТОРИЙ ============
@@ -143,15 +143,14 @@ CREATE TABLE IF NOT EXISTS achievements (
     description TEXT NOT NULL,
     category VARCHAR(50) NOT NULL,
     icon VARCHAR(10) NOT NULL,
-    event_type VARCHAR(50) NOT NULL, -- 'first_login', 'daily_login', 'story_created', 'comment_added' и т.д.
+    event_type VARCHAR(50) NOT NULL,
     requirement_type VARCHAR(50) NOT NULL CHECK (requirement_type IN ('count', 'streak', 'value', 'boolean')),
     requirement_value INTEGER NOT NULL,
     points INTEGER DEFAULT 10,
     rarity VARCHAR(20) DEFAULT 'common' CHECK (rarity IN ('common', 'rare', 'epic', 'legendary')),
-    -- Дополнительные параметры
-    is_active BOOLEAN DEFAULT TRUE, -- Можно отключать достижения
-    is_hidden BOOLEAN DEFAULT FALSE, -- Скрытые достижения
-    sort_order INTEGER DEFAULT 0, -- Порядок отображения
+    is_active BOOLEAN DEFAULT TRUE,
+    is_hidden BOOLEAN DEFAULT FALSE,
+    sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -167,7 +166,7 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
     claimed_at TIMESTAMP,
-    metadata JSONB DEFAULT '{}', -- Хранение дополнительной информации
+    metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, achievement_id)
@@ -193,6 +192,7 @@ CREATE TABLE IF NOT EXISTS achievement_events (
     processed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 -- ============ ВОПРОСЫ В ПОДДЕРЖКУ ============
 CREATE TABLE IF NOT EXISTS support_tickets (
     id SERIAL PRIMARY KEY,
@@ -240,9 +240,123 @@ CREATE TABLE IF NOT EXISTS user_eco_tips (
     UNIQUE(user_id, tip_id)
 );
 
+-- ============ НАСТРОЙКИ КАЛЬКУЛЯТОРА ============
+CREATE TABLE IF NOT EXISTS user_calculator_settings (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    baseline_footprint DECIMAL(10, 2) DEFAULT 12000,
+    carbon_goal_percent INTEGER DEFAULT 20,
+    target_deadline DATE DEFAULT (CURRENT_DATE + INTERVAL '1 year'),
+    notify_on_goal_progress BOOLEAN DEFAULT TRUE,
+    notify_monthly_report BOOLEAN DEFAULT TRUE,
+    auto_calculate BOOLEAN DEFAULT FALSE,
+    preferred_units VARCHAR(20) DEFAULT 'metric' CHECK (preferred_units IN ('metric', 'imperial')),
+    default_period VARCHAR(10) DEFAULT 'year' CHECK (default_period IN ('day', 'week', 'month', 'year')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ КАТЕГОРИИ КАЛЬКУЛЯТОРА УГЛЕРОДНОГО СЛЕДА ============
+CREATE TABLE IF NOT EXISTS calculator_categories (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(10),
+    unit VARCHAR(20) NOT NULL,
+    baseline_value DECIMAL(10, 2) NOT NULL,
+    min_value DECIMAL(10, 2) DEFAULT 0,
+    max_value DECIMAL(10, 2),
+    weight DECIMAL(5, 2) DEFAULT 1.0,
+    is_active BOOLEAN DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ ПРОГРЕСС ЦЕЛЕЙ ============
+CREATE TABLE IF NOT EXISTS user_carbon_goals (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    goal_type VARCHAR(50) NOT NULL CHECK (goal_type IN ('footprint_reduction', 'category_improvement', 'habit_adoption')),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    target_value DECIMAL(10, 2) NOT NULL,
+    current_value DECIMAL(10, 2) DEFAULT 0,
+    unit VARCHAR(50) NOT NULL,
+    category_code VARCHAR(50) REFERENCES calculator_categories(code),
+    start_date DATE DEFAULT CURRENT_DATE,
+    end_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'failed', 'paused')),
+    progress_percent INTEGER DEFAULT 0,
+    is_recurring BOOLEAN DEFAULT FALSE,
+    recurrence_pattern VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ АНАЛИТИКА УГЛЕРОДНОГО СЛЕДА ============
+CREATE TABLE IF NOT EXISTS user_carbon_analytics (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    period_start DATE NOT NULL,
+    period_end DATE NOT NULL,
+    period_type VARCHAR(10) NOT NULL CHECK (period_type IN ('week', 'month', 'quarter', 'year')),
+    calculations_count INTEGER NOT NULL DEFAULT 0,
+    avg_footprint DECIMAL(10, 2) NOT NULL,
+    total_savings DECIMAL(10, 2) NOT NULL,
+    monthly_savings DECIMAL(10, 2) NOT NULL,
+    category_analysis JSONB NOT NULL,
+    best_category VARCHAR(50),
+    worst_category VARCHAR(50),
+    footprint_trend VARCHAR(20) DEFAULT 'stable' CHECK (footprint_trend IN ('improving', 'stable', 'worsening')),
+    savings_trend VARCHAR(20) DEFAULT 'stable' CHECK (savings_trend IN ('improving', 'stable', 'worsening')),
+    generated_recommendations JSONB,
+    calculated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, period_start, period_end, period_type)
+);
+
+-- ============ ИСТОРИЯ РАСЧЕТОВ УГЛЕРОДНОГО СЛЕДА ============
+CREATE TABLE IF NOT EXISTS carbon_calculations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    calculation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    total_footprint DECIMAL(10, 2) NOT NULL,
+    co2_saved DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    is_baseline BOOLEAN DEFAULT FALSE,
+    categories JSONB NOT NULL DEFAULT '{}',
+    input_data JSONB DEFAULT '{}',
+    recommendations JSONB DEFAULT '[]',
+    calculation_method VARCHAR(50) DEFAULT 'standard',
+    data_source VARCHAR(50) DEFAULT 'manual',
+    session_id UUID,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, calculation_date, is_baseline)
+);
+
 -- ============ ИНДЕКСЫ ============
 
--- Индексы для пользователей
+-- Индекс для быстрого поиска расчетов по пользователю и дате
+CREATE INDEX IF NOT EXISTS idx_carbon_calculations_user_date 
+ON carbon_calculations(user_id, calculation_date DESC);
+
+-- Индекс для поиска базовых расчетов
+CREATE INDEX IF NOT EXISTS idx_carbon_calculations_baseline 
+ON carbon_calculations(user_id) 
+WHERE is_baseline = TRUE;
+
+-- Индекс для активных целей пользователя
+CREATE INDEX IF NOT EXISTS idx_user_carbon_goals_active 
+ON user_carbon_goals(user_id, status) 
+WHERE status = 'active';
+
+-- Индекс для аналитики пользователя
+CREATE INDEX IF NOT EXISTS idx_user_carbon_analytics_user_period 
+ON user_carbon_analytics(user_id, period_end DESC);
+
+-- Остальные индексы
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_nickname ON users(nickname);
 CREATE INDEX IF NOT EXISTS idx_users_gender ON users(gender_id);
@@ -250,65 +364,102 @@ CREATE INDEX IF NOT EXISTS idx_users_carbon_saved ON users(carbon_saved);
 CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
 CREATE INDEX IF NOT EXISTS idx_users_is_banned ON users(is_banned);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
--- Индексы для быстрого поиска
 CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement_id ON user_achievements(achievement_id);
 CREATE INDEX IF NOT EXISTS idx_eco_coins_history_user_id ON eco_coins_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_eco_coins_history_achievement_id ON eco_coins_history(achievement_id);
--- Индексы для истории банов
 CREATE INDEX IF NOT EXISTS idx_ban_history_user_id ON ban_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_ban_history_created_by ON ban_history(created_by);
 CREATE INDEX IF NOT EXISTS idx_ban_history_unbanned_at ON ban_history(unbanned_at);
 CREATE INDEX IF NOT EXISTS idx_ban_history_created_at ON ban_history(created_at);
--- Индексы для быстрого поиска
 CREATE INDEX IF NOT EXISTS idx_achievements_event_type ON achievements(event_type);
 CREATE INDEX IF NOT EXISTS idx_achievements_category ON achievements(category);
-CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_completed ON user_achievements(completed);
 CREATE INDEX IF NOT EXISTS idx_achievement_events_user_id ON achievement_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_achievement_events_event_type ON achievement_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_eco_coins_history_user_id ON eco_coins_history(user_id);
-CREATE INDEX IF NOT EXISTS idx_eco_coins_history_achievement_id ON eco_coins_history(achievement_id);
-
--- Индексы для настроек
 CREATE INDEX IF NOT EXISTS idx_user_settings_user ON user_settings(user_id);
-
--- Индексы для команд
 CREATE INDEX IF NOT EXISTS idx_teams_carbon_saved ON teams(carbon_saved);
-
--- Индексы для участников команд
 CREATE INDEX IF NOT EXISTS idx_team_members_team ON team_members(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members(user_id);
-
--- Индексы для историй успеха
+CREATE INDEX IF NOT EXISTS idx_user_calculator_settings_user ON user_calculator_settings(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_carbon_goals_user ON user_carbon_goals(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_carbon_goals_status ON user_carbon_goals(status);
+CREATE INDEX IF NOT EXISTS idx_user_carbon_analytics_user ON user_carbon_analytics(user_id);
 CREATE INDEX IF NOT EXISTS idx_stories_user ON success_stories(user_id);
 CREATE INDEX IF NOT EXISTS idx_stories_created ON success_stories(created_at);
-
--- Индексы для лайков историй
 CREATE INDEX IF NOT EXISTS idx_story_likes_story ON story_likes(story_id);
 CREATE INDEX IF NOT EXISTS idx_story_likes_user ON story_likes(user_id);
-
--- Индексы для достижений
-CREATE INDEX IF NOT EXISTS idx_user_achievements_user ON user_achievements(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_achievements_completed ON user_achievements(completed);
-
--- Индексы для поддержки
 CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at);
-
--- Индексы для активности
 CREATE INDEX IF NOT EXISTS idx_user_activities_user_id ON user_activities(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_activities_created_at ON user_activities(created_at);
-
--- Индексы для эко-советов
 CREATE INDEX IF NOT EXISTS idx_eco_tips_day_of_year ON eco_tips(day_of_year);
 CREATE INDEX IF NOT EXISTS idx_user_eco_tips_user_id ON user_eco_tips(user_id);
--- Создайте индекс для ускорения запросов историй
 CREATE INDEX IF NOT EXISTS idx_success_stories_user_id ON success_stories(user_id);
 CREATE INDEX IF NOT EXISTS idx_success_stories_status ON success_stories(status);
 CREATE INDEX IF NOT EXISTS idx_success_stories_category ON success_stories(category);
--- ============ ПРЕДСТАВЛЕНИЯ ============
+
+-- ============ ПРЕДСТАВЛЕНИЯ (ИСПРАВЛЕННЫЕ) ============
+
+-- Представление с текущей статистикой пользователя (упрощенное)
+CREATE OR REPLACE VIEW user_current_stats AS
+SELECT 
+    u.id as user_id,
+    u.nickname,
+    u.carbon_saved,
+    u.eco_level,
+    u.avatar_emoji,
+    COALESCE(cc.total_footprint, 0) as current_footprint,
+    cc.calculation_date as last_calculation_date,
+    COALESCE(a.calculations_count, 0) as recent_calculations,
+    COALESCE(a.avg_footprint, 0) as recent_avg_footprint,
+    COALESCE(a.monthly_savings, 0) as monthly_savings_avg,
+    COALESCE(a.footprint_trend, 'stable') as footprint_trend,
+    COUNT(g.id) as active_goals_count,
+    COALESCE(ucs.baseline_footprint, 12000) as baseline_footprint,
+    COALESCE(ucs.carbon_goal_percent, 20) as goal_percent
+FROM users u
+LEFT JOIN LATERAL (
+    SELECT * FROM carbon_calculations 
+    WHERE user_id = u.id 
+    ORDER BY calculation_date DESC 
+    LIMIT 1
+) cc ON true
+LEFT JOIN user_calculator_settings ucs ON u.id = ucs.user_id
+LEFT JOIN LATERAL (
+    SELECT * FROM user_carbon_analytics 
+    WHERE user_id = u.id 
+        AND period_type = 'month'
+        AND period_end >= CURRENT_DATE - INTERVAL '30 days'
+    ORDER BY period_end DESC 
+    LIMIT 1
+) a ON true
+LEFT JOIN user_carbon_goals g ON u.id = g.user_id AND g.status = 'active'
+WHERE u.deleted_at IS NULL
+GROUP BY 
+    u.id, u.nickname, u.carbon_saved, u.eco_level, u.avatar_emoji,
+    cc.total_footprint, cc.calculation_date,
+    ucs.baseline_footprint, ucs.carbon_goal_percent,
+    a.calculations_count, a.avg_footprint, a.monthly_savings, a.footprint_trend;
+
+-- Представление для детальной статистики по категориям (упрощенное)
+CREATE OR REPLACE VIEW user_category_stats AS
+SELECT 
+    u.id as user_id,
+    c.code as category_code,
+    c.name as category_name,
+    c.icon as category_icon,
+    COUNT(cc.id) as calculations_count,
+    AVG((cc.categories->c.code->>'value')::DECIMAL) as avg_footprint,
+    MIN((cc.categories->c.code->>'value')::DECIMAL) as min_footprint,
+    MAX((cc.categories->c.code->>'value')::DECIMAL) as max_footprint
+FROM users u
+CROSS JOIN calculator_categories c
+LEFT JOIN carbon_calculations cc ON u.id = cc.user_id AND cc.categories ? c.code
+WHERE u.deleted_at IS NULL
+    AND c.is_active = true
+GROUP BY u.id, c.code, c.name, c.icon;
 
 -- Пользователи с полом
 CREATE OR REPLACE VIEW users_view AS
@@ -615,7 +766,7 @@ BEGIN
         'story_created',
         'Создана новая история: ' || NEW.title,
         NEW.id,
-        NEW.carbon_saved::INTEGER  -- Преобразуем DECIMAL в INTEGER
+        NEW.carbon_saved::INTEGER
     );
     RETURN NEW;
 END;
@@ -641,6 +792,130 @@ BEGIN
         );
     END IF;
     RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Вспомогательная функция для генерации рекомендаций (упрощенная)
+CREATE OR REPLACE FUNCTION generate_period_recommendations(
+    p_category_analysis JSONB,
+    p_avg_footprint DECIMAL
+) RETURNS JSONB AS $$
+DECLARE
+    v_recommendations JSONB := '[]';
+BEGIN
+    -- Простые рекомендации
+    IF p_avg_footprint > 10000 THEN
+        v_recommendations := v_recommendations || jsonb_build_object(
+            'category', 'general',
+            'action', 'Ваш углеродный след выше среднего. Рассмотрите меры по его снижению.',
+            'priority', 'medium'
+        );
+    ELSIF p_avg_footprint < 5000 THEN
+        v_recommendations := v_recommendations || jsonb_build_object(
+            'category', 'general',
+            'action', 'Отличные результаты! Продолжайте в том же духе.',
+            'priority', 'low'
+        );
+    END IF;
+    
+    RETURN v_recommendations;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Функция обновления аналитики пользователя (упрощенная)
+CREATE OR REPLACE PROCEDURE update_user_analytics(
+    p_user_id INTEGER,
+    p_period_type VARCHAR DEFAULT 'month'
+) AS $$
+DECLARE
+    v_period_start DATE;
+    v_period_end DATE := CURRENT_DATE;
+    v_calculations_count INTEGER;
+    v_avg_footprint DECIMAL;
+    v_total_savings DECIMAL;
+    v_monthly_savings DECIMAL;
+    v_category_analysis JSONB := '{}';
+    v_recommendations JSONB;
+BEGIN
+    -- Определяем период
+    CASE p_period_type
+        WHEN 'week' THEN v_period_start := CURRENT_DATE - INTERVAL '7 days';
+        WHEN 'month' THEN v_period_start := CURRENT_DATE - INTERVAL '30 days';
+        WHEN 'quarter' THEN v_period_start := CURRENT_DATE - INTERVAL '90 days';
+        WHEN 'year' THEN v_period_start := CURRENT_DATE - INTERVAL '365 days';
+        ELSE v_period_start := CURRENT_DATE - INTERVAL '30 days';
+    END CASE;
+    
+    -- Получаем статистику за период
+    SELECT 
+        COUNT(*) as calc_count,
+        COALESCE(AVG(total_footprint), 0) as avg_foot,
+        COALESCE(SUM(co2_saved), 0) as total_save
+    INTO v_calculations_count, v_avg_footprint, v_total_savings
+    FROM carbon_calculations 
+    WHERE user_id = p_user_id 
+        AND calculation_date BETWEEN v_period_start AND v_period_end;
+    
+    -- Рассчитываем среднемесячную экономию
+    v_monthly_savings := v_total_savings / 
+        CASE p_period_type
+            WHEN 'week' THEN 0.23
+            WHEN 'month' THEN 1
+            WHEN 'quarter' THEN 3
+            WHEN 'year' THEN 12
+            ELSE 1
+        END;
+    
+    -- Генерируем рекомендации
+    v_recommendations := generate_period_recommendations(v_category_analysis, v_avg_footprint);
+    
+    -- Сохраняем аналитику
+    INSERT INTO user_carbon_analytics (
+        user_id,
+        period_start,
+        period_end,
+        period_type,
+        calculations_count,
+        avg_footprint,
+        total_savings,
+        monthly_savings,
+        category_analysis,
+        best_category,
+        worst_category,
+        footprint_trend,
+        savings_trend,
+        generated_recommendations
+    ) VALUES (
+        p_user_id,
+        v_period_start,
+        v_period_end,
+        p_period_type,
+        v_calculations_count,
+        v_avg_footprint,
+        v_total_savings,
+        v_monthly_savings,
+        v_category_analysis,
+        NULL,
+        NULL,
+        'stable',
+        'stable',
+        v_recommendations
+    )
+    ON CONFLICT (user_id, period_start, period_end, period_type) 
+    DO UPDATE SET
+        calculations_count = EXCLUDED.calculations_count,
+        avg_footprint = EXCLUDED.avg_footprint,
+        total_savings = EXCLUDED.total_savings,
+        monthly_savings = EXCLUDED.monthly_savings,
+        category_analysis = EXCLUDED.category_analysis,
+        best_category = EXCLUDED.best_category,
+        worst_category = EXCLUDED.worst_category,
+        footprint_trend = EXCLUDED.footprint_trend,
+        savings_trend = EXCLUDED.savings_trend,
+        generated_recommendations = EXCLUDED.generated_recommendations,
+        calculated_at = CURRENT_TIMESTAMP;
+    
+    RAISE NOTICE 'Аналитика обновлена для пользователя %, период: %', p_user_id, p_period_type;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -790,52 +1065,58 @@ $$ LANGUAGE plpgsql;
 
 -- ============ ТРИГГЕРЫ ============
 
--- Триггер для обновления updated_at в users
+-- Триггеры для обновления updated_at
 DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at 
     BEFORE UPDATE ON users 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Триггер для обновления updated_at в user_settings
 DROP TRIGGER IF EXISTS update_user_settings_updated_at ON user_settings;
 CREATE TRIGGER update_user_settings_updated_at 
     BEFORE UPDATE ON user_settings 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Триггер для обновления updated_at в teams
 DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
 CREATE TRIGGER update_teams_updated_at 
     BEFORE UPDATE ON teams 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Триггер для обновления updated_at в success_stories
 DROP TRIGGER IF EXISTS update_success_stories_updated_at ON success_stories;
 CREATE TRIGGER update_success_stories_updated_at 
     BEFORE UPDATE ON success_stories 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Триггер для обновления updated_at в support_tickets
 DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets;
 CREATE TRIGGER update_support_tickets_updated_at
     BEFORE UPDATE ON support_tickets
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
--- Триггер для обновления updated_at
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_calculator_categories_updated_at ON calculator_categories;
+CREATE TRIGGER update_calculator_categories_updated_at
+    BEFORE UPDATE ON calculator_categories
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_carbon_calculations_updated_at ON carbon_calculations;
+CREATE TRIGGER update_carbon_calculations_updated_at
+    BEFORE UPDATE ON carbon_calculations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_user_carbon_goals_updated_at ON user_carbon_goals;
+CREATE TRIGGER update_user_carbon_goals_updated_at
+    BEFORE UPDATE ON user_carbon_goals
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_achievements_updated_at ON achievements;
 CREATE TRIGGER update_achievements_updated_at 
     BEFORE UPDATE ON achievements 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_achievements_updated_at ON user_achievements;
 CREATE TRIGGER update_user_achievements_updated_at 
     BEFORE UPDATE ON user_achievements 
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
--- Триггер для создания настроек при регистрации нового пользователя
+
+-- Триггер для создания настроек при регистрации
 DROP TRIGGER IF EXISTS trigger_create_user_settings ON users;
 CREATE TRIGGER trigger_create_user_settings
     AFTER INSERT ON users
@@ -897,11 +1178,25 @@ CREATE TRIGGER trigger_log_support_ticket
     FOR EACH ROW
     EXECUTE FUNCTION log_support_ticket();
 
--- Функция для автоматического разбана пользователей при истечении срока
+-- Триггер для автоматического обновления аналитики
+CREATE OR REPLACE FUNCTION trigger_update_analytics()
+RETURNS TRIGGER AS $$
+BEGIN
+    CALL update_user_analytics(NEW.user_id, 'month');
+    CALL update_user_analytics(NEW.user_id, 'year');
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_analytics_after_calculation
+    AFTER INSERT ON carbon_calculations
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_update_analytics();
+
+-- Функция для автоматического разбана пользователей
 CREATE OR REPLACE FUNCTION auto_unban_users()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Разбаниваем пользователей, у которых истек срок бана
     UPDATE users u
     SET 
         is_banned = FALSE,
@@ -921,22 +1216,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
--- Обновляем триггер для updated_at если он есть
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
 
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-CREATE TRIGGER update_users_updated_at
-    BEFORE UPDATE ON users
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
--- Этот триггер можно запускать периодически через cron
--- Для примера создадим функцию, которую можно вызывать по расписанию
+-- Функция для проверки и разбана истекших банов
 CREATE OR REPLACE FUNCTION check_and_unban_expired()
 RETURNS INTEGER AS $$
 DECLARE
@@ -1102,7 +1383,7 @@ ON CONFLICT (name) DO UPDATE SET
     carbon_saved = EXCLUDED.carbon_saved,
     updated_at = CURRENT_TIMESTAMP;
 
--- Создаем участников команд (используем существующих пользователей)
+-- Создаем участников команд
 INSERT INTO team_members (team_id, user_id, role) VALUES 
 (1, 1, 'admin'),
 (1, 2, 'member'),
@@ -1142,7 +1423,7 @@ UPDATE teams SET member_count = (
     SELECT COUNT(*) FROM team_members WHERE team_id = teams.id
 );
 
--- Создаем достижения для EcoSteps (исправленный)
+-- Создаем достижения для EcoSteps
 INSERT INTO achievements (
     code, 
     name, 
@@ -1157,40 +1438,27 @@ INSERT INTO achievements (
     is_hidden,
     sort_order
 ) VALUES
-    -- Достижения для регистрации 
     ('first_login', 'Добро пожаловать!', 'Зарегистрируйтесь в системе', 'registration', '🎉', 'first_login', 'boolean', 1, 50, 'common', false, 1),
-    -- Достижения для историй (создание)
     ('first_story', 'Первый рассказ', 'Напишите свою первую историю', 'stories', '✍️', 'story_created', 'count', 1, 100, 'rare', false, 10),
     ('story_5', 'Рассказчик', 'Напишите 5 историй', 'stories', '📚', 'story_created', 'count', 5, 250, 'epic', false, 11),
     ('story_10', 'Опытный писатель', 'Напишите 10 историй', 'stories', '📖', 'story_created', 'count', 10, 400, 'epic', false, 12),
     ('story_20', 'Мастер слов', 'Напишите 20 историй', 'stories', '🏰', 'story_created', 'count', 20, 500, 'legendary', false, 13),
-    
-    -- Достижения для лайков историй
     ('first_like', 'Первая оценка', 'Поставьте первый лайк истории', 'likes', '❤️', 'story_liked', 'count', 1, 15, 'common', false, 20),
     ('like_10', 'Активный читатель', 'Поставьте 10 лайков историям', 'likes', '👍', 'story_liked', 'count', 10, 50, 'common', false, 21),
     ('like_50', 'Щедрый ценитель', 'Поставьте 50 лайков', 'likes', '👏', 'story_liked', 'count', 50, 150, 'epic', false, 22),
     ('like_100', 'Эксперт оценок', 'Поставьте 100 лайков историям', 'likes', '🏆', 'story_liked', 'count', 100, 300, 'legendary', false, 23),
-    
-    -- Достижения для получения лайков на свои истории
     ('story_popular_5', 'Популярность', 'Ваша история получила 5 лайков', 'popularity', '⭐', 'story_received_like', 'value', 5, 100, 'rare', false, 30),
     ('story_popular_10', 'Звезда', 'Ваша история получила 10 лайков', 'popularity', '🌟', 'story_received_like', 'value', 10, 200, 'epic', false, 31),
     ('story_popular_25', 'Вирусная история', 'Ваша история получила 25 лайков', 'popularity', '🔥', 'story_received_like', 'value', 25, 400, 'legendary', false, 32),
-    
-    -- Достижения для экономии CO₂
     ('carbon_100', 'Первые 100 кг', 'Сэкономить 100 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 100, 25, 'common', false, 40),
     ('carbon_500', '500 кг CO₂', 'Сэкономить 500 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 500, 75, 'rare', false, 41),
     ('carbon_1000', '1 тонна CO₂', 'Сэкономить 1000 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 1000, 150, 'epic', false, 42),
-    
-    -- Достижения для просмотра страниц
     ('page_achievements', 'Любознательный', 'Посетите страницу достижений', 'exploration', '🏆', 'achievements_page_viewed', 'boolean', 1, 20, 'common', false, 50),
     ('page_stories', 'Читатель', 'Посетите страницу историй', 'exploration', '📚', 'stories_page_viewed', 'boolean', 1, 15, 'common', false, 51),
     ('page_profile', 'Знакомство', 'Посетите страницу профиля', 'exploration', '👤', 'profile_page_viewed', 'boolean', 1, 10, 'common', false, 52),
-    
-    -- Скрытые достижения (сюрпризы)
     ('story_deleted', 'Переосмысление', 'Удалите свою историю', 'special', '🗑️', 'story_deleted', 'count', 1, 25, 'rare', true, 100),
     ('like_own_story', 'Самолюбование', 'Поставьте лайк своей истории', 'special', '😊', 'like_own_story', 'boolean', 1, 10, 'common', true, 101),
     ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', true, 102)
-    
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -1220,25 +1488,9 @@ SET sort_order = CASE
 END * 10 + sort_order
 WHERE sort_order < 10;
 
--- Проверяем созданные достижения
-SELECT 
-    code, 
-    name, 
-    category,
-    event_type, 
-    requirement_type, 
-    requirement_value,
-    points,
-    rarity,
-    is_hidden
-FROM achievements 
-ORDER BY category, sort_order, points;
-
--- Тестовые данные для пользовательских достижений (если нужно)
--- Удаляем старые тестовые данные если они есть
+-- Тестовые данные для пользовательских достижений
 DELETE FROM user_achievements WHERE user_id IN (1, 2, 3);
 
--- Создаем тестовые достижения для пользователей
 INSERT INTO user_achievements (
     user_id, 
     achievement_id, 
@@ -1253,33 +1505,25 @@ SELECT
     a.id as achievement_id,
     CASE 
         WHEN a.code = 'first_login' THEN 1
-        WHEN a.code = 'daily_login_1' THEN 1
-        WHEN a.code = 'first_story' THEN RANDOM()::int % 2  -- 0 или 1
         ELSE 0
     END as progress,
     CASE 
         WHEN a.code = 'first_login' THEN 1
-        WHEN a.code = 'daily_login_1' THEN 1
-        WHEN a.code = 'first_story' THEN RANDOM()::int % 2
         ELSE 0
     END as current_value,
     CASE 
         WHEN a.code = 'first_login' THEN true
-        WHEN a.code = 'daily_login_1' THEN true
-        WHEN a.code = 'first_story' THEN (RANDOM()::int % 2)::boolean
         ELSE false
     END as completed,
     CASE 
         WHEN a.code = 'first_login' THEN CURRENT_TIMESTAMP - INTERVAL '60 days'
-        WHEN a.code = 'daily_login_1' THEN CURRENT_TIMESTAMP - INTERVAL '5 days'
-        WHEN a.code = 'first_story' AND (RANDOM()::int % 2) = 1 THEN CURRENT_TIMESTAMP - INTERVAL '15 days'
         ELSE NULL
     END as completed_at,
     CURRENT_TIMESTAMP - INTERVAL '60 days' as started_at
 FROM users u
 CROSS JOIN achievements a
-WHERE u.id IN (1, 2, 3)  -- Тестовые пользователи
-  AND a.code IN ('first_login', 'daily_login_1', 'first_story')
+WHERE u.id IN (1, 2, 3)
+  AND a.code IN ('first_login')
 ON CONFLICT (user_id, achievement_id) DO UPDATE SET
     progress = EXCLUDED.progress,
     current_value = EXCLUDED.current_value,
@@ -1326,7 +1570,8 @@ SET eco_coins = COALESCE((
     WHERE ech.user_id = u.id
 ), 0)
 WHERE u.id IN (1, 2, 3);
--- Создаем истории успеха для всех пользователей (все опубликованные)
+
+-- Создаем истории успеха для всех пользователей
 INSERT INTO success_stories (user_id, title, content, category, carbon_saved, likes_count, status) VALUES
     (1, 'Администрирование экологии', 'Как администратор EcoSteps, я помогаю тысячам людей начать свой путь к экологичной жизни. Вместе мы уже сэкономили тонны CO₂!', 'Общее', 2500, 45, 'published'),
     (2, 'Мой первый год в экологии', 'Начала с малого - отказалась от пластиковых пакетов. Теперь веду полностью экологичный образ жизни и экономлю 1800 кг CO₂ в год!', 'Общее', 1800, 32, 'published'),
@@ -1430,6 +1675,52 @@ INSERT INTO user_eco_tips (user_id, tip_id, liked) VALUES
 ON CONFLICT (user_id, tip_id) DO UPDATE SET
     liked = EXCLUDED.liked,
     viewed_at = CURRENT_TIMESTAMP;
+
+-- Заполняем категории калькулятора
+INSERT INTO calculator_categories (code, name, description, icon, unit, baseline_value, weight, sort_order) VALUES
+    ('transport', 'Транспорт', 'Личный и общественный транспорт, авиаперелеты', '🚗', 'kg CO₂/year', 2500.00, 0.25, 10),
+    ('housing', 'Жилье', 'Энергопотребление дома, отопление, электричество', '🏠', 'kg CO₂/year', 2000.00, 0.20, 20),
+    ('food', 'Питание', 'Пищевые привычки, потребление мяса, продуктов', '🍎', 'kg CO₂/year', 1800.00, 0.18, 30),
+    ('goods', 'Товары и услуги', 'Покупки, электроника, одежда, развлечения', '🛒', 'kg CO₂/year', 1500.00, 0.15, 40),
+    ('waste', 'Отходы', 'Мусор, переработка, компостирование', '🗑️', 'kg CO₂/year', 800.00, 0.08, 50),
+    ('water', 'Водопотребление', 'Использование воды, водные процедуры', '💧', 'kg CO₂/year', 600.00, 0.06, 60),
+    ('other', 'Прочее', 'Прочие источники выбросов', '📊', 'kg CO₂/year', 500.00, 0.05, 70)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name,
+    baseline_value = EXCLUDED.baseline_value,
+    weight = EXCLUDED.weight,
+    sort_order = EXCLUDED.sort_order,
+    updated_at = CURRENT_TIMESTAMP;
+
+-- Тестовые расчеты углеродного следа
+INSERT INTO carbon_calculations (user_id, calculation_date, total_footprint, co2_saved, is_baseline, categories) VALUES
+    (1, CURRENT_DATE - INTERVAL '60 days', 12000.00, 0, TRUE, 
+     '{"transport": {"value": 3000, "details": {"car": 2500, "public_transport": 500}}, "housing": {"value": 2800, "details": {"electricity": 1500, "heating": 1300}}, "food": {"value": 2400, "details": {"meat": 1500, "dairy": 500, "other": 400}}, "goods": {"value": 2000, "details": {"clothes": 800, "electronics": 700, "other": 500}}, "waste": {"value": 1000, "details": {"landfill": 700, "recycling": 300}}, "water": {"value": 500, "details": {"hot_water": 300, "cold_water": 200}}, "other": {"value": 300, "details": {}}}'),
+    
+    (1, CURRENT_DATE, 9500.00, 2500.00, FALSE,
+     '{"transport": {"value": 2000, "details": {"car": 1500, "public_transport": 500}}, "housing": {"value": 2200, "details": {"electricity": 1200, "heating": 1000}}, "food": {"value": 2000, "details": {"meat": 1000, "dairy": 500, "other": 500}}, "goods": {"value": 1500, "details": {"clothes": 600, "electronics": 500, "other": 400}}, "waste": {"value": 800, "details": {"landfill": 500, "recycling": 300}}, "water": {"value": 400, "details": {"hot_water": 250, "cold_water": 150}}, "other": {"value": 200, "details": {}}}'),
+    
+    (2, CURRENT_DATE - INTERVAL '45 days', 11000.00, 0, TRUE,
+     '{"transport": {"value": 2800, "details": {"car": 2300, "public_transport": 500}}, "housing": {"value": 2600, "details": {"electricity": 1400, "heating": 1200}}, "food": {"value": 2200, "details": {"meat": 1300, "dairy": 400, "other": 500}}, "goods": {"value": 1800, "details": {"clothes": 700, "electronics": 600, "other": 500}}, "waste": {"value": 900, "details": {"landfill": 600, "recycling": 300}}, "water": {"value": 450, "details": {"hot_water": 280, "cold_water": 170}}, "other": {"value": 250, "details": {}}}'),
+    
+    (2, CURRENT_DATE, 9200.00, 1800.00, FALSE,
+     '{"transport": {"value": 1900, "details": {"car": 1400, "public_transport": 500}}, "housing": {"value": 2100, "details": {"electricity": 1100, "heating": 1000}}, "food": {"value": 1900, "details": {"meat": 900, "dairy": 500, "other": 500}}, "goods": {"value": 1400, "details": {"clothes": 500, "electronics": 400, "other": 500}}, "waste": {"value": 750, "details": {"landfill": 450, "recycling": 300}}, "water": {"value": 350, "details": {"hot_water": 200, "cold_water": 150}}, "other": {"value": 200, "details": {}}}')
+ON CONFLICT DO NOTHING;
+
+-- Тестовые цели пользователей
+INSERT INTO user_carbon_goals (user_id, goal_type, title, description, target_value, current_value, unit, category_code, start_date, end_date, status, progress_percent) VALUES
+    (1, 'footprint_reduction', 'Снизить углеродный след на 20%', 'Цель - сократить общий углеродный след на 20% за год', 20.00, 20.8, '%', NULL, CURRENT_DATE - INTERVAL '60 days', CURRENT_DATE + INTERVAL '305 days', 'active', 100),
+    (1, 'category_improvement', 'Снизить транспортные выбросы', 'Сократить использование личного автомобиля', 1500.00, 1000.00, 'kg CO₂/year', 'transport', CURRENT_DATE, CURRENT_DATE + INTERVAL '180 days', 'active', 67),
+    (2, 'footprint_reduction', 'Достичь 8000 кг CO₂ в год', 'Цель - снизить углеродный след до 8000 кг CO₂ в год', 8000.00, 9200.00, 'kg CO₂/year', NULL, CURRENT_DATE - INTERVAL '45 days', CURRENT_DATE + INTERVAL '320 days', 'active', 0),
+    (2, 'habit_adoption', 'Велосипед вместо машины', 'Использовать велосипед для поездок на работу 3 раза в неделю', 3.00, 2.00, 'раз/неделю', 'transport', CURRENT_DATE - INTERVAL '30 days', CURRENT_DATE + INTERVAL '60 days', 'active', 67),
+    (3, 'category_improvement', 'Сократить пищевые отходы', 'Уменьшить количество выбрасываемой еды на 50%', 50.00, 30.00, '%', 'food', CURRENT_DATE, CURRENT_DATE + INTERVAL '90 days', 'active', 60)
+ON CONFLICT DO NOTHING;
+
+-- Вставляем настройки для существующих пользователей
+INSERT INTO user_calculator_settings (user_id)
+SELECT id FROM users 
+WHERE id NOT IN (SELECT user_id FROM user_calculator_settings WHERE user_id IS NOT NULL)
+ON CONFLICT (user_id) DO NOTHING;
 
 -- Создаем настройки для всех пользователей
 INSERT INTO user_settings (user_id)
