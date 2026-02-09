@@ -183,6 +183,130 @@ router.get('/:userId/stats', async (req, res) => {
   }
 });
 
+// Простой расчет углеродного следа
+router.post('/calculate', async (req, res) => {
+  try {
+    const { userId, transport, housing, food, waste } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Не указан ID пользователя'
+      });
+    }
+    
+    // Простой расчет CO2
+    let totalFootprint = 0;
+    const categories = {};
+    
+    // Транспорт (реальные коэффициенты в кг CO2 в ДЕНЬ)
+    // Источник: EPA, средние значения
+    if (transport) {
+      const transportCO2 = 
+        (transport.carKm || 0) * 0.192 +        // 192г CO2/км (бензин)
+        (transport.busKm || 0) * 0.089 +        // 89г CO2/км
+        (transport.planeKm || 0) * 0.255 / 30 + // 255г CO2/км (месячное, делим на 30)
+        (transport.trainKm || 0) * 0.041;       // 41г CO2/км
+      categories.transport = transportCO2;
+      totalFootprint += transportCO2;
+    }
+    
+    // Жилье (реальные коэффициенты в кг CO2 в ДЕНЬ)
+    // Источник: IEA, средние по миру
+    if (housing) {
+      const housingCO2 = 
+        (housing.electricity || 0) * 0.475 / 30 +  // 475г CO2/кВтч (месячное, делим на 30)
+        (housing.heating || 0) * 0.185 / 30 +      // 185г CO2/кВтч
+        (housing.water || 0) * 0.298 / 30 +        // 298г CO2/м³
+        (housing.gas || 0) * 2.016 / 30;           // 2016г CO2/м³
+      categories.housing = housingCO2;
+      totalFootprint += housingCO2;
+    }
+    
+    // Питание (реальные коэффициенты в кг CO2 в ДЕНЬ)
+    // Источник: Poore & Nemecek (2018), Science
+    if (food) {
+      const foodCO2 = 
+        (food.meatKg || 0) * 7.2 / 7 +          // 7.2 кг CO2/кг (говядина, недельное, делим на 7)
+        (food.vegetablesKg || 0) * 0.4 / 7 +    // 0.4 кг CO2/кг
+        (food.dairy || 0) * 1.4 / 7 +           // 1.4 кг CO2/л
+        (food.processedFood || 0) * 1.2 / 7;    // 1.2 кг CO2/порция
+      
+      // Бонус за местные продукты (снижение транспортных выбросов)
+      const localBonus = (food.localFood || 0) / 100;
+      categories.food = foodCO2 * (1 - localBonus * 0.15);
+      totalFootprint += categories.food;
+    }
+    
+    // Отходы (реальные коэффициенты в кг CO2 в ДЕНЬ)
+    // Источник: EPA Waste Reduction Model
+    if (waste) {
+      const wasteCO2 = (waste.plastic || 0) * 6.0 / 30; // 6 кг CO2/кг (месячное, делим на 30)
+      
+      // Бонус за переработку и компостирование
+      const recyclingBonus = (waste.recycling || 0) / 100;
+      const compostBonus = (waste.compost || 0) / 100;
+      categories.waste = wasteCO2 * (1 - (recyclingBonus + compostBonus) * 0.4);
+      totalFootprint += categories.waste;
+    }
+    
+    // Расчет экономии CO2
+    // Средний углеродный след в мире: ~10 тонн CO2/год = ~27 кг/день
+    // Если наш след МЕНЬШЕ среднего - мы сэкономили эту разницу
+    const averageDailyFootprint = 27; // кг CO2 в день
+    const co2Saved = Math.max(0, averageDailyFootprint - totalFootprint);
+    
+    // Проверяем, был ли уже расчет за сегодня
+    const existingCalcResult = await db.query(
+      `SELECT co2_saved FROM carbon_calculations 
+       WHERE user_id = $1 AND calculation_date = CURRENT_DATE AND is_baseline = false`,
+      [userId]
+    );
+    
+    const hadCalculationToday = existingCalcResult.rows.length > 0;
+    const previousSaved = hadCalculationToday ? parseFloat(existingCalcResult.rows[0].co2_saved) : 0;
+    
+    // Сохраняем расчет (используем UPSERT для избежания дубликатов)
+    const result = await db.query(
+      `INSERT INTO carbon_calculations 
+       (user_id, calculation_date, total_footprint, co2_saved, categories, is_baseline) 
+       VALUES ($1, CURRENT_DATE, $2, $3, $4, false) 
+       ON CONFLICT (user_id, calculation_date, is_baseline) 
+       DO UPDATE SET 
+         total_footprint = EXCLUDED.total_footprint,
+         co2_saved = EXCLUDED.co2_saved,
+         categories = EXCLUDED.categories,
+         updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [userId, totalFootprint, co2Saved, JSON.stringify(categories)]
+    );
+    
+    // Обновляем общую экономию пользователя
+    // Добавляем только если это ПЕРВЫЙ расчет за сегодня
+    if (!hadCalculationToday && co2Saved > 0) {
+      await db.query(
+        'UPDATE users SET carbon_saved = carbon_saved + $1 WHERE id = $2',
+        [Math.round(co2Saved), userId]
+      );
+    }
+    
+    res.json({
+      success: true,
+      total_footprint: totalFootprint,
+      co2_saved: co2Saved,
+      categories,
+      calculation: result.rows[0],
+      isFirstToday: !hadCalculationToday
+    });
+  } catch (error) {
+    console.error('Error calculating carbon footprint:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при расчете углеродного следа'
+    });
+  }
+});
+
 // Расширенный расчет (для фронтенда)
 router.post('/calculate-extended', async (req, res) => {
   try {
@@ -307,12 +431,13 @@ async function getCategoryStats(userId) {
         c.code,
         c.name,
         c.icon,
+        c.sort_order,
         AVG((cc.categories->c.code->>'value')::DECIMAL) as avg_value,
         COUNT(cc.id) as calculations_count
        FROM calculator_categories c
        LEFT JOIN carbon_calculations cc ON cc.user_id = $1 AND cc.categories ? c.code
        WHERE c.is_active = true
-       GROUP BY c.code, c.name, c.icon
+       GROUP BY c.code, c.name, c.icon, c.sort_order
        ORDER BY c.sort_order`,
       [userId]
     );

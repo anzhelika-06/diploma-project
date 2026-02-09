@@ -320,12 +320,6 @@ const AdminPage = () => {
   const formatCarbonSaved = (carbonSaved) => {
     const value = carbonSaved || 0;
     const unit = t('carbonUnit') || 'кг';
-    
-    if (value >= 1000) {
-      const tons = (value / 1000).toFixed(1);
-      return `${tons} ${t('units.tons') || 'т'}`;
-    }
-    
     return `${value.toLocaleString()} ${unit}`;
   };
 

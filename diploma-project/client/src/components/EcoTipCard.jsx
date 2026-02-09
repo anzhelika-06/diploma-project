@@ -40,10 +40,7 @@ const EcoTipCard = ({ tip, showActions = false, isPreview = false }) => {
 
   const formatCO2Impact = (impact) => {
     if (!impact) return null
-    if (impact >= 1000) {
-      return `${(impact / 1000).toFixed(1)} кг CO₂`
-    }
-    return `${impact} г CO₂`
+    return `${impact.toFixed(0)} кг CO₂`
   }
 
   return (

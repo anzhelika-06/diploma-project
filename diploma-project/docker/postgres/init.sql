@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
-    deleted_at TIMESTAMP DEFAULT NULL
+    deleted_at TIMESTAMP
 );
 
 -- ============ ИСТОРИЯ БАНОВ ПОЛЬЗОВАТЕЛЕЙ ============
@@ -363,7 +363,7 @@ CREATE INDEX IF NOT EXISTS idx_users_gender ON users(gender_id);
 CREATE INDEX IF NOT EXISTS idx_users_carbon_saved ON users(carbon_saved);
 CREATE INDEX IF NOT EXISTS idx_users_is_admin ON users(is_admin);
 CREATE INDEX IF NOT EXISTS idx_users_is_banned ON users(is_banned);
-CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
+-- CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at); -- Удалено вместе с полем
 CREATE INDEX IF NOT EXISTS idx_user_achievements_user_id ON user_achievements(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_achievements_achievement_id ON user_achievements(achievement_id);
 CREATE INDEX IF NOT EXISTS idx_eco_coins_history_user_id ON eco_coins_history(user_id);
@@ -436,7 +436,6 @@ LEFT JOIN LATERAL (
     LIMIT 1
 ) a ON true
 LEFT JOIN user_carbon_goals g ON u.id = g.user_id AND g.status = 'active'
-WHERE u.deleted_at IS NULL
 GROUP BY 
     u.id, u.nickname, u.carbon_saved, u.eco_level, u.avatar_emoji,
     cc.total_footprint, cc.calculation_date,
@@ -457,8 +456,7 @@ SELECT
 FROM users u
 CROSS JOIN calculator_categories c
 LEFT JOIN carbon_calculations cc ON u.id = cc.user_id AND cc.categories ? c.code
-WHERE u.deleted_at IS NULL
-    AND c.is_active = true
+WHERE c.is_active = true
 GROUP BY u.id, c.code, c.name, c.icon;
 
 -- Пользователи с полом
@@ -492,7 +490,6 @@ SELECT
     u.avatar_emoji,
     ROW_NUMBER() OVER (ORDER BY u.carbon_saved DESC) as rank
 FROM users u
-WHERE u.deleted_at IS NULL
 ORDER BY u.carbon_saved DESC;
 
 -- Рейтинг команд
@@ -520,7 +517,6 @@ SELECT
     u.avatar_emoji as user_avatar
 FROM success_stories s
 JOIN users u ON s.user_id = u.id
-WHERE u.deleted_at IS NULL
 ORDER BY s.created_at DESC;
 
 -- Вопросы в поддержку с пользователями
@@ -537,8 +533,7 @@ SELECT
         ELSE st.status
     END as status_display
 FROM support_tickets st
-JOIN users u ON st.user_id = u.id
-WHERE u.deleted_at IS NULL;
+JOIN users u ON st.user_id = u.id;
 
 -- Детали банов пользователей
 CREATE OR REPLACE VIEW ban_details_view AS
@@ -681,7 +676,7 @@ BEGIN
     LEFT JOIN team_members tm ON u.id = tm.user_id
     LEFT JOIN success_stories ss ON u.id = ss.user_id
     LEFT JOIN support_tickets st ON u.id = st.user_id
-    WHERE u.id = p_user_id AND u.deleted_at IS NULL
+    WHERE u.id = p_user_id
     GROUP BY u.id, u.carbon_saved, u.eco_level, u.ban_count;
 END;
 $$ LANGUAGE plpgsql;
@@ -1456,6 +1451,11 @@ INSERT INTO achievements (
     ('page_achievements', 'Любознательный', 'Посетите страницу достижений', 'exploration', '🏆', 'achievements_page_viewed', 'boolean', 1, 20, 'common', false, 50),
     ('page_stories', 'Читатель', 'Посетите страницу историй', 'exploration', '📚', 'stories_page_viewed', 'boolean', 1, 15, 'common', false, 51),
     ('page_profile', 'Знакомство', 'Посетите страницу профиля', 'exploration', '👤', 'profile_page_viewed', 'boolean', 1, 10, 'common', false, 52),
+    ('page_statistics', 'Аналитик', 'Посетите страницу статистики', 'exploration', '📊', 'statistics_page_viewed', 'boolean', 1, 15, 'common', false, 53),
+    ('first_calculation', 'Первый шаг', 'Выполните первый расчет углеродного следа', 'calculations', '🧮', 'calculation_completed', 'count', 1, 50, 'common', false, 60),
+    ('calculation_5', 'Регулярный пользователь', 'Выполните 5 расчетов', 'calculations', '📈', 'calculation_completed', 'count', 5, 100, 'rare', false, 61),
+    ('calculation_10', 'Эко-аналитик', 'Выполните 10 расчетов', 'calculations', '📊', 'calculation_completed', 'count', 10, 200, 'epic', false, 62),
+    ('calculation_20', 'Мастер расчетов', 'Выполните 20 расчетов', 'calculations', '🎯', 'calculation_completed', 'count', 20, 350, 'legendary', false, 63),
     ('story_deleted', 'Переосмысление', 'Удалите свою историю', 'special', '🗑️', 'story_deleted', 'count', 1, 25, 'rare', true, 100),
     ('like_own_story', 'Самолюбование', 'Поставьте лайк своей истории', 'special', '😊', 'like_own_story', 'boolean', 1, 10, 'common', true, 101),
     ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', true, 102)
@@ -1692,19 +1692,37 @@ ON CONFLICT (code) DO UPDATE SET
     sort_order = EXCLUDED.sort_order,
     updated_at = CURRENT_TIMESTAMP;
 
--- Тестовые расчеты углеродного следа
+-- Тестовые расчеты углеродного следа для проверки диаграмм
 INSERT INTO carbon_calculations (user_id, calculation_date, total_footprint, co2_saved, is_baseline, categories) VALUES
-    (1, CURRENT_DATE - INTERVAL '60 days', 12000.00, 0, TRUE, 
-     '{"transport": {"value": 3000, "details": {"car": 2500, "public_transport": 500}}, "housing": {"value": 2800, "details": {"electricity": 1500, "heating": 1300}}, "food": {"value": 2400, "details": {"meat": 1500, "dairy": 500, "other": 400}}, "goods": {"value": 2000, "details": {"clothes": 800, "electronics": 700, "other": 500}}, "waste": {"value": 1000, "details": {"landfill": 700, "recycling": 300}}, "water": {"value": 500, "details": {"hot_water": 300, "cold_water": 200}}, "other": {"value": 300, "details": {}}}'),
+    -- За последние 7 дней (неделя)
+    (1, CURRENT_DATE - INTERVAL '6 days', 15.5, 11.5, FALSE, 
+     '{"transport": 5.2, "housing": 4.3, "food": 4.8, "waste": 1.2}'),
+    (1, CURRENT_DATE - INTERVAL '5 days', 18.2, 8.8, FALSE,
+     '{"transport": 6.5, "housing": 5.1, "food": 5.3, "waste": 1.3}'),
+    (1, CURRENT_DATE - INTERVAL '4 days', 14.8, 12.2, FALSE,
+     '{"transport": 4.8, "housing": 4.0, "food": 4.5, "waste": 1.5}'),
+    (1, CURRENT_DATE - INTERVAL '3 days', 16.3, 10.7, FALSE,
+     '{"transport": 5.5, "housing": 4.8, "food": 4.7, "waste": 1.3}'),
+    (1, CURRENT_DATE - INTERVAL '2 days', 17.1, 9.9, FALSE,
+     '{"transport": 6.0, "housing": 5.2, "food": 4.6, "waste": 1.3}'),
+    (1, CURRENT_DATE - INTERVAL '1 day', 15.9, 11.1, FALSE,
+     '{"transport": 5.3, "housing": 4.5, "food": 4.8, "waste": 1.3}'),
     
-    (1, CURRENT_DATE, 9500.00, 2500.00, FALSE,
-     '{"transport": {"value": 2000, "details": {"car": 1500, "public_transport": 500}}, "housing": {"value": 2200, "details": {"electricity": 1200, "heating": 1000}}, "food": {"value": 2000, "details": {"meat": 1000, "dairy": 500, "other": 500}}, "goods": {"value": 1500, "details": {"clothes": 600, "electronics": 500, "other": 400}}, "waste": {"value": 800, "details": {"landfill": 500, "recycling": 300}}, "water": {"value": 400, "details": {"hot_water": 250, "cold_water": 150}}, "other": {"value": 200, "details": {}}}'),
+    -- За последние 30 дней (месяц) - добавим еще несколько
+    (1, CURRENT_DATE - INTERVAL '15 days', 19.5, 7.5, FALSE,
+     '{"transport": 7.2, "housing": 5.8, "food": 5.0, "waste": 1.5}'),
+    (1, CURRENT_DATE - INTERVAL '20 days', 16.8, 10.2, FALSE,
+     '{"transport": 5.8, "housing": 4.9, "food": 4.8, "waste": 1.3}'),
+    (1, CURRENT_DATE - INTERVAL '25 days', 17.5, 9.5, FALSE,
+     '{"transport": 6.2, "housing": 5.1, "food": 4.9, "waste": 1.3}'),
     
-    (2, CURRENT_DATE - INTERVAL '45 days', 11000.00, 0, TRUE,
-     '{"transport": {"value": 2800, "details": {"car": 2300, "public_transport": 500}}, "housing": {"value": 2600, "details": {"electricity": 1400, "heating": 1200}}, "food": {"value": 2200, "details": {"meat": 1300, "dairy": 400, "other": 500}}, "goods": {"value": 1800, "details": {"clothes": 700, "electronics": 600, "other": 500}}, "waste": {"value": 900, "details": {"landfill": 600, "recycling": 300}}, "water": {"value": 450, "details": {"hot_water": 280, "cold_water": 170}}, "other": {"value": 250, "details": {}}}'),
-    
-    (2, CURRENT_DATE, 9200.00, 1800.00, FALSE,
-     '{"transport": {"value": 1900, "details": {"car": 1400, "public_transport": 500}}, "housing": {"value": 2100, "details": {"electricity": 1100, "heating": 1000}}, "food": {"value": 1900, "details": {"meat": 900, "dairy": 500, "other": 500}}, "goods": {"value": 1400, "details": {"clothes": 500, "electronics": 400, "other": 500}}, "waste": {"value": 750, "details": {"landfill": 450, "recycling": 300}}, "water": {"value": 350, "details": {"hot_water": 200, "cold_water": 150}}, "other": {"value": 200, "details": {}}}')
+    -- За год - добавим несколько старых записей
+    (1, CURRENT_DATE - INTERVAL '60 days', 20.3, 6.7, FALSE,
+     '{"transport": 8.0, "housing": 6.2, "food": 4.8, "waste": 1.3}'),
+    (1, CURRENT_DATE - INTERVAL '90 days', 18.9, 8.1, FALSE,
+     '{"transport": 7.1, "housing": 5.5, "food": 5.0, "waste": 1.3}'),
+    (1, CURRENT_DATE - INTERVAL '120 days', 19.8, 7.2, FALSE,
+     '{"transport": 7.8, "housing": 5.9, "food": 4.8, "waste": 1.3}')
 ON CONFLICT DO NOTHING;
 
 -- Тестовые цели пользователей
@@ -1760,7 +1778,7 @@ DECLARE
     achievement_count INTEGER;
     ban_history_count INTEGER;
 BEGIN
-    SELECT COUNT(*) INTO user_count FROM users WHERE deleted_at IS NULL;
+    SELECT COUNT(*) INTO user_count FROM users;
     SELECT COUNT(*) INTO team_count FROM teams;
     SELECT COUNT(*) INTO story_count FROM success_stories;
     SELECT COUNT(*) INTO ticket_count FROM support_tickets;
