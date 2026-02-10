@@ -59,8 +59,9 @@ export const useEventTracker = () => {
       .then(result => {
         if (result && result.success) {
           console.log(`✅ Событие успешно отправлено: ${eventName}`)
-        } else if (result) {
-          console.warn(`⚠️ Сервер вернул ошибку для события ${eventName}:`, result)
+        } else if (result && !result.success) {
+          // Не показываем предупреждение для событий, которые просто не имеют достижений
+          console.log(`ℹ️ Событие ${eventName} обработано (нет связанных достижений)`)
         }
       })
       .catch(error => {

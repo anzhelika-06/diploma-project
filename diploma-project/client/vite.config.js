@@ -13,6 +13,12 @@ export default defineConfig({
         target: 'http://server:3001',
         changeOrigin: true,
         secure: false
+      },
+      '/socket.io': {
+        target: 'http://server:3001',
+        changeOrigin: true,
+        ws: true,
+        secure: false
       }
     }
   }

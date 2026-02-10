@@ -1,14 +1,1531 @@
-import '../styles/pages/CommonPage.css'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { io } from 'socket.io-client';
+import '../styles/pages/ProfilePage.css';
+import { useLanguage } from '../contexts/LanguageContext';
+import { getCurrentUser } from '../utils/authUtils';
+import { useEventTracker } from '../hooks/useEventTracker';
+import { translateStoryContent, detectTextLanguage, translateEcoLevel } from '../utils/translations';
 
 const ProfilePage = () => {
+  const { t, currentLanguage } = useLanguage();
+  const { trackEvent } = useEventTracker();
+  const { userId: urlUserId } = useParams();
+  const currentUser = getCurrentUser();
+  const currentUserId = currentUser?.id;
+  
+  // Флаг для отслеживания программного изменения viewingUserId (не через URL)
+  const isInternalNavigation = useRef(false);
+  
+  // ID профиля, который сейчас просматриваем (всегда число)
+  const [viewingUserId, setViewingUserId] = useState(() => {
+    const id = urlUserId || currentUserId;
+    return id ? Number(id) : null;
+  });
+  
+  const [profileData, setProfileData] = useState(null);
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [socket, setSocket] = useState(null);
+  
+  // Посты
+  const [posts, setPosts] = useState([]);
+  const [translatedPosts, setTranslatedPosts] = useState([]);
+  const [newPostContent, setNewPostContent] = useState('');
+  const [showComments, setShowComments] = useState({});
+  const [comments, setComments] = useState({});
+  const [translatedComments, setTranslatedComments] = useState({});
+  const [newComment, setNewComment] = useState({});
+  
+  // Дружба
+  const [friendshipStatus, setFriendshipStatus] = useState('none');
+  const [friendshipId, setFriendshipId] = useState(null);
+  const [showFriendsList, setShowFriendsList] = useState(false);
+  const [friendsList, setFriendsList] = useState([]);
+  
+  // Модальные окна
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({ title: '', message: '', onConfirm: null });
+  const [errorModalData, setErrorModalData] = useState({ title: '', message: '' });
+  const [reportForm, setReportForm] = useState({ reason: '', description: '', screenshots: [] });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  
+  const [editForm, setEditForm] = useState({
+    nickname: '',
+    bio: '',
+    goal: '',
+    date_of_birth: '',
+    gender_id: null
+  });
+  
+  const [dateError, setDateError] = useState('');
+
+  // WebSocket подключение - создаем ОДИН РАЗ
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    console.log('🔌 Инициализация WebSocket подключения...');
+    
+    const newSocket = io('/', {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5
+    });
+    
+    newSocket.on('connect', () => {
+      console.log('✅ WebSocket подключен, ID:', newSocket.id);
+      newSocket.emit('authenticate', {
+        userId: currentUserId,
+        nickname: currentUser.nickname
+      });
+    });
+    
+    newSocket.on('authenticated', (data) => {
+      console.log('✅ Аутентификация успешна:', data);
+    });
+    
+    newSocket.on('test:message', (data) => {
+      console.log('🧪 Получено тестовое сообщение:', data);
+    });
+    
+    newSocket.on('connect_error', (error) => {
+      console.error('❌ Ошибка подключения WebSocket:', error);
+    });
+    
+    newSocket.on('disconnect', (reason) => {
+      console.log('🔌 WebSocket отключен:', reason);
+    });
+    
+    // Обработчики событий постов
+    newSocket.on('post:created', (data) => {
+      console.log('📝 Новый пост создан:', data);
+      // Обновляем посты
+      setPosts(prev => {
+        // Проверяем, не добавлен ли уже этот пост
+        if (prev.some(p => p.id === data.post.id)) {
+          return prev;
+        }
+        return [data.post, ...prev];
+      });
+    });
+    
+    newSocket.on('post:deleted', (data) => {
+      console.log('🗑️ Пост удален:', data);
+      console.log('   postId:', data.postId, 'type:', typeof data.postId);
+      setPosts(prev => {
+        const filtered = prev.filter(p => Number(p.id) !== Number(data.postId));
+        console.log('   Постов до удаления:', prev.length, 'после:', filtered.length);
+        return filtered;
+      });
+    });
+    
+    newSocket.on('post:like:update', (data) => {
+      console.log('❤️ Лайк обновлен:', data);
+      console.log('   Обновляем пост с ID:', data.postId, 'новый счетчик:', data.likesCount);
+      setPosts(prev => {
+        const updated = prev.map(p => {
+          if (Number(p.id) === Number(data.postId)) {
+            console.log('   ✅ Найден пост, обновляем:', p.id);
+            return { 
+              ...p, 
+              likes_count: data.likesCount, 
+              is_liked: Number(data.likerId) === Number(currentUserId) ? data.isLiked : p.is_liked 
+            };
+          }
+          return p;
+        });
+        console.log('   Обновленные посты:', updated.map(p => ({ id: p.id, likes: p.likes_count })));
+        return updated;
+      });
+    });
+    
+    newSocket.on('post:comment:added', (data) => {
+      console.log('💬 Комментарий добавлен:', data);
+      console.log('   К посту ID:', data.postId, 'комментарий:', data.comment.content);
+      setComments(prev => {
+        const updated = {
+          ...prev,
+          [data.postId]: [...(prev[data.postId] || []), data.comment]
+        };
+        console.log('   Обновленные комментарии для поста', data.postId, ':', updated[data.postId].length);
+        return updated;
+      });
+      setPosts(prev => {
+        const updated = prev.map(p => {
+          if (Number(p.id) === Number(data.postId)) {
+            console.log('   ✅ Увеличиваем счетчик комментариев для поста', p.id);
+            return { ...p, comments_count: (p.comments_count || 0) + 1 };
+          }
+          return p;
+        });
+        return updated;
+      });
+    });
+    
+    newSocket.on('post:comment:deleted', (data) => {
+      console.log('🗑️ Комментарий удален:', data);
+      console.log('   Из поста ID:', data.postId, 'комментарий ID:', data.commentId);
+      setComments(prev => {
+        const updated = {
+          ...prev,
+          [data.postId]: (prev[data.postId] || []).filter(c => Number(c.id) !== Number(data.commentId))
+        };
+        console.log('   Осталось комментариев для поста', data.postId, ':', updated[data.postId].length);
+        return updated;
+      });
+      setPosts(prev => {
+        const updated = prev.map(p => {
+          if (Number(p.id) === Number(data.postId)) {
+            console.log('   ✅ Уменьшаем счетчик комментариев для поста', p.id);
+            return { ...p, comments_count: Math.max(0, Number(p.comments_count || 0) - 1) };
+          }
+          return p;
+        });
+        return updated;
+      });
+    });
+    
+    // Обработчики событий дружбы
+    newSocket.on('friendship:request', (data) => {
+      console.log('👥 Запрос в друзья:', data);
+      if (data.toUserId === currentUserId) {
+        setFriendshipStatus('pending_received');
+      }
+    });
+    
+    newSocket.on('friendship:accepted', (data) => {
+      console.log('✅ Дружба принята:', data);
+      setFriendshipStatus('accepted');
+      // Обновляем счетчик друзей
+      setProfileData(prev => prev ? ({
+        ...prev,
+        friends_count: (prev.friends_count || 0) + 1
+      }) : prev);
+    });
+    
+    newSocket.on('friendship:removed', (data) => {
+      console.log('❌ Дружба удалена:', data);
+      if (data.userId === currentUserId || data.friendId === currentUserId) {
+        setFriendshipStatus('none');
+        // Обновляем счетчик друзей
+        setProfileData(prev => prev ? ({
+          ...prev,
+          friends_count: Math.max(0, (prev.friends_count || 0) - 1)
+        }) : prev);
+      }
+    });
+    
+    setSocket(newSocket);
+    
+    return () => {
+      console.log('🔌 Закрытие WebSocket подключения');
+      newSocket.close();
+    };
+  }, [currentUserId, currentUser.nickname]); // Убрали viewingUserId и profileData из зависимостей
+
+  // Функция для загрузки всех данных профиля
+  const loadProfileData = useCallback(async (targetUserId) => {
+    if (!targetUserId) return;
+    
+    console.log('📥 Загрузка профиля для userId:', targetUserId, 'currentUserId:', currentUserId);
+    
+    const isOwn = Number(targetUserId) === Number(currentUserId);
+    setIsOwnProfile(isOwn);
+    
+    try {
+      setLoading(true);
+      
+      // Загрузка профиля
+      const profileResponse = await fetch(`/api/users/${targetUserId}/profile`);
+      const profileData = await profileResponse.json();
+      
+      if (profileData.success) {
+        console.log('✅ Профиль загружен:', profileData.user.nickname);
+        setProfileData(profileData.user);
+        
+        // Форматируем дату в ДД/ММ/ГГГГ (только дата, без времени)
+        const dob = profileData.user.date_of_birth || '';
+        let formattedDate = '';
+        if (dob) {
+          // Берем только первые 10 символов (YYYY-MM-DD), игнорируя время
+          const dateOnly = dob.split('T')[0];
+          const [year, month, day] = dateOnly.split('-');
+          formattedDate = `${day}/${month}/${year}`;
+        }
+        
+        setEditForm({
+          nickname: profileData.user.nickname || '',
+          bio: profileData.user.bio || '',
+          goal: profileData.user.goal || '',
+          date_of_birth: formattedDate,
+          gender_id: profileData.user.gender_id || null
+        });
+      }
+      
+      // Загрузка постов
+      const postsResponse = await fetch(`/api/users/${targetUserId}/posts`);
+      const postsData = await postsResponse.json();
+      
+      if (postsData.success) {
+        console.log('✅ Посты загружены:', postsData.posts.length);
+        setPosts(postsData.posts);
+      }
+      
+      // Загрузка статуса дружбы
+      if (!isOwn && currentUserId) {
+        const friendshipResponse = await fetch(`/api/users/${currentUserId}/friends/status/${targetUserId}`);
+        const friendshipData = await friendshipResponse.json();
+        
+        if (friendshipData.success) {
+          console.log('✅ Статус дружбы:', friendshipData.status);
+          setFriendshipStatus(friendshipData.status);
+          setFriendshipId(friendshipData.friendshipId);
+        }
+      } else {
+        setFriendshipStatus('none');
+        setFriendshipId(null);
+      }
+      
+      if (currentUserId) {
+        trackEvent('profile_page_viewed', {
+          userId: currentUserId,
+          viewedUserId: targetUserId,
+          isOwnProfile: isOwn
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных профиля:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUserId, trackEvent]);
+
+  // Загрузка данных профиля при изменении viewingUserId
+  useEffect(() => {
+    console.log('🔄 useEffect [viewingUserId] сработал. viewingUserId:', viewingUserId);
+    if (viewingUserId) {
+      console.log('   ✅ Вызываем loadProfileData для userId:', viewingUserId);
+      loadProfileData(viewingUserId);
+    } else {
+      console.log('   ⚠️ viewingUserId пустой, пропускаем загрузку');
+    }
+  }, [viewingUserId, loadProfileData]);
+  
+  // Обновляем viewingUserId при изменении URL (но НЕ при программном изменении!)
+  useEffect(() => {
+    // Если это внутренняя навигация (клик по кнопке), пропускаем
+    if (isInternalNavigation.current) {
+      console.log('⏭️ Пропускаем useEffect - это внутренняя навигация');
+      isInternalNavigation.current = false;
+      return;
+    }
+    
+    const newUserId = Number(urlUserId || currentUserId);
+    console.log('🔄 useEffect [urlUserId, currentUserId] сработал');
+    console.log('   urlUserId:', urlUserId);
+    console.log('   currentUserId:', currentUserId);
+    console.log('   newUserId:', newUserId);
+    console.log('   Текущий viewingUserId:', viewingUserId);
+    
+    // Обновляем только если URL изменился
+    if (newUserId && newUserId !== viewingUserId) {
+      console.log('✅ URL изменился! Меняем viewingUserId на:', newUserId);
+      setViewingUserId(newUserId);
+    }
+  }, [urlUserId, currentUserId, viewingUserId]);
+
+  // Перевод постов при изменении языка или постов
+  useEffect(() => {
+    const translatePosts = async () => {
+      if (posts.length === 0) {
+        setTranslatedPosts([]);
+        return;
+      }
+
+      try {
+        const translated = await Promise.all(
+          posts.map(async (post) => {
+            try {
+              const contentLanguage = detectTextLanguage(post.content);
+              const targetLang = currentLanguage.toLowerCase();
+              
+              let translatedContent = post.content;
+              
+              if (contentLanguage !== targetLang) {
+                try {
+                  translatedContent = await translateStoryContent(post.content, currentLanguage, contentLanguage);
+                } catch (error) {
+                  console.warn('⚠️ Ошибка перевода поста:', error);
+                  translatedContent = post.content;
+                }
+              }
+              
+              return {
+                ...post,
+                content: translatedContent
+              };
+            } catch (error) {
+              console.error('❌ Ошибка при переводе поста:', error);
+              return post;
+            }
+          })
+        );
+        
+        setTranslatedPosts(translated);
+      } catch (error) {
+        console.error('❌ Ошибка при переводе постов:', error);
+        setTranslatedPosts(posts);
+      }
+    };
+
+    translatePosts();
+  }, [posts, currentLanguage]);
+
+  // Перевод комментариев при изменении языка или комментариев
+  useEffect(() => {
+    const translateAllComments = async () => {
+      if (Object.keys(comments).length === 0) {
+        setTranslatedComments({});
+        return;
+      }
+
+      try {
+        const translatedCommentsObj = {};
+        
+        for (const postId in comments) {
+          const postComments = comments[postId];
+          
+          const translated = await Promise.all(
+            postComments.map(async (comment) => {
+              try {
+                const contentLanguage = detectTextLanguage(comment.content);
+                const targetLang = currentLanguage.toLowerCase();
+                
+                let translatedContent = comment.content;
+                
+                if (contentLanguage !== targetLang) {
+                  try {
+                    translatedContent = await translateStoryContent(comment.content, currentLanguage, contentLanguage);
+                  } catch (error) {
+                    console.warn('⚠️ Ошибка перевода комментария:', error);
+                    translatedContent = comment.content;
+                  }
+                }
+                
+                return {
+                  ...comment,
+                  content: translatedContent
+                };
+              } catch (error) {
+                console.error('❌ Ошибка при переводе комментария:', error);
+                return comment;
+              }
+            })
+          );
+          
+          translatedCommentsObj[postId] = translated;
+        }
+        
+        setTranslatedComments(translatedCommentsObj);
+      } catch (error) {
+        console.error('❌ Ошибка при переводе комментариев:', error);
+        setTranslatedComments(comments);
+      }
+    };
+
+    translateAllComments();
+  }, [comments, currentLanguage]);
+
+  const loadFriendsList = useCallback(async (userId) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/friends`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setFriendsList(data.friends);
+        setShowFriendsList(true);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки списка друзей:', error);
+    }
+  }, []);
+
+  const handleSendFriendRequest = async () => {
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}/friends/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId: profileData.id })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setFriendshipStatus('pending_sent');
+        setFriendshipId(data.friendship.id);
+        trackEvent('friend_request_sent', {
+          userId: currentUser.id,
+          friendId: profileData.id
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка отправки запроса:', error);
+    }
+  };
+
+  const handleAcceptFriendRequest = async () => {
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}/friends/${friendshipId}/accept`, {
+        method: 'PUT'
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setFriendshipStatus('accepted');
+        trackEvent('friend_request_accepted', {
+          userId: currentUser.id,
+          friendId: profileData.id
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка принятия запроса:', error);
+    }
+  };
+
+  const handleRejectFriendRequest = async () => {
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}/friends/${friendshipId}/reject`, {
+        method: 'PUT'
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setFriendshipStatus('none');
+        setFriendshipId(null);
+      }
+    } catch (error) {
+      console.error('Ошибка отклонения запроса:', error);
+    }
+  };
+
+  const handleRemoveFriend = async () => {
+    setConfirmModalData({
+      title: t('confirmRemoveFriend'),
+      message: `${t('confirmRemoveFriend')} ${profileData.nickname}?`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/users/${currentUser.id}/friends/${profileData.id}`, {
+            method: 'DELETE'
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            setFriendshipStatus('none');
+            setFriendshipId(null);
+            trackEvent('friend_removed', {
+              userId: currentUser.id,
+              friendId: profileData.id
+            });
+          }
+        } catch (error) {
+          console.error('Ошибка удаления из друзей:', error);
+        }
+        setShowConfirmModal(false);
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportForm.reason || !reportForm.description) {
+      alert(t('fillAllFields') || 'Заполните все поля');
+      return;
+    }
+    
+    try {
+      // Конвертируем скриншоты в base64 если они есть
+      const screenshotsBase64 = await Promise.all(
+        reportForm.screenshots.map(file => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      
+      const response = await fetch(`/api/users/${profileData.id}/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reporterId: currentUser.id,
+          reason: reportForm.reason,
+          description: reportForm.description,
+          screenshots: screenshotsBase64
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(t('reportSent') || 'Жалоба отправлена');
+        setShowReportModal(false);
+        setReportForm({ reason: '', description: '', screenshots: [] });
+        trackEvent('user_reported', {
+          reporterId: currentUser.id,
+          reportedUserId: profileData.id
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка отправки жалобы:', error);
+    }
+  };
+
+  const handleScreenshotUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const validFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    if (validFiles.length + reportForm.screenshots.length > 5) {
+      alert(t('maxScreenshots') || 'Максимум 5 скриншотов');
+      return;
+    }
+    
+    setReportForm({
+      ...reportForm,
+      screenshots: [...reportForm.screenshots, ...validFiles]
+    });
+  };
+
+  const handleRemoveScreenshot = (index) => {
+    setReportForm({
+      ...reportForm,
+      screenshots: reportForm.screenshots.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      alert(t('fillAllFields') || 'Заполните все поля');
+      return;
+    }
+    
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert(t('passwordsDoNotMatch') || 'Пароли не совпадают');
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(t('passwordChanged') || 'Пароль изменен');
+        setShowPasswordModal(false);
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        trackEvent('password_changed', {
+          userId: currentUser.id
+        });
+      } else {
+        alert(data.message || t('error'));
+      }
+    } catch (error) {
+      console.error('Ошибка смены пароля:', error);
+    }
+  };
+
+  const handleDateChange = (value) => {
+    setEditForm({...editForm, date_of_birth: value});
+    
+    // Валидация при вводе
+    if (!value) {
+      setDateError('');
+      return;
+    }
+    
+    const parts = value.split('/');
+    if (parts.length !== 3) {
+      setDateError(t('invalidDateFormat') || 'Неверный формат. Используйте ДД/ММ/ГГГГ');
+      return;
+    }
+    
+    const [day, month, year] = parts;
+    const dayNum = parseInt(day);
+    const monthNum = parseInt(month);
+    const yearNum = parseInt(year);
+    
+    if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) {
+      setDateError(t('invalidDateFormat') || 'Неверный формат. Используйте ДД/ММ/ГГГГ');
+      return;
+    }
+    
+    if (monthNum < 1 || monthNum > 12) {
+      setDateError(t('invalidMonth') || 'Месяц должен быть от 1 до 12');
+      return;
+    }
+    
+    if (dayNum < 1 || dayNum > 31) {
+      setDateError(t('invalidDay') || 'День должен быть от 1 до 31');
+      return;
+    }
+    
+    if (yearNum < 1900 || yearNum > new Date().getFullYear()) {
+      setDateError(t('invalidYear') || `Год должен быть от 1900 до ${new Date().getFullYear()}`);
+      return;
+    }
+    
+    // Проверка валидности даты
+    const dateStr = `${yearNum}-${monthNum.toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+    const dateObj = new Date(dateStr);
+    if (isNaN(dateObj.getTime()) || 
+        dateObj.getDate() !== dayNum || 
+        dateObj.getMonth() + 1 !== monthNum || 
+        dateObj.getFullYear() !== yearNum) {
+      setDateError(t('invalidDate') || 'Такой даты не существует');
+      return;
+    }
+    
+    // Проверка возраста (18+)
+    const today = new Date();
+    let age = today.getFullYear() - dateObj.getFullYear();
+    const monthDiff = today.getMonth() - dateObj.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dateObj.getDate())) {
+      age--;
+    }
+    
+    if (age < 18) {
+      setDateError(t('ageRestriction') || 'Вам должно быть не менее 18 лет');
+      return;
+    }
+    
+    setDateError('');
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      // Проверяем наличие ошибки даты
+      if (dateError) {
+        setErrorModalData({
+          title: t('error') || 'Ошибка',
+          message: dateError
+        });
+        setShowErrorModal(true);
+        return;
+      }
+      
+      // Парсим дату из формата ДД/ММ/ГГГГ в ГГГГ-ММ-ДД
+      let date_of_birth = '';
+      if (editForm.date_of_birth) {
+        const parts = editForm.date_of_birth.split('/');
+        if (parts.length === 3) {
+          const [day, month, year] = parts;
+          date_of_birth = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          
+          // Валидация даты
+          const dateObj = new Date(date_of_birth);
+          if (isNaN(dateObj.getTime())) {
+            setErrorModalData({
+              title: t('error') || 'Ошибка',
+              message: t('invalidDateFormat') || 'Неверный формат даты. Используйте ДД/ММ/ГГГГ'
+            });
+            setShowErrorModal(true);
+            return;
+          }
+        } else if (editForm.date_of_birth.trim() !== '') {
+          setErrorModalData({
+            title: t('error') || 'Ошибка',
+            message: t('invalidDateFormat') || 'Неверный формат даты. Используйте ДД/ММ/ГГГГ'
+          });
+          setShowErrorModal(true);
+          return;
+        }
+      }
+      
+      const response = await fetch(`/api/users/${currentUser.id}/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nickname: editForm.nickname,
+          bio: editForm.bio,
+          goal: editForm.goal,
+          date_of_birth: date_of_birth,
+          gender_id: editForm.gender_id
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setProfileData({ ...profileData, ...editForm, date_of_birth });
+        setIsEditing(false);
+        setDateError('');
+        
+        trackEvent('profile_updated', {
+          userId: currentUser.id,
+          fields: Object.keys(editForm)
+        });
+      } else {
+        // Показываем ошибку от сервера (например, никнейм занят)
+        setErrorModalData({
+          title: t('error') || 'Ошибка',
+          message: data.message || t('errorSavingProfile') || 'Ошибка сохранения профиля'
+        });
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения профиля:', error);
+      setErrorModalData({
+        title: t('error') || 'Ошибка',
+        message: t('errorSavingProfile') || 'Ошибка сохранения профиля'
+      });
+      setShowErrorModal(true);
+    }
+  };
+
+  const handleCreatePost = async () => {
+    if (!newPostContent.trim()) return;
+    
+    try {
+      const response = await fetch(`/api/users/${currentUser.id}/posts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newPostContent })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setNewPostContent('');
+        trackEvent('post_created', {
+          userId: currentUser.id,
+          postId: data.post.id
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка создания поста:', error);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    setConfirmModalData({
+      title: t('confirmDeletePost'),
+      message: t('confirmDeletePostMessage'),
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/users/${currentUser.id}/posts/${postId}`, {
+            method: 'DELETE'
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            trackEvent('post_deleted', {
+              userId: currentUser.id,
+              postId: postId
+            });
+          }
+        } catch (error) {
+          console.error('Ошибка удаления поста:', error);
+        }
+        setShowConfirmModal(false);
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  const handleLikePost = async (postId) => {
+    try {
+      const response = await fetch(`/api/users/${profileData.id}/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ likerId: currentUser.id })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        trackEvent('post_liked', {
+          userId: currentUser.id,
+          postId: postId,
+          isLiked: data.isLiked
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка лайка поста:', error);
+    }
+  };
+
+  const toggleComments = async (postId) => {
+    if (!showComments[postId]) {
+      // Загружаем комментарии
+      try {
+        const response = await fetch(`/api/users/${profileData.id}/posts/${postId}/comments`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setComments(prev => ({ ...prev, [postId]: data.comments }));
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки комментариев:', error);
+      }
+    }
+    
+    setShowComments(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
+  const handleAddComment = async (postId) => {
+    const content = newComment[postId];
+    if (!content || !content.trim()) return;
+    
+    try {
+      const response = await fetch(`/api/users/${profileData.id}/posts/${postId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, content })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setNewComment(prev => ({ ...prev, [postId]: '' }));
+        trackEvent('comment_added', {
+          userId: currentUser.id,
+          postId: postId
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка добавления комментария:', error);
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    setConfirmModalData({
+      title: t('confirmDeleteComment'),
+      message: t('confirmDeleteCommentMessage'),
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/users/${profileData.id}/posts/${postId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            trackEvent('comment_deleted', {
+              userId: currentUser.id,
+              commentId: commentId
+            });
+          }
+        } catch (error) {
+          console.error('Ошибка удаления комментария:', error);
+        }
+        setShowConfirmModal(false);
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  if (loading) {
+    return (
+      <div className="profile-page">
+        <div className="profile-loading">
+          <div className="loading-spinner"></div>
+          <p>{t('loading')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <div className="profile-page">
+        <div className="profile-error">
+          <p>{t('profileNotFound')}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="common-page">
-      <div className="common-container">
-        <h1>Профиль</h1>
-        <p>Страница в разработке...</p>
+    <div className="profile-page">
+      <div className="profile-container">
+        {/* Шапка профиля */}
+        <div className="profile-header">
+          {!isOwnProfile && (
+            <button 
+              className="btn-back-to-own-profile"
+              onClick={() => {
+                console.log('⬅️ Возврат к своему профилю:', currentUserId);
+                isInternalNavigation.current = true;
+                setViewingUserId(Number(currentUserId));
+              }}
+              style={{ marginBottom: '1rem' }}
+            >
+              <span className="material-icons">arrow_back</span>
+              {t('backToMyProfile') || 'Вернуться к моему профилю'}
+            </button>
+          )}
+          <div className="profile-avatar">
+            <span className="avatar-emoji">{profileData.avatar_emoji || '🌱'}</span>
+          </div>
+          <div className="profile-info">
+            <h1 className="profile-nickname">{profileData.nickname}</h1>
+            <p className="profile-email">{profileData.email}</p>
+          </div>
+          
+          {/* Кнопки действий */}
+          <div className="profile-actions">
+            {isOwnProfile ? (
+              <>
+                <button 
+                  className="profile-edit-btn"
+                  onClick={() => setIsEditing(!isEditing)}
+                >
+                  <span className="material-icons">{isEditing ? 'close' : 'edit'}</span>
+                  {isEditing ? t('cancel') : t('edit')}
+                </button>
+              </>
+            ) : (
+              <>
+                {friendshipStatus === 'none' && (
+                  <button 
+                    className="profile-action-btn btn-add-friend"
+                    onClick={handleSendFriendRequest}
+                  >
+                    <span className="material-icons">person_add</span>
+                    {t('addFriend')}
+                  </button>
+                )}
+                
+                {friendshipStatus === 'pending_sent' && (
+                  <button className="profile-action-btn btn-pending" disabled>
+                    <span className="material-icons">schedule</span>
+                    {t('friendRequestSent')}
+                  </button>
+                )}
+                
+                {friendshipStatus === 'pending_received' && (
+                  <div className="friend-request-actions">
+                    <button 
+                      className="profile-action-btn btn-accept"
+                      onClick={handleAcceptFriendRequest}
+                    >
+                      <span className="material-icons">check</span>
+                      {t('acceptFriendRequest')}
+                    </button>
+                    <button 
+                      className="profile-action-btn btn-reject"
+                      onClick={handleRejectFriendRequest}
+                    >
+                      <span className="material-icons">close</span>
+                      {t('rejectFriendRequest')}
+                    </button>
+                  </div>
+                )}
+                
+                {friendshipStatus === 'accepted' && (
+                  <button 
+                    className="profile-action-btn btn-remove-friend"
+                    onClick={handleRemoveFriend}
+                  >
+                    <span className="material-icons">person_remove</span>
+                    {t('removeFriend')}
+                  </button>
+                )}
+                
+                <button 
+                  className="profile-action-btn btn-report"
+                  onClick={() => setShowReportModal(true)}
+                >
+                  <span className="material-icons">flag</span>
+                  {t('reportUser')}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Статистика */}
+        <div className="profile-stats">
+          <div 
+            className="stat-item stat-clickable" 
+            onClick={() => loadFriendsList(profileData.id)}
+            title={t('viewFriends')}
+          >
+            <span className="stat-value">{profileData.friends_count || 0}</span>
+            <span className="stat-label">{t('friends')}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">{profileData.posts_count || 0}</span>
+            <span className="stat-label">{t('posts')}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">{profileData.teams_count || 0}</span>
+            <span className="stat-label">{t('teams')}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-value">{profileData.trees_planted || 0}</span>
+            <span className="stat-label">{t('treesPlanted')}</span>
+          </div>
+        </div>
+
+        {/* Форма редактирования или просмотр */}
+        {isEditing ? (
+          <div className="profile-edit-form">
+            <div className="form-group">
+              <label htmlFor="profile-nickname">{t('nickname')}</label>
+              <input
+                id="profile-nickname"
+                name="nickname"
+                type="text"
+                value={editForm.nickname}
+                onChange={(e) => setEditForm({...editForm, nickname: e.target.value})}
+                className="form-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="profile-bio">{t('bio')}</label>
+              <textarea
+                id="profile-bio"
+                name="bio"
+                value={editForm.bio}
+                onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
+                className="form-textarea"
+                rows="4"
+                placeholder={t('bioPlaceholder')}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="profile-goal">{t('goal')}</label>
+              <textarea
+                id="profile-goal"
+                name="goal"
+                value={editForm.goal}
+                onChange={(e) => setEditForm({...editForm, goal: e.target.value})}
+                className="form-textarea"
+                rows="3"
+                placeholder={t('goalPlaceholder')}
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="profile-dob">{t('dateOfBirth')}</label>
+              <input
+                id="profile-dob"
+                name="date_of_birth"
+                type="text"
+                value={editForm.date_of_birth}
+                onChange={(e) => handleDateChange(e.target.value)}
+                placeholder="ДД/ММ/ГГГГ"
+                className={`form-input ${dateError ? 'input-error' : ''}`}
+              />
+              {dateError && <div className="error-message">{dateError}</div>}
+            </div>
+            
+            <div className="form-actions">
+              <button className="btn-save" onClick={handleSaveProfile}>
+                {t('save')}
+              </button>
+              <button className="btn-cancel" onClick={() => setIsEditing(false)}>
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="profile-details">
+            {profileData.bio && (
+              <div className="detail-section">
+                <h3>{t('bio')}</h3>
+                <p>{profileData.bio}</p>
+              </div>
+            )}
+            {profileData.goal && (
+              <div className="detail-section">
+                <h3>{t('goal')}</h3>
+                <p>{profileData.goal}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Посты */}
+        <div className="profile-posts">
+          <h2>{t('posts')}</h2>
+          
+          {/* Форма создания поста */}
+          {isOwnProfile && (
+            <div className="create-post">
+              <textarea
+                id="new-post-content"
+                name="post_content"
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+                placeholder={t('whatsOnYourMind') || 'Что у вас нового?'}
+                className="post-textarea"
+                rows="3"
+              />
+              <button 
+                className="btn-post"
+                onClick={handleCreatePost}
+                disabled={!newPostContent.trim()}
+              >
+                <span className="material-icons">send</span>
+                {t('publish')}
+              </button>
+            </div>
+          )}
+
+          {/* Список постов */}
+          <div className="posts-list">
+            {translatedPosts.length === 0 ? (
+              <p className="no-posts">{t('noPosts') || 'Пока нет постов'}</p>
+            ) : (
+              translatedPosts.map(post => (
+                <div key={post.id} className="post-card">
+                  <div className="post-header">
+                    <div className="post-author">
+                      <span className="author-avatar">{post.avatar_emoji}</span>
+                      <div>
+                        <span className="author-name">{post.nickname}</span>
+                        <span className="post-date">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    {isOwnProfile && (
+                      <button 
+                        className="btn-delete-post"
+                        onClick={() => handleDeletePost(post.id)}
+                      >
+                        <span className="material-icons">delete</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="post-content">
+                    {post.content}
+                  </div>
+                  
+                  <div className="post-actions">
+                    <button 
+                      className={`btn-like ${post.is_liked ? 'liked' : ''}`}
+                      onClick={() => handleLikePost(post.id)}
+                    >
+                      <span className="material-icons">
+                        {post.is_liked ? 'favorite' : 'favorite_border'}
+                      </span>
+                      {Number(post.likes_count) || 0}
+                    </button>
+                    <button 
+                      className="btn-comment"
+                      onClick={() => toggleComments(post.id)}
+                    >
+                      <span className="material-icons">comment</span>
+                      {Number(post.comments_count) || 0}
+                    </button>
+                  </div>
+                  
+                  {/* Комментарии */}
+                  {showComments[post.id] && (
+                    <div className="comments-section">
+                      <div className="comments-list">
+                        {(translatedComments[post.id] || comments[post.id] || []).map(comment => (
+                          <div key={comment.id} className="comment">
+                            <span className="comment-avatar">{comment.avatar_emoji}</span>
+                            <div className="comment-content">
+                              <span className="comment-author">{comment.nickname}</span>
+                              <p>{comment.content}</p>
+                            </div>
+                            {comment.user_id === currentUser.id && (
+                              <button
+                                className="btn-delete-comment"
+                                onClick={() => handleDeleteComment(post.id, comment.id)}
+                              >
+                                <span className="material-icons">close</span>
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="add-comment">
+                        <input
+                          type="text"
+                          value={newComment[post.id] || ''}
+                          onChange={(e) => setNewComment(prev => ({ ...prev, [post.id]: e.target.value }))}
+                          placeholder={t('addComment') || 'Добавить комментарий...'}
+                          className="comment-input"
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddComment(post.id)}
+                        />
+                        <button
+                          className="btn-send-comment"
+                          onClick={() => handleAddComment(post.id)}
+                          disabled={!newComment[post.id]?.trim()}
+                        >
+                          <span className="material-icons">send</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+        {/* Модальное окно списка друзей */}
+        {showFriendsList && (
+          <div className="modal-overlay" onClick={() => setShowFriendsList(false)}>
+            <div className="modal-content friends-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{t('friendsList')}</h2>
+                <button className="modal-close" onClick={() => setShowFriendsList(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {friendsList.length === 0 ? (
+                  <p className="no-friends">{t('noFriends')}</p>
+                ) : (
+                  <div className="friends-list">
+                    {friendsList.map(friend => (
+                      <div key={friend.id} className="friend-item">
+                        <span className="friend-avatar">{friend.avatar_emoji || '🌱'}</span>
+                        <div className="friend-info">
+                          <span className="friend-name">{friend.nickname}</span>
+                          <span className="friend-level">{translateEcoLevel(friend.eco_level, currentLanguage)}</span>
+                        </div>
+                        <button 
+                          className="btn-view-profile"
+                          onClick={() => {
+                            const friendId = Number(friend.id);
+                            console.log('👤 Клик на просмотр профиля друга');
+                            console.log('   friend.id:', friend.id, 'type:', typeof friend.id);
+                            console.log('   friendId (Number):', friendId);
+                            console.log('   friend.nickname:', friend.nickname);
+                            console.log('   Текущий viewingUserId:', viewingUserId);
+                            setShowFriendsList(false);
+                            console.log('   Устанавливаем viewingUserId =', friendId);
+                            isInternalNavigation.current = true;
+                            setViewingUserId(friendId);
+                          }}
+                        >
+                          {t('viewProfile')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Модальное окно жалобы */}
+        {showReportModal && (
+          <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{t('reportModalTitle')}</h2>
+                <button className="modal-close" onClick={() => setShowReportModal(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="report-reason">{t('reportReason')}</label>
+                  <input
+                    id="report-reason"
+                    name="report_reason"
+                    type="text"
+                    value={reportForm.reason}
+                    onChange={(e) => setReportForm({...reportForm, reason: e.target.value})}
+                    placeholder={t('reportReasonPlaceholder') || 'Укажите причину жалобы'}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="report-description">{t('reportDescription')}</label>
+                  <textarea
+                    id="report-description"
+                    name="report_description"
+                    value={reportForm.description}
+                    onChange={(e) => setReportForm({...reportForm, description: e.target.value})}
+                    className="form-textarea"
+                    rows="4"
+                    placeholder={t('reportDescriptionPlaceholder')}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>{t('screenshots')} ({reportForm.screenshots.length}/5)</label>
+                  <div className="file-input-wrapper">
+                    <input
+                      id="report-screenshots"
+                      name="screenshots"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleScreenshotUpload}
+                      className="file-input"
+                      disabled={reportForm.screenshots.length >= 5}
+                    />
+                    <label 
+                      htmlFor="report-screenshots" 
+                      className={`file-input-label ${reportForm.screenshots.length >= 5 ? 'disabled' : ''}`}
+                    >
+                      <span className="material-icons">add_photo_alternate</span>
+                      <span>{t('addScreenshots') || 'Добавить скриншоты'}</span>
+                    </label>
+                  </div>
+                  {reportForm.screenshots.length > 0 && (
+                    <div className="screenshots-preview">
+                      {reportForm.screenshots.map((file, index) => (
+                        <div key={index} className="screenshot-item">
+                          <img 
+                            src={URL.createObjectURL(file)} 
+                            alt={`Screenshot ${index + 1}`}
+                            className="screenshot-preview"
+                          />
+                          <button
+                            className="btn-remove-screenshot"
+                            onClick={() => handleRemoveScreenshot(index)}
+                          >
+                            <span className="material-icons">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-cancel" onClick={() => setShowReportModal(false)}>
+                  {t('cancel')}
+                </button>
+                <button className="btn-submit" onClick={handleSubmitReport}>
+                  {t('submitReport')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Модальное окно смены пароля */}
+        {showPasswordModal && (
+          <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{t('changePasswordModalTitle')}</h2>
+                <button className="modal-close" onClick={() => setShowPasswordModal(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label htmlFor="current-password">{t('currentPassword')}</label>
+                  <input
+                    id="current-password"
+                    name="current_password"
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                    className="form-input"
+                    autoComplete="current-password"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="new-password">{t('newPassword')}</label>
+                  <input
+                    id="new-password"
+                    name="new_password"
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                    className="form-input"
+                    autoComplete="new-password"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="confirm-password">{t('confirmPassword')}</label>
+                  <input
+                    id="confirm-password"
+                    name="confirm_password"
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                    className="form-input"
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-cancel" onClick={() => setShowPasswordModal(false)}>
+                  {t('cancel')}
+                </button>
+                <button className="btn-submit" onClick={handleChangePassword}>
+                  {t('save')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Модальное окно подтверждения */}
+        {showConfirmModal && (
+          <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+            <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{confirmModalData.title}</h2>
+                <button className="modal-close" onClick={() => setShowConfirmModal(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <p>{confirmModalData.message}</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-cancel" onClick={() => setShowConfirmModal(false)}>
+                  {t('cancel')}
+                </button>
+                <button className="btn-submit btn-danger" onClick={confirmModalData.onConfirm}>
+                  {t('confirm')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Модальное окно ошибки */}
+        {showErrorModal && (
+          <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
+            <div className="modal-content error-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{errorModalData.title}</h2>
+                <button className="modal-close" onClick={() => setShowErrorModal(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <p>{errorModalData.message}</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-submit" onClick={() => setShowErrorModal(false)}>
+                  {t('ok') || 'OK'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ProfilePage
+export default ProfilePage;

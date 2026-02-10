@@ -84,7 +84,6 @@
 .stats-card-icon {
   width: 50px;
   height: 50px;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.2) 100%);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -94,10 +93,31 @@
 
 .stats-card-icon .material-icons {
   font-size: 28px;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+}
+
+/* Индивидуальные цвета для каждой иконки */
+.stats-card:nth-child(1) .stats-card-icon {
+  background: linear-gradient(135deg, rgba(100, 181, 246, 0.15) 0%, rgba(100, 181, 246, 0.25) 100%);
+}
+
+.stats-card:nth-child(1) .stats-card-icon .material-icons {
+  color: #64B5F6; /* Голубой для мира */
+}
+
+.stats-card:nth-child(2) .stats-card-icon {
+  background: linear-gradient(135deg, rgba(186, 104, 200, 0.15) 0%, rgba(186, 104, 200, 0.25) 100%);
+}
+
+.stats-card:nth-child(2) .stats-card-icon .material-icons {
+  color: #BA68C8; /* Фиолетовый для статистики */
+}
+
+.stats-card:nth-child(3) .stats-card-icon {
+  background: linear-gradient(135deg, rgba(255, 213, 79, 0.15) 0%, rgba(255, 213, 79, 0.25) 100%);
+}
+
+.stats-card:nth-child(3) .stats-card-icon .material-icons {
+  color: #FFD54F; /* Желтый для кубка */
 }
 
 .stats-card-label {

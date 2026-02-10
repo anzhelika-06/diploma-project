@@ -231,7 +231,9 @@ const AchievementsPage = () => {
     if (activeTab === 'my') {
       // Вкладка "Мои достижения" - показываем все достижения пользователя
       achievementsToShow = allUserAchievements.map(userAch => {
-        const achievementInfo = allAchievements.find(a => a.id === userAch.id)
+        // Ищем переведенную версию достижения
+        const translatedAchievement = translatedAchievements.find(ta => ta.id === userAch.id)
+        const achievementInfo = translatedAchievement || allAchievements.find(a => a.id === userAch.id)
         
         if (!achievementInfo) {
           return {

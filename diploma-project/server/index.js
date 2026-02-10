@@ -18,13 +18,18 @@ const leaderboardRoutes = require('./routes/leaderboard');
 const userSettingsRoutes = require('./routes/user-settings');
 const supportRoutes = require('./routes/support');
 const calculationsRouter = require('./routes/calculations');
+const profileRouter = require('./routes/profile');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
@@ -68,6 +73,8 @@ app.set('io', io);
 // WebSocket подключения
 io.on('connection', (socket) => {
   console.log('🔌 Новое WebSocket подключение:', socket.id);
+  console.log('   Transport:', socket.conn.transport.name);
+  console.log('   IP:', socket.handshake.address);
   
   // Аутентификация пользователя
   socket.on('authenticate', async (data) => {
@@ -100,6 +107,17 @@ io.on('connection', (socket) => {
       nickname,
       onlineUsers: onlineCount
     });
+    
+    console.log('✅ Отправлено подтверждение аутентификации');
+    
+    // Тестовое событие для проверки WebSocket
+    setTimeout(() => {
+      socket.emit('test:message', {
+        message: 'WebSocket работает!',
+        timestamp: new Date().toISOString()
+      });
+      console.log('🧪 Отправлено тестовое сообщение пользователю', userId);
+    }, 1000);
     
     // Уведомляем всех о новом пользователе онлайн
     io.emit('user:online', {
@@ -192,7 +210,8 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/user-settings', userSettingsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/calculations', calculationsRouter); 
+app.use('/api/calculations', calculationsRouter);
+app.use('/api/users', profileRouter); 
 // Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {
   console.log('GET /api/eco-tips/daily');

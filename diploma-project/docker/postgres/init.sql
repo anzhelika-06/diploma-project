@@ -18,10 +18,14 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     date_of_birth DATE,
     gender_id INTEGER REFERENCES genders(id),
+    bio TEXT,
+    goal TEXT,
+    trees_planted INTEGER DEFAULT 0,
     carbon_saved INTEGER DEFAULT 0,
     eco_level VARCHAR(50) DEFAULT 'Эко-новичок',
     avatar_emoji VARCHAR(10) DEFAULT '🌱',
     email_verified BOOLEAN DEFAULT FALSE,
+    is_profile_public BOOLEAN DEFAULT TRUE,
     is_banned BOOLEAN DEFAULT FALSE, 
     ban_reason TEXT,
     ban_expires_at TIMESTAMP DEFAULT NULL,
@@ -133,6 +137,66 @@ CREATE TABLE IF NOT EXISTS story_likes (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(story_id, user_id)
+);
+
+-- ============ ПОСТЫ ПОЛЬЗОВАТЕЛЕЙ ============
+CREATE TABLE IF NOT EXISTS user_posts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    likes_count INTEGER DEFAULT 0,
+    comments_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
+);
+
+-- ============ ЛАЙКИ ПОСТОВ ============
+CREATE TABLE IF NOT EXISTS post_likes (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER NOT NULL REFERENCES user_posts(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(post_id, user_id)
+);
+
+-- ============ КОММЕНТАРИИ К ПОСТАМ ============
+CREATE TABLE IF NOT EXISTS post_comments (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER NOT NULL REFERENCES user_posts(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL
+);
+
+-- ============ ДРУЖБА МЕЖДУ ПОЛЬЗОВАТЕЛЯМИ ============
+CREATE TABLE IF NOT EXISTS friendships (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    friend_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'rejected', 'blocked')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, friend_id),
+    CHECK (user_id != friend_id)
+);
+
+-- ============ ЖАЛОБЫ НА ПОЛЬЗОВАТЕЛЕЙ ============
+CREATE TABLE IF NOT EXISTS user_reports (
+    id SERIAL PRIMARY KEY,
+    reporter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reported_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    description TEXT,
+    screenshots TEXT[], -- Массив URL скриншотов
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'reviewing', 'resolved', 'rejected')),
+    admin_notes TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMP DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============ ДОСТИЖЕНИЯ ============
@@ -1188,6 +1252,42 @@ CREATE TRIGGER update_analytics_after_calculation
     FOR EACH ROW
     EXECUTE FUNCTION trigger_update_analytics();
 
+-- Функция для автоматического обновления avatar_emoji на основе carbon_saved
+CREATE OR REPLACE FUNCTION update_avatar_emoji()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Обновляем emoji на основе сэкономленного CO2
+    IF NEW.carbon_saved >= 5000 THEN
+        NEW.avatar_emoji := '🌟';  -- star - Эко-герой
+        NEW.eco_level := 'Эко-герой';
+    ELSIF NEW.carbon_saved >= 4000 THEN
+        NEW.avatar_emoji := '🌿';  -- leaf - Эко-мастер
+        NEW.eco_level := 'Эко-мастер';
+    ELSIF NEW.carbon_saved >= 3000 THEN
+        NEW.avatar_emoji := '🌳';  -- tree - Эко-активист
+        NEW.eco_level := 'Эко-активист';
+    ELSIF NEW.carbon_saved >= 2000 THEN
+        NEW.avatar_emoji := '🌱';  -- sprout - Эко-энтузиаст
+        NEW.eco_level := 'Эко-энтузиаст';
+    ELSIF NEW.carbon_saved >= 1000 THEN
+        NEW.avatar_emoji := '🍀';  -- seedling - Эко-стартер
+        NEW.eco_level := 'Эко-стартер';
+    ELSE
+        NEW.avatar_emoji := '🌾';  -- plant - Эко-новичок
+        NEW.eco_level := 'Эко-новичок';
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для автоматического обновления avatar_emoji при изменении carbon_saved
+DROP TRIGGER IF EXISTS update_avatar_emoji_on_carbon_change ON users;
+CREATE TRIGGER update_avatar_emoji_on_carbon_change
+    BEFORE INSERT OR UPDATE OF carbon_saved ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_avatar_emoji();
+
 -- Функция для автоматического разбана пользователей
 CREATE OR REPLACE FUNCTION auto_unban_users()
 RETURNS TRIGGER AS $$
@@ -1261,12 +1361,13 @@ SELECT
     g.id,
     2500,
     'Эко-эксперт',
-    '👑',
+    '🌳',
     TRUE,
     TRUE
 FROM genders g WHERE g.code = 'male'
 ON CONFLICT (email) DO UPDATE SET
     nickname = EXCLUDED.nickname,
+    avatar_emoji = '🌳',
     updated_at = CURRENT_TIMESTAMP;
 
 -- Основные тестовые пользователи (3 пользователя)
@@ -1365,6 +1466,31 @@ SELECT u.id, 'Спам', NULL, TRUE, 1
 FROM users u WHERE u.email = 'banned2@test.com'
 ON CONFLICT DO NOTHING;
 
+-- Создаем дружбу для админа (для тестирования функционала)
+-- Админ (id=1) дружит с несколькими пользователями
+INSERT INTO friendships (user_id, friend_id, status, created_at, updated_at)
+SELECT 
+    1, -- admin
+    u.id,
+    'accepted',
+    CURRENT_TIMESTAMP - INTERVAL '30 days',
+    CURRENT_TIMESTAMP - INTERVAL '30 days'
+FROM users u 
+WHERE u.email IN ('user@test.com', 'test@test.com', 'alex.green@test.com', 'sarah.eco@test.com', 'mike.nature@test.com')
+ON CONFLICT DO NOTHING;
+
+-- Добавляем входящие запросы в друзья для админа
+INSERT INTO friendships (user_id, friend_id, status, created_at, updated_at)
+SELECT 
+    u.id,
+    1, -- admin
+    'pending',
+    CURRENT_TIMESTAMP - INTERVAL '5 days',
+    CURRENT_TIMESTAMP - INTERVAL '5 days'
+FROM users u 
+WHERE u.email IN ('emma.earth@test.com', 'david.solar@test.com')
+ON CONFLICT DO NOTHING;
+
 -- Создаем команды
 INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count) VALUES 
 ('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000, 23400, 23400, 8),
@@ -1418,6 +1544,58 @@ UPDATE teams SET member_count = (
     SELECT COUNT(*) FROM team_members WHERE team_id = teams.id
 );
 
+-- Создаем тестовые посты для админа и друзей
+INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
+SELECT 
+    1, -- admin
+    'Привет всем! Рад видеть такое активное эко-сообщество! 🌱',
+    0,
+    0,
+    CURRENT_TIMESTAMP - INTERVAL '10 days'
+WHERE NOT EXISTS (SELECT 1 FROM user_posts WHERE user_id = 1 LIMIT 1);
+
+INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
+SELECT 
+    1, -- admin
+    'Сегодня посадил 5 деревьев в парке! Каждое дерево - это вклад в будущее 🌳',
+    0,
+    0,
+    CURRENT_TIMESTAMP - INTERVAL '5 days'
+WHERE NOT EXISTS (SELECT 1 FROM user_posts WHERE user_id = 1 AND content LIKE '%посадил%');
+
+INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
+SELECT 
+    u.id,
+    'Перешел на велосипед для поездок на работу! Экономлю CO₂ и здоровье улучшаю 🚴',
+    0,
+    0,
+    CURRENT_TIMESTAMP - INTERVAL '7 days'
+FROM users u 
+WHERE u.email = 'user@test.com'
+AND NOT EXISTS (SELECT 1 FROM user_posts WHERE user_id = u.id LIMIT 1);
+
+INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
+SELECT 
+    u.id,
+    'Начал сортировать мусор дома. Это проще, чем я думал! ♻️',
+    0,
+    0,
+    CURRENT_TIMESTAMP - INTERVAL '3 days'
+FROM users u 
+WHERE u.email = 'test@test.com'
+AND NOT EXISTS (SELECT 1 FROM user_posts WHERE user_id = u.id LIMIT 1);
+
+INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
+SELECT 
+    u.id,
+    'Установил солнечные панели на крыше! Теперь электричество от солнца ☀️',
+    0,
+    0,
+    CURRENT_TIMESTAMP - INTERVAL '2 days'
+FROM users u 
+WHERE u.email = 'alex.green@test.com'
+AND NOT EXISTS (SELECT 1 FROM user_posts WHERE user_id = u.id LIMIT 1);
+
 -- Создаем достижения для EcoSteps
 INSERT INTO achievements (
     code, 
@@ -1434,10 +1612,18 @@ INSERT INTO achievements (
     sort_order
 ) VALUES
     ('first_login', 'Добро пожаловать!', 'Зарегистрируйтесь в системе', 'registration', '🎉', 'first_login', 'boolean', 1, 50, 'common', false, 1),
-    ('first_story', 'Первый рассказ', 'Напишите свою первую историю', 'stories', '✍️', 'story_created', 'count', 1, 100, 'rare', false, 10),
-    ('story_5', 'Рассказчик', 'Напишите 5 историй', 'stories', '📚', 'story_created', 'count', 5, 250, 'epic', false, 11),
-    ('story_10', 'Опытный писатель', 'Напишите 10 историй', 'stories', '📖', 'story_created', 'count', 10, 400, 'epic', false, 12),
-    ('story_20', 'Мастер слов', 'Напишите 20 историй', 'stories', '🏰', 'story_created', 'count', 20, 500, 'legendary', false, 13),
+    ('first_post', 'Первый пост', 'Создайте свой первый пост', 'posts', '📝', 'post_created', 'count', 1, 50, 'common', false, 5),
+    ('post_5', 'Активный блогер', 'Создайте 5 постов', 'posts', '✍️', 'post_created', 'count', 5, 150, 'rare', false, 6),
+    ('post_10', 'Опытный блогер', 'Создайте 10 постов', 'posts', '📚', 'post_created', 'count', 10, 300, 'epic', false, 7),
+    ('post_25', 'Мастер постов', 'Создайте 25 постов', 'posts', '🏆', 'post_created', 'count', 25, 500, 'legendary', false, 8),
+    ('first_comment', 'Первый комментарий', 'Оставьте свой первый комментарий', 'comments', '💬', 'comment_added', 'count', 1, 30, 'common', true, 9),
+    ('comment_10', 'Активный комментатор', 'Оставьте 10 комментариев', 'comments', '💭', 'comment_added', 'count', 10, 100, 'rare', true, 10),
+    ('comment_25', 'Мастер дискуссий', 'Оставьте 25 комментариев', 'comments', '🗨️', 'comment_added', 'count', 25, 200, 'epic', true, 11),
+    ('comment_50', 'Король комментариев', 'Оставьте 50 комментариев', 'comments', '👑', 'comment_added', 'count', 50, 400, 'legendary', true, 12),
+    ('first_story', 'Первый рассказ', 'Напишите свою первую историю', 'stories', '✍️', 'story_created', 'count', 1, 100, 'rare', false, 15),
+    ('story_5', 'Рассказчик', 'Напишите 5 историй', 'stories', '📚', 'story_created', 'count', 5, 250, 'epic', false, 16),
+    ('story_10', 'Опытный писатель', 'Напишите 10 историй', 'stories', '📖', 'story_created', 'count', 10, 400, 'epic', false, 17),
+    ('story_20', 'Мастер слов', 'Напишите 20 историй', 'stories', '🏰', 'story_created', 'count', 20, 500, 'legendary', false, 18),
     ('first_like', 'Первая оценка', 'Поставьте первый лайк истории', 'likes', '❤️', 'story_liked', 'count', 1, 15, 'common', false, 20),
     ('like_10', 'Активный читатель', 'Поставьте 10 лайков историям', 'likes', '👍', 'story_liked', 'count', 10, 50, 'common', false, 21),
     ('like_50', 'Щедрый ценитель', 'Поставьте 50 лайков', 'likes', '👏', 'story_liked', 'count', 50, 150, 'epic', false, 22),
@@ -1789,4 +1975,20 @@ BEGIN
     RAISE NOTICE 'БАЗА ДАННЫХ EcoSteps УСПЕШНО ОБНОВЛЕНА!';
     RAISE NOTICE '=========================================';
 
+END $$;
+
+-- ============ ОБНОВЛЕНИЕ СУЩЕСТВУЮЩИХ ДАННЫХ ============
+
+-- Применяем функцию обновления avatar_emoji ко всем существующим пользователям
+UPDATE users
+SET carbon_saved = carbon_saved  -- Триггер сработает и обновит avatar_emoji и eco_level
+WHERE id > 0;
+
+-- Выводим информацию об обновлении
+DO $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO v_count FROM users;
+    RAISE NOTICE '✅ Обновлены avatar_emoji и eco_level для % пользователей', v_count;
 END $$;
