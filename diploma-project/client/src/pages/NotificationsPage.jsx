@@ -91,6 +91,11 @@ const NotificationsPage = () => {
       });
       
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      
+      // Отправляем событие для синхронизации с NotificationBell
+      window.dispatchEvent(new CustomEvent('notificationDeleted', { 
+        detail: { notificationId } 
+      }));
     } catch (error) {
       console.error('Ошибка удаления уведомления:', error);
     }

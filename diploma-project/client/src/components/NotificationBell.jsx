@@ -146,10 +146,32 @@ const NotificationBell = () => {
 
     // Загружаем уведомления при монтировании
     loadNotifications();
+    
+    // Слушаем событие удаления уведомления из NotificationsPage
+    const handleNotificationDeleted = (event) => {
+      const { notificationId } = event.detail;
+      
+      // Используем функциональное обновление чтобы получить актуальное состояние
+      setNotifications(prev => {
+        // Находим удаляемое уведомление чтобы проверить было ли оно непрочитанным
+        const deletedNotification = prev.find(n => n.id === notificationId);
+        
+        // Уменьшаем счетчик только если уведомление было непрочитанным
+        if (deletedNotification && !deletedNotification.is_read) {
+          setUnreadCount(count => Math.max(0, count - 1));
+        }
+        
+        // Возвращаем отфильтрованный список
+        return prev.filter(n => n.id !== notificationId);
+      });
+    };
+    
+    window.addEventListener('notificationDeleted', handleNotificationDeleted);
 
     return () => {
       console.log('🔔 NotificationBell: Отключение WebSocket');
       socket.disconnect();
+      window.removeEventListener('notificationDeleted', handleNotificationDeleted);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Подключаемся только один раз при монтировании
