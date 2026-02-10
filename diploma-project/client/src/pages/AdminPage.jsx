@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAdminCheck } from '../hooks/useAdminCheck';
 import { getEmojiByCarbon } from '../utils/emojiMapper';
+import { exportUsers, exportSupportTickets, exportReports } from '../utils/excelExport';
 import '../styles/pages/AdminPage.css';
 
 const AdminPage = () => {
@@ -2251,23 +2252,22 @@ const AdminPage = () => {
           <h2>{t('manageUsers') || 'Управление пользователями'}</h2>
           <div className="section-actions">
             <button 
-              onClick={() => {
-                const { exportUsers } = require('../utils/excelExport');
-                exportUsers(users, t);
-              }}
-              className="action-button export"
-              disabled={users.length === 0}
-              title={t('exportToExcel') || 'Экспорт в Excel'}
-            >
-              <span className="material-icons">download</span>
-            </button>
-            <button 
               onClick={handleRefresh} 
               className="refresh-button"
               disabled={loading || adminLoading}
             >
               <span className="material-icons">refresh</span>
               {t('refresh') || 'Обновить'}
+            </button>
+            <button 
+              onClick={() => {
+                exportUsers(users, t);
+              }}
+              className="export-button"
+              disabled={users.length === 0}
+              title={t('exportToExcel') || 'Экспорт в Excel'}
+            >
+              <span className="material-icons">download</span>
             </button>
           </div>
         </div>
@@ -2590,23 +2590,22 @@ const AdminPage = () => {
           <h2>{t('manageSupportTickets') || 'Управление обращениями'}</h2>
           <div className="section-actions">
             <button 
-              onClick={() => {
-                const { exportSupportTickets } = require('../utils/excelExport');
-                exportSupportTickets(supportTickets, t);
-              }}
-              className="action-button export"
-              disabled={supportTickets.length === 0}
-              title={t('exportToExcel') || 'Экспорт в Excel'}
-            >
-              <span className="material-icons">download</span>
-            </button>
-            <button 
               onClick={handleRefresh}
               className="refresh-button"
               disabled={supportLoading}
             >
               <span className="material-icons">refresh</span>
               {t('refresh') || 'Обновить'}
+            </button>
+            <button 
+              onClick={() => {
+                exportSupportTickets(supportTickets, t);
+              }}
+              className="export-button"
+              disabled={supportTickets.length === 0}
+              title={t('exportToExcel') || 'Экспорт в Excel'}
+            >
+              <span className="material-icons">download</span>
             </button>
           </div>
         </div>
@@ -3312,7 +3311,6 @@ const AdminPage = () => {
             </button>
             <button 
               onClick={() => {
-                const { exportReports } = require('../utils/excelExport');
                 const result = exportReports(reports, t);
                 if (result.success) {
                   showSuccessModal(

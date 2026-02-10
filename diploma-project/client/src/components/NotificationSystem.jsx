@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import EcoTipCard from './EcoTipCard'
 import '../styles/components/NotificationSystem.css'
 
 const NotificationSystem = ({ isVisible, onClose }) => {
@@ -254,11 +253,9 @@ const NotificationSystem = ({ isVisible, onClose }) => {
                 {notification.type === 'eco-tip' ? (
                   <div className="eco-tip-notification">
                     <div className="notification-title">{notification.title}</div>
-                    <EcoTipCard 
-                      tip={notification.content} 
-                      showActions={true}
-                      isPreview={false}
-                    />
+                    <div className="eco-tip-content">
+                      {notification.content}
+                    </div>
                   </div>
                 ) : (
                   <div className="general-notification">

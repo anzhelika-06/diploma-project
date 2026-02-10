@@ -6,16 +6,16 @@ export const exportToExcel = (data, filename, headers) => {
   }
 
   try {
-    // Создаем CSV контент
+    // Создаем CSV контент с точкой с запятой как разделителем (стандарт для Excel)
     let csvContent = '';
     
     // Добавляем заголовки
     if (headers && headers.length > 0) {
-      csvContent += headers.join(',') + '\n';
+      csvContent += headers.join(';') + '\n';
     } else {
       // Если заголовки не указаны, используем ключи первого объекта
       const keys = Object.keys(data[0]);
-      csvContent += keys.join(',') + '\n';
+      csvContent += keys.join(';') + '\n';
     }
     
     // Добавляем данные
@@ -23,17 +23,21 @@ export const exportToExcel = (data, filename, headers) => {
       const values = headers 
         ? headers.map(header => {
             const value = row[header] || '';
-            // Экранируем запятые и кавычки
-            return typeof value === 'string' && (value.includes(',') || value.includes('"'))
-              ? `"${value.replace(/"/g, '""')}"`
-              : value;
+            const stringValue = String(value);
+            // Экранируем точку с запятой, кавычки и переносы строк
+            if (stringValue.includes(';') || stringValue.includes('"') || stringValue.includes('\n')) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
           })
         : Object.values(row).map(value => {
-            return typeof value === 'string' && (value.includes(',') || value.includes('"'))
-              ? `"${value.replace(/"/g, '""')}"`
-              : value;
+            const stringValue = String(value);
+            if (stringValue.includes(';') || stringValue.includes('"') || stringValue.includes('\n')) {
+              return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
           });
-      csvContent += values.join(',') + '\n';
+      csvContent += values.join(';') + '\n';
     });
     
     // Создаем Blob с BOM для корректного отображения кириллицы в Excel

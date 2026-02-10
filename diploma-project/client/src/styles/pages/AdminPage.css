@@ -133,6 +133,12 @@
   margin-bottom: 24px;
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .section-actions .refresh-button {
   display: flex;
   align-items: center;
@@ -154,6 +160,32 @@
 }
 
 .section-actions .refresh-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #cccccc;
+}
+
+.section-actions .export-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: var(--radius-md) !important;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.section-actions .export-button:hover:not(:disabled) {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.section-actions .export-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   background: #cccccc;
