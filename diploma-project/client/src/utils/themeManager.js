@@ -201,6 +201,11 @@ export const applyTheme = async (theme, options = {}) => {
   // Сохраняем тему локально
   saveTheme(theme)
   
+  // Отправляем событие для других компонентов
+  window.dispatchEvent(new CustomEvent('themeChanged', { 
+    detail: { theme: activeTheme } 
+  }))
+  
   // Сохраняем тему в БД (асинхронно, не блокируем UI), только если skipSave = false
   if (!skipSave) {
     try {

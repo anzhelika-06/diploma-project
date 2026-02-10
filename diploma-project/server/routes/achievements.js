@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
 
 const pool = new Pool({
   user: process.env.DB_USER || 'ecosteps',
@@ -14,7 +15,7 @@ const pool = new Pool({
 
 // Функция для обработки событий достижений
 // Функция для обработки событий достижений
-const processAchievementEvent = async (userId, eventType, eventData = {}) => {
+const processAchievementEvent = async (userId, eventType, eventData = {}, io = null) => {
   let client;
   try {
     client = await pool.connect();
@@ -159,6 +160,21 @@ const processAchievementEvent = async (userId, eventType, eventData = {}) => {
         
         console.log(`🏆 Разблокировано достижение: ${achievement.name} (${achievement.points} очков)`);
         console.log(`ℹ️ Награда будет получена только после клика "Забрать награду"`);
+        
+        // Отправляем уведомление пользователю о новом достижении
+        if (io) {
+          try {
+            await notifyUserAboutAchievement(
+              userId,
+              achievement.name,
+              achievement.icon,
+              achievement.id,
+              io
+            );
+          } catch (notifError) {
+            console.error('Ошибка отправки уведомления о достижении:', notifError);
+          }
+        }
       }
     }
     
@@ -195,7 +211,8 @@ router.post('/track', async (req, res) => {
     }
     
     // Обрабатываем событие
-    const result = await processAchievementEvent(userId, achievementType, data || {});
+    const io = req.app.get('io');
+    const result = await processAchievementEvent(userId, achievementType, data || {}, io);
     
     res.json(result);
     
@@ -681,7 +698,8 @@ router.post('/test-event', async (req, res) => {
       });
     }
     
-    const result = await processAchievementEvent(userId, eventType, eventData || {});
+    const io = req.app.get('io');
+    const result = await processAchievementEvent(userId, eventType, eventData || {}, io);
     
     res.json({
       success: true,

@@ -43,14 +43,19 @@ const ProfilePage = () => {
   const [friendshipId, setFriendshipId] = useState(null);
   const [showFriendsList, setShowFriendsList] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
+  const [friendsListOwnerId, setFriendsListOwnerId] = useState(null); // ID пользователя, чей список друзей мы смотрим
   
   // Модальные окна
   const [showReportModal, setShowReportModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState(null);
   const [confirmModalData, setConfirmModalData] = useState({ title: '', message: '', onConfirm: null });
   const [errorModalData, setErrorModalData] = useState({ title: '', message: '' });
+  const [successModalData, setSuccessModalData] = useState({ title: '', message: '' });
   const [reportForm, setReportForm] = useState({ reason: '', description: '', screenshots: [] });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   
@@ -303,7 +308,8 @@ const ProfilePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUserId, trackEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]); // Убрали trackEvent из зависимостей
 
   // Загрузка данных профиля при изменении viewingUserId
   useEffect(() => {
@@ -314,7 +320,8 @@ const ProfilePage = () => {
     } else {
       console.log('   ⚠️ viewingUserId пустой, пропускаем загрузку');
     }
-  }, [viewingUserId, loadProfileData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewingUserId]); // Убрали loadProfileData из зависимостей
   
   // Обновляем viewingUserId при изменении URL (но НЕ при программном изменении!)
   useEffect(() => {
@@ -448,6 +455,7 @@ const ProfilePage = () => {
       
       if (data.success) {
         setFriendsList(data.friends);
+        setFriendsListOwnerId(userId);
         setShowFriendsList(true);
       }
     } catch (error) {
@@ -540,9 +548,67 @@ const ProfilePage = () => {
     setShowConfirmModal(true);
   };
 
+  // Удаление друга из списка друзей
+  const handleRemoveFriendFromList = async (friendId, friendNickname) => {
+    setConfirmModalData({
+      title: t('confirmRemoveFriend'),
+      message: `${t('confirmRemoveFriend')} ${friendNickname}?`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/users/${currentUserId}/friends/${friendId}`, {
+            method: 'DELETE'
+          });
+          
+          const data = await response.json();
+          if (data.success) {
+            // Обновляем список друзей
+            setFriendsList(prev => prev.filter(f => f.id !== friendId));
+            trackEvent('friend_removed', {
+              userId: currentUserId,
+              friendId: friendId
+            });
+          }
+        } catch (error) {
+          console.error('Ошибка удаления друга:', error);
+        }
+        setShowConfirmModal(false);
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  // Добавление друга из списка друзей
+  const handleAddFriendFromList = async (friendId) => {
+    try {
+      const response = await fetch(`/api/users/${currentUserId}/friends/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId: friendId })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Обновляем список, добавляя информацию о статусе дружбы
+        setFriendsList(prev => prev.map(f => 
+          f.id === friendId ? { ...f, friendshipStatus: 'pending_sent' } : f
+        ));
+        trackEvent('friend_request_sent', {
+          userId: currentUserId,
+          friendId: friendId
+        });
+      }
+    } catch (error) {
+      console.error('Ошибка отправки запроса в друзья:', error);
+    }
+  };
+
   const handleSubmitReport = async () => {
     if (!reportForm.reason || !reportForm.description) {
-      alert(t('fillAllFields') || 'Заполните все поля');
+      setErrorModalData({
+        title: t('error') || 'Ошибка',
+        message: t('fillAllFields') || 'Заполните все поля'
+      });
+      setShowErrorModal(true);
       return;
     }
     
@@ -572,7 +638,11 @@ const ProfilePage = () => {
       
       const data = await response.json();
       if (data.success) {
-        alert(t('reportSent') || 'Жалоба отправлена');
+        setSuccessModalData({
+          title: t('reportSent') || 'Жалоба отправлена',
+          message: t('reportSentMessage') || 'Ваша жалоба была отправлена администраторам. Мы рассмотрим её в ближайшее время.'
+        });
+        setShowSuccessModal(true);
         setShowReportModal(false);
         setReportForm({ reason: '', description: '', screenshots: [] });
         trackEvent('user_reported', {
@@ -589,8 +659,12 @@ const ProfilePage = () => {
     const files = Array.from(e.target.files);
     const validFiles = files.filter(file => file.type.startsWith('image/'));
     
-    if (validFiles.length + reportForm.screenshots.length > 5) {
-      alert(t('maxScreenshots') || 'Максимум 5 скриншотов');
+    if (validFiles.length + reportForm.screenshots.length > 4) {
+      setErrorModalData({
+        title: t('error') || 'Ошибка',
+        message: t('maxScreenshots') || 'Максимум 4 скриншота'
+      });
+      setShowErrorModal(true);
       return;
     }
     
@@ -607,14 +681,30 @@ const ProfilePage = () => {
     });
   };
 
+  const handleViewScreenshot = (file) => {
+    setSelectedScreenshot({
+      url: URL.createObjectURL(file),
+      name: file.name
+    });
+    setShowScreenshotModal(true);
+  };
+
   const handleChangePassword = async () => {
     if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      alert(t('fillAllFields') || 'Заполните все поля');
+      setErrorModalData({
+        title: t('error') || 'Ошибка',
+        message: t('fillAllFields') || 'Заполните все поля'
+      });
+      setShowErrorModal(true);
       return;
     }
     
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert(t('passwordsDoNotMatch') || 'Пароли не совпадают');
+      setErrorModalData({
+        title: t('error') || 'Ошибка',
+        message: t('passwordsDoNotMatch') || 'Пароли не совпадают'
+      });
+      setShowErrorModal(true);
       return;
     }
     
@@ -630,17 +720,30 @@ const ProfilePage = () => {
       
       const data = await response.json();
       if (data.success) {
-        alert(t('passwordChanged') || 'Пароль изменен');
+        setSuccessModalData({
+          title: t('success') || 'Успешно',
+          message: t('passwordChanged') || 'Пароль изменен'
+        });
+        setShowSuccessModal(true);
         setShowPasswordModal(false);
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
         trackEvent('password_changed', {
           userId: currentUser.id
         });
       } else {
-        alert(data.message || t('error'));
+        setErrorModalData({
+          title: t('error') || 'Ошибка',
+          message: data.message || t('error')
+        });
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error('Ошибка смены пароля:', error);
+      setErrorModalData({
+        title: t('error') || 'Ошибка',
+        message: t('networkError') || 'Ошибка сети'
+      });
+      setShowErrorModal(true);
     }
   };
 
@@ -1295,32 +1398,60 @@ const ProfilePage = () => {
                   <p className="no-friends">{t('noFriends')}</p>
                 ) : (
                   <div className="friends-list">
-                    {friendsList.map(friend => (
-                      <div key={friend.id} className="friend-item">
-                        <span className="friend-avatar">{friend.avatar_emoji || '🌱'}</span>
-                        <div className="friend-info">
-                          <span className="friend-name">{friend.nickname}</span>
-                          <span className="friend-level">{translateEcoLevel(friend.eco_level, currentLanguage)}</span>
+                    {friendsList.map(friend => {
+                      const isOwnFriendsList = friendsListOwnerId === currentUserId;
+                      const isFriendOfCurrentUser = friend.friendshipStatus === 'accepted' || isOwnFriendsList;
+                      const isCurrentUser = friend.id === currentUserId;
+                      
+                      return (
+                        <div key={friend.id} className="friend-item">
+                          <span className="friend-avatar">{friend.avatar_emoji || '🌱'}</span>
+                          <div className="friend-info">
+                            <span className="friend-name">{friend.nickname}</span>
+                            <span className="friend-level">{translateEcoLevel(friend.eco_level, currentLanguage)}</span>
+                          </div>
+                          <div className="friend-actions">
+                            <button 
+                              className="btn-view-profile-icon"
+                              onClick={() => {
+                                const friendId = Number(friend.id);
+                                console.log('👤 Клик на просмотр профиля друга');
+                                console.log('   friend.id:', friend.id, 'type:', typeof friend.id);
+                                console.log('   friendId (Number):', friendId);
+                                console.log('   friend.nickname:', friend.nickname);
+                                console.log('   Текущий viewingUserId:', viewingUserId);
+                                setShowFriendsList(false);
+                                console.log('   Устанавливаем viewingUserId =', friendId);
+                                isInternalNavigation.current = true;
+                                setViewingUserId(friendId);
+                              }}
+                              title={t('viewProfile')}
+                            >
+                              <span className="material-icons">visibility</span>
+                            </button>
+                            {!isCurrentUser && (
+                              isOwnFriendsList ? (
+                                <button 
+                                  className="btn-remove-friend-list"
+                                  onClick={() => handleRemoveFriendFromList(friend.id, friend.nickname)}
+                                  title={t('removeFriend')}
+                                >
+                                  <span className="material-icons">person_remove</span>
+                                </button>
+                              ) : !isFriendOfCurrentUser && (
+                                <button 
+                                  className="btn-add-friend-list"
+                                  onClick={() => handleAddFriendFromList(friend.id)}
+                                  title={t('addFriend')}
+                                >
+                                  <span className="material-icons">person_add</span>
+                                </button>
+                              )
+                            )}
+                          </div>
                         </div>
-                        <button 
-                          className="btn-view-profile"
-                          onClick={() => {
-                            const friendId = Number(friend.id);
-                            console.log('👤 Клик на просмотр профиля друга');
-                            console.log('   friend.id:', friend.id, 'type:', typeof friend.id);
-                            console.log('   friendId (Number):', friendId);
-                            console.log('   friend.nickname:', friend.nickname);
-                            console.log('   Текущий viewingUserId:', viewingUserId);
-                            setShowFriendsList(false);
-                            console.log('   Устанавливаем viewingUserId =', friendId);
-                            isInternalNavigation.current = true;
-                            setViewingUserId(friendId);
-                          }}
-                        >
-                          {t('viewProfile')}
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1364,7 +1495,7 @@ const ProfilePage = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>{t('screenshots')} ({reportForm.screenshots.length}/5)</label>
+                  <label>{t('screenshots')} ({reportForm.screenshots.length}/4)</label>
                   <div className="file-input-wrapper">
                     <input
                       id="report-screenshots"
@@ -1374,11 +1505,11 @@ const ProfilePage = () => {
                       multiple
                       onChange={handleScreenshotUpload}
                       className="file-input"
-                      disabled={reportForm.screenshots.length >= 5}
+                      disabled={reportForm.screenshots.length >= 4}
                     />
                     <label 
                       htmlFor="report-screenshots" 
-                      className={`file-input-label ${reportForm.screenshots.length >= 5 ? 'disabled' : ''}`}
+                      className={`file-input-label ${reportForm.screenshots.length >= 4 ? 'disabled' : ''}`}
                     >
                       <span className="material-icons">add_photo_alternate</span>
                       <span>{t('addScreenshots') || 'Добавить скриншоты'}</span>
@@ -1392,6 +1523,8 @@ const ProfilePage = () => {
                             src={URL.createObjectURL(file)} 
                             alt={`Screenshot ${index + 1}`}
                             className="screenshot-preview"
+                            onClick={() => handleViewScreenshot(file)}
+                            style={{ cursor: 'pointer' }}
                           />
                           <button
                             className="btn-remove-screenshot"
@@ -1519,6 +1652,49 @@ const ProfilePage = () => {
                 <button className="btn-submit" onClick={() => setShowErrorModal(false)}>
                   {t('ok') || 'OK'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно успеха */}
+        {showSuccessModal && (
+          <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+            <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{successModalData.title}</h2>
+                <button className="modal-close" onClick={() => setShowSuccessModal(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <p>{successModalData.message}</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn-submit" onClick={() => setShowSuccessModal(false)}>
+                  {t('ok') || 'OK'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Модальное окно просмотра скриншота */}
+        {showScreenshotModal && selectedScreenshot && (
+          <div className="modal-overlay" onClick={() => setShowScreenshotModal(false)}>
+            <div className="modal-content screenshot-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{selectedScreenshot.name}</h2>
+                <button className="modal-close" onClick={() => setShowScreenshotModal(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body screenshot-modal-body">
+                <img 
+                  src={selectedScreenshot.url} 
+                  alt={selectedScreenshot.name} 
+                  className="screenshot-full"
+                />
               </div>
             </div>
           </div>

@@ -8,6 +8,9 @@ const sessionManager = require('./utils/sessionManager');
 const { requestLogger } = require('./utils/logger');
 const { generalLimiter, authLimiter, calculatorLimiter } = require('./middleware/rateLimiter');
 const adminRoutes = require('./routes/adminRoutes');
+const reportsRoutes = require('./routes/reports');
+const notificationsRoutes = require('./routes/notifications');
+const { startEcoTipsScheduler } = require('./utils/ecoTipsScheduler');
 // Подключаем маршруты
 const authRoutes = require('./routes/auth');
 const storiesRoutes = require('./routes/stories');
@@ -197,8 +200,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Экспортируем sessionManager для использования в роутах
+// Экспортируем sessionManager и io для использования в роутах
 app.set('sessionManager', sessionManager);
+app.set('io', io);
 
 // Подключаем маршруты
 app.use('/api/auth', authRoutes);
@@ -210,6 +214,8 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/user-settings', userSettingsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reports', reportsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 app.use('/api/calculations', calculationsRouter);
 app.use('/api/users', profileRouter); 
 // Временный роут для эко-советов - исправленная версия
@@ -423,4 +429,7 @@ server.listen(PORT, () => {
   console.log(`✅ EcoSteps API Server запущен на порту ${PORT}`);
   console.log(`📡 http://localhost:${PORT}`);
   console.log(`🔌 WebSocket готов к подключениям`);
+  
+  // Запускаем планировщик ежедневных эко-советов
+  startEcoTipsScheduler(io);
 });

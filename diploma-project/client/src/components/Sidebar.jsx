@@ -49,8 +49,16 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
     // Получаем данные пользователя
     const updateUserData = () => {
       const userData = getUserInfo()
-      setUser(userData)
-      setIsAdmin(isUserAdmin())
+      setUser(prevUser => {
+        const userStr = JSON.stringify(userData)
+        const currentUserStr = JSON.stringify(prevUser)
+        
+        if (userStr !== currentUserStr) {
+          setIsAdmin(isUserAdmin())
+          return userData
+        }
+        return prevUser
+      })
     }
     
     updateUserData()
@@ -60,7 +68,10 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
         const settings = JSON.parse(savedSettings)
-        setCurrentTheme(settings.theme || 'light')
+        setCurrentTheme(prevTheme => {
+          const newTheme = settings.theme || 'light'
+          return newTheme !== prevTheme ? newTheme : prevTheme
+        })
       }
       
       // Обновляем данные пользователя при изменениях
@@ -69,14 +80,15 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
 
     window.addEventListener('storage', handleStorageChange)
     
-    // Проверяем изменения каждую секунду
-    const interval = setInterval(handleStorageChange, 1000)
+    // Проверяем изменения каждые 5 секунд (вместо каждой секунды)
+    const interval = setInterval(handleStorageChange, 5000)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('resize', checkMobile)
       clearInterval(interval)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Основные пункты меню

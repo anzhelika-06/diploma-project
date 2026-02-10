@@ -202,8 +202,24 @@ router.post('/register', async (req, res) => {
         
         console.log(`✅ Достижение first_login присвоено пользователю ${newUser.id}`);
         console.log(`ℹ️ Награда (${achievement.points} экоинов) будет начислена после клика "Забрать награду"`);
-      } else {
-        console.warn(`⚠️ Достижение first_login не найдено в базе данных`);
+        
+        // Создаем уведомление о достижении
+        try {
+          const notificationQuery = `
+            INSERT INTO notifications (user_id, type, title, message, link)
+            VALUES ($1, $2, $3, $4, $5)
+          `;
+          await client.query(notificationQuery, [
+            newUser.id,
+            'achievement',
+            'Добро пожаловать в EcoSteps!',
+            `Поздравляем с регистрацией! Вы получили достижение "Первый вход" и заработали ${achievement.points} экоинов!`,
+            '/achievements'
+          ]);
+          console.log(`✅ Уведомление о достижении first_login создано для пользователя ${newUser.id}`);
+        } catch (notifError) {
+          console.error('❌ Ошибка создания уведомления о достижении:', notifError);
+        }
       }
     } catch (achievementError) {
       console.error('❌ Ошибка при создании достижения:', achievementError);
@@ -413,6 +429,24 @@ router.post('/login', async (req, res) => {
             ]);
             
             console.log(`🎉 Получено достижение: first_login за первый вход`);
+            
+            // Создаем уведомление о достижении
+            try {
+              const notificationQuery = `
+                INSERT INTO notifications (user_id, type, title, message, link)
+                VALUES ($1, $2, $3, $4, $5)
+              `;
+              await client.query(notificationQuery, [
+                user.id,
+                'achievement',
+                'Первое достижение!',
+                `Поздравляем! Вы получили достижение "Первый вход" и заработали ${achievement.points} экоинов!`,
+                '/achievements'
+              ]);
+              console.log(`✅ Уведомление о достижении first_login создано`);
+            } catch (notifError) {
+              console.error('❌ Ошибка создания уведомления о достижении:', notifError);
+            }
           }
         }
       }

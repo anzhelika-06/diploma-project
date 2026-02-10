@@ -13,6 +13,8 @@ const StatisticsPage = () => {
   const [calculations, setCalculations] = useState([]);
   const [chartPeriod, setChartPeriod] = useState('month');
   const [calculationResult, setCalculationResult] = useState(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   const [calculatorData, setCalculatorData] = useState({
     transport: { carKm: 0, busKm: 0, planeKm: 0, trainKm: 0 },
@@ -36,7 +38,8 @@ const StatisticsPage = () => {
         timestamp: new Date().toISOString()
       });
     }
-  }, [trackEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Загружаем только при монтировании
 
   const loadUserData = async () => {
     try {
@@ -89,7 +92,8 @@ const StatisticsPage = () => {
   const calculateFootprint = async () => {
     const currentUser = getCurrentUser();
     if (!currentUser?.id) {
-      alert('Пользователь не авторизован');
+      setErrorMessage(t('error') || 'Пользователь не авторизован');
+      setShowErrorModal(true);
       return;
     }
 
@@ -105,8 +109,9 @@ const StatisticsPage = () => {
         })
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      const result = await response.json();
+
+      if (response.ok && result.success) {
         setCalculationResult(result);
         
         // Отслеживаем выполнение расчета
@@ -132,9 +137,19 @@ const StatisticsPage = () => {
         }
         
         await Promise.all([loadUserData(), loadCalculations()]);
+      } else {
+        // Показываем ошибку в модальном окне
+        if (result.errorCode === 'CALCULATION_ALREADY_EXISTS_TODAY') {
+          setErrorMessage(t('statsCalculationAlreadyToday') || result.error || 'Вы уже сделали расчет сегодня. Попробуйте завтра!');
+        } else {
+          setErrorMessage(result.error || t('error') || 'Ошибка при выполнении расчета');
+        }
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error('Ошибка расчета:', error);
+      setErrorMessage(t('error') || 'Произошла ошибка при выполнении расчета');
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -819,6 +834,28 @@ const StatisticsPage = () => {
         </div>
 
       </div>
+
+      {/* Модальное окно ошибки */}
+      {showErrorModal && (
+        <div className="modal-overlay" onClick={() => setShowErrorModal(false)}>
+          <div className="modal-content error-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{t('error') || 'Ошибка'}</h2>
+              <button className="modal-close" onClick={() => setShowErrorModal(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>{errorMessage}</p>
+            </div>
+            <div className="modal-footer">
+              <button className="stats-btn primary" onClick={() => setShowErrorModal(false)}>
+                {t('ok') || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

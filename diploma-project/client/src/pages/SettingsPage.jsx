@@ -16,8 +16,6 @@ const SettingsPage = () => {
     language: currentLanguage || 'RU',
     notifications: true,
     ecoTips: true,
-    emailNotifications: true,
-    pushNotifications: false,
     privacyLevel: 1
   })
   const [showLogoutModal, setShowLogoutModal] = useState(false)
@@ -97,8 +95,6 @@ const SettingsPage = () => {
             language: data.settings.language || 'RU',
             notifications: data.settings.notifications !== undefined ? data.settings.notifications : true,
             ecoTips: data.settings.ecoTips !== undefined ? data.settings.ecoTips : true,
-            emailNotifications: data.settings.emailNotifications !== undefined ? data.settings.emailNotifications : true,
-            pushNotifications: data.settings.pushNotifications !== undefined ? data.settings.pushNotifications : false,
             privacyLevel: data.settings.privacyLevel || 1
           }
           setSettings(loadedSettings)
@@ -144,8 +140,6 @@ const SettingsPage = () => {
           language: currentLanguage,
           notifications: true,
           ecoTips: true,
-          emailNotifications: true,
-          pushNotifications: false,
           privacyLevel: 1
         })
       })
@@ -237,8 +231,6 @@ const SettingsPage = () => {
                 language: data.settings.language || 'RU',
                 notifications: data.settings.notifications !== undefined ? data.settings.notifications : true,
                 ecoTips: data.settings.ecoTips !== undefined ? data.settings.ecoTips : true,
-                emailNotifications: data.settings.emailNotifications !== undefined ? data.settings.emailNotifications : true,
-                pushNotifications: data.settings.pushNotifications !== undefined ? data.settings.pushNotifications : false,
                 privacyLevel: data.settings.privacyLevel || 1
               }
               // Обновляем настройки только после успешного ответа сервера
@@ -319,8 +311,6 @@ const SettingsPage = () => {
       language: settings.language || 'RU',
       notifications: true,
       ecoTips: true,
-      emailNotifications: true,
-      pushNotifications: false,
       privacyLevel: 1
     }
     localStorage.setItem('appSettings', JSON.stringify(settingsToKeep))
@@ -371,8 +361,6 @@ const SettingsPage = () => {
             language: 'RU',
             notifications: true,
             ecoTips: true,
-            emailNotifications: true,
-            pushNotifications: false,
             privacyLevel: 1
           };
           
@@ -740,36 +728,6 @@ const SettingsPage = () => {
                       type="checkbox"
                       checked={!!settings.ecoTips}
                       onChange={() => handleNotificationToggle('ecoTips')}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <h3>{t('emailNotifications')}</h3>
-                    <p>{t('emailNotificationsDesc')}</p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={!!settings.emailNotifications}
-                      onChange={() => handleNotificationToggle('emailNotifications')}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
-
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <h3>{t('pushNotifications')}</h3>
-                    <p>{t('pushNotificationsDesc')}</p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={!!settings.pushNotifications}
-                      onChange={() => handleNotificationToggle('pushNotifications')}
                     />
                     <span className="toggle-slider"></span>
                   </label>

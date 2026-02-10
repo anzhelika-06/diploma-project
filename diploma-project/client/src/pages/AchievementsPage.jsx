@@ -121,7 +121,8 @@ const AchievementsPage = () => {
     }
     
     loadData()
-  }, [t, trackEvent])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Загружаем только при монтировании
 
   const showAchievementNotification = (achievement) => {
     const notificationEvent = new CustomEvent('showNotification', {

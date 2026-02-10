@@ -855,6 +855,18 @@
   margin: 0;
 }
 
+/* Success modal */
+.success-modal {
+  max-width: 400px;
+}
+
+.success-modal .modal-body p {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 0;
+}
+
 .btn-submit {
   padding: 10px 20px;
   background: var(--primary-color);
@@ -1021,6 +1033,12 @@
   color: var(--text-secondary);
 }
 
+.friend-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .btn-view-profile {
   padding: 8px 16px;
   background: var(--primary-color);
@@ -1036,6 +1054,45 @@
 .btn-view-profile:hover {
   background: #45a049;
   transform: translateY(-1px);
+}
+
+.btn-view-profile-icon,
+.btn-remove-friend-list,
+.btn-add-friend-list {
+  padding: 8px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-view-profile-icon:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-remove-friend-list:hover {
+  background: #f44336;
+  color: white;
+  border-color: #f44336;
+}
+
+.btn-add-friend-list:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-view-profile-icon .material-icons,
+.btn-remove-friend-list .material-icons,
+.btn-add-friend-list .material-icons {
+  font-size: 20px;
 }
 
 .no-friends {
@@ -1199,4 +1256,75 @@
 
 .btn-danger:hover {
   background: #d32f2f !important;
+}
+
+/* Screenshot modal */
+.screenshot-modal {
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.screenshot-modal-body {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: auto;
+  max-height: 80vh;
+}
+
+.screenshot-full {
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.screenshot-preview:hover {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+
+/* Custom scrollbar styles */
+.comments-list::-webkit-scrollbar,
+.friends-list::-webkit-scrollbar,
+.form-textarea::-webkit-scrollbar,
+.screenshot-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.comments-list::-webkit-scrollbar-track,
+.friends-list::-webkit-scrollbar-track,
+.form-textarea::-webkit-scrollbar-track,
+.screenshot-modal-body::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.comments-list::-webkit-scrollbar-thumb,
+.friends-list::-webkit-scrollbar-thumb,
+.form-textarea::-webkit-scrollbar-thumb,
+.screenshot-modal-body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover,
+.friends-list::-webkit-scrollbar-thumb:hover,
+.form-textarea::-webkit-scrollbar-thumb:hover,
+.screenshot-modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Firefox scrollbar */
+.comments-list,
+.friends-list,
+.form-textarea,
+.screenshot-modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) var(--bg-secondary);
 }

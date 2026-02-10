@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
+const { notifyAdminsAboutNewReport } = require('../utils/notificationHelper');
 
 // Получить профиль пользователя
 router.get('/:userId/profile', async (req, res) => {
@@ -781,9 +782,24 @@ router.post('/:userId/report', async (req, res) => {
       RETURNING *
     `, [reporterId, userId, reason, description, screenshots || []]);
     
+    const report = result.rows[0];
+    
+    // Получаем никнеймы для уведомления
+    const usersResult = await pool.query(`
+      SELECT 
+        (SELECT nickname FROM users WHERE id = $1) as reporter_nickname,
+        (SELECT nickname FROM users WHERE id = $2) as reported_nickname
+    `, [reporterId, userId]);
+    
+    const { reporter_nickname, reported_nickname } = usersResult.rows[0];
+    
+    // Отправляем уведомления всем администраторам
+    const io = req.app.get('io');
+    await notifyAdminsAboutNewReport(report.id, reporter_nickname, reported_nickname, io);
+    
     res.json({
       success: true,
-      report: result.rows[0],
+      report: report,
       message: 'Жалоба отправлена на рассмотрение'
     });
   } catch (error) {

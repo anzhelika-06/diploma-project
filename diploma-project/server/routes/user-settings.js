@@ -137,8 +137,6 @@ router.get('/', requireAuth, async (req, res) => {
         language,
         notifications_enabled,
         eco_tips_enabled,
-        email_notifications,
-        push_notifications,
         privacy_level,
         timezone,
         created_at,
@@ -175,8 +173,6 @@ router.get('/', requireAuth, async (req, res) => {
         language: settings.language,
         notifications: settings.notifications_enabled,
         ecoTips: settings.eco_tips_enabled,
-        emailNotifications: settings.email_notifications,
-        pushNotifications: settings.push_notifications,
         privacyLevel: settings.privacy_level,
         timezone: settings.timezone,
         createdAt: settings.created_at,
@@ -204,8 +200,6 @@ router.post('/', requireAuth, async (req, res) => {
       language = 'RU',
       notifications = true,
       ecoTips = true,
-      emailNotifications = true,
-      pushNotifications = false,
       privacyLevel = 1,
       timezone = 'Europe/Minsk'
     } = req.body;
@@ -217,18 +211,14 @@ router.post('/', requireAuth, async (req, res) => {
         language,
         notifications_enabled,
         eco_tips_enabled,
-        email_notifications,
-        push_notifications,
         privacy_level,
         timezone
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (user_id) DO UPDATE SET
         theme = EXCLUDED.theme,
         language = EXCLUDED.language,
         notifications_enabled = EXCLUDED.notifications_enabled,
         eco_tips_enabled = EXCLUDED.eco_tips_enabled,
-        email_notifications = EXCLUDED.email_notifications,
-        push_notifications = EXCLUDED.push_notifications,
         privacy_level = EXCLUDED.privacy_level,
         timezone = EXCLUDED.timezone,
         updated_at = CURRENT_TIMESTAMP
@@ -241,8 +231,6 @@ router.post('/', requireAuth, async (req, res) => {
       language,
       notifications,
       ecoTips,
-      emailNotifications,
-      pushNotifications,
       privacyLevel,
       timezone
     ];
@@ -281,8 +269,6 @@ router.put('/', requireAuth, async (req, res) => {
       language,
       notifications,
       ecoTips,
-      emailNotifications,
-      pushNotifications,
       privacyLevel,
       timezone
     } = req.body;
@@ -323,18 +309,6 @@ router.put('/', requireAuth, async (req, res) => {
     if (ecoTips !== undefined) {
       updates.push(`eco_tips_enabled = $${paramIndex}`);
       values.push(ecoTips);
-      paramIndex++;
-    }
-    
-    if (emailNotifications !== undefined) {
-      updates.push(`email_notifications = $${paramIndex}`);
-      values.push(emailNotifications);
-      paramIndex++;
-    }
-    
-    if (pushNotifications !== undefined) {
-      updates.push(`push_notifications = $${paramIndex}`);
-      values.push(pushNotifications);
       paramIndex++;
     }
     
@@ -408,8 +382,6 @@ router.post('/reset', requireAuth, async (req, res) => {
         language = 'RU',
         notifications_enabled = TRUE,
         eco_tips_enabled = TRUE,
-        email_notifications = TRUE,
-        push_notifications = FALSE,
         privacy_level = 1,
         timezone = 'Europe/Minsk',
         updated_at = CURRENT_TIMESTAMP
@@ -430,11 +402,9 @@ router.post('/reset', requireAuth, async (req, res) => {
           language,
           notifications_enabled,
           eco_tips_enabled,
-          email_notifications,
-          push_notifications,
           privacy_level,
           timezone
-        ) VALUES ($1, 'light', 'RU', TRUE, TRUE, TRUE, FALSE, 1, 'Europe/Minsk')
+        ) VALUES ($1, 'light', 'RU', TRUE, TRUE, 1, 'Europe/Minsk')
         RETURNING *
       `;
       
@@ -519,14 +489,12 @@ router.delete('/account', requireAuth, async (req, res) => {
       language: 'RU',
       notifications: true,
       ecoTips: true,
-      emailNotifications: true,
-      pushNotifications: false,
       privacyLevel: 1
     };
     
     try {
       const settingsQuery = await pool.query(
-        'SELECT theme, language, notifications_enabled, eco_tips_enabled, email_notifications, push_notifications, privacy_level FROM user_settings WHERE user_id = $1',
+        'SELECT theme, language, notifications_enabled, eco_tips_enabled, privacy_level FROM user_settings WHERE user_id = $1',
         [req.userId]
       );
       
@@ -537,8 +505,6 @@ router.delete('/account', requireAuth, async (req, res) => {
           language: settings.language || 'RU',
           notifications: settings.notifications_enabled ?? true,
           ecoTips: settings.eco_tips_enabled ?? true,
-          emailNotifications: settings.email_notifications ?? true,
-          pushNotifications: settings.push_notifications ?? false,
           privacyLevel: settings.privacy_level || 1
         };
         console.log('Текущие настройки пользователя:', currentSettings);
@@ -623,8 +589,6 @@ router.delete('/account', requireAuth, async (req, res) => {
       language: 'RU',        // Русский язык по умолчанию
       notifications: true,   // Уведомления включены
       ecoTips: true,         // Эко-советы включены
-      emailNotifications: true, // Email уведомления включены
-      pushNotifications: false, // Push уведомления выключены
       privacyLevel: 1        // Базовый уровень приватности
     };
     

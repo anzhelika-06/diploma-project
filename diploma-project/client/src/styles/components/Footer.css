@@ -220,6 +220,23 @@
   background: #e0e0e0;
 }
 
+/* Светлая тема (явно) */
+.dashboard-footer[data-theme="light"] {
+  --footer-bg: #ffffff;
+  --footer-border: #e0e0e0;
+  --footer-text: #666666;
+  background: var(--footer-bg);
+  border-top-color: var(--footer-border);
+}
+
+.dashboard-footer[data-theme="light"] .footer-copyright {
+  color: #999999;
+}
+
+.dashboard-footer[data-theme="light"] .footer-section a {
+  color: #666666;
+}
+
 /* Темная тема */
 .dashboard-footer[data-theme="dark"] {
   --footer-bg: #1e1e1e;

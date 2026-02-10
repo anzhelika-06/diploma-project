@@ -829,7 +829,8 @@ const ReviewsPage = () => {
         activeTab: activeTab
       })
     }
-  }, [currentUser, activeTab, trackEvent])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.id, activeTab]) // Используем currentUser?.id вместо currentUser
 
   // Отслеживаем открытие модалки создания истории
   useEffect(() => {
@@ -838,7 +839,8 @@ const ReviewsPage = () => {
         userId: currentUser.id
       })
     }
-  }, [showCreateModal, currentUser, trackEvent])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCreateModal, currentUser?.id]) // Используем currentUser?.id вместо currentUser
 
   // Загрузка данных при изменении фильтров
   useEffect(() => {
@@ -848,6 +850,7 @@ const ReviewsPage = () => {
     } else if (activeTab === 'my') {
       loadMyStories(statusFilter, selectedCategory, 1)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storiesFilter, selectedCategory, statusFilter])
 
   // Обработка переключения вкладок
@@ -855,11 +858,13 @@ const ReviewsPage = () => {
     if (activeTab === 'my') {
       loadMyStories(statusFilter, selectedCategory, currentPage)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
   // Загрузка категорий при монтировании
   useEffect(() => {
     loadCategories()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ВСЕГДА переводим при изменении языка или историй
@@ -867,7 +872,8 @@ const ReviewsPage = () => {
     if (stories.length > 0) {
       translateStories()
     }
-  }, [currentLanguage, stories, translateStories])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLanguage, stories.length]) // Используем stories.length вместо stories
 
   // Применение темы
   useEffect(() => {

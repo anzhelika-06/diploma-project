@@ -8,6 +8,7 @@ const {
   validateUserId, 
   validateStoryId 
 } = require('../utils/validation');
+const { notifyUserAboutStoryApproval, notifyUserAboutStoryRejection } = require('../utils/notificationHelper');
 const { executeQueryWithLogging } = require('../utils/logger');
 const { likeLimiter } = require('../middleware/rateLimiter');
 const { sendToUser, broadcast } = require('../utils/socketHelpers');
@@ -1463,6 +1464,9 @@ router.post('/admin/:id/publish', async (req, res) => {
         });
         
         console.log(`📡 WebSocket: уведомление о публикации истории ${storyId}`);
+        
+        // Отправляем уведомление автору истории
+        await notifyUserAboutStoryApproval(authorId, storyId, storyTitle, io);
       }
       
       await client.query('COMMIT');
@@ -1562,6 +1566,11 @@ router.post('/admin/:id/reject', async (req, res) => {
         broadcast(io, 'story:unpublished', {
           storyId: storyId
         });
+      }
+      
+      // Отправляем уведомление автору об отклонении
+      if (io && currentStatus === 'pending') {
+        await notifyUserAboutStoryRejection(authorId, storyId, storyTitle, reason, io);
       }
       
       await client.query('COMMIT');

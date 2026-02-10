@@ -60,8 +60,6 @@ CREATE TABLE IF NOT EXISTS user_settings (
     language VARCHAR(5) DEFAULT 'RU' CHECK (language IN ('RU', 'EN', 'BY')),
     notifications_enabled BOOLEAN DEFAULT TRUE,
     eco_tips_enabled BOOLEAN DEFAULT TRUE,
-    email_notifications BOOLEAN DEFAULT TRUE,
-    push_notifications BOOLEAN DEFAULT FALSE,
     privacy_level INTEGER DEFAULT 1 CHECK (privacy_level BETWEEN 1 AND 3),
     timezone VARCHAR(50) DEFAULT 'Europe/Minsk',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -193,11 +191,28 @@ CREATE TABLE IF NOT EXISTS user_reports (
     screenshots TEXT[], -- Массив URL скриншотов
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'reviewing', 'resolved', 'rejected')),
     admin_notes TEXT,
+    admin_response TEXT, -- Ответ администратора пользователю
     reviewed_by INTEGER REFERENCES users(id),
     reviewed_at TIMESTAMP DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============ УВЕДОМЛЕНИЯ ============
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system')),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(255), -- Ссылка для перехода при клике
+    is_read BOOLEAN DEFAULT FALSE,
+    related_id INTEGER, -- ID связанной сущности (жалобы, достижения и т.д.)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Индекс для быстрого поиска непрочитанных уведомлений пользователя
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read, created_at DESC);
 
 -- ============ ДОСТИЖЕНИЯ ============
 CREATE TABLE IF NOT EXISTS achievements (
@@ -1940,8 +1955,7 @@ UPDATE user_settings SET
 WHERE user_id = 1;
 
 UPDATE user_settings SET 
-    theme = 'auto',
-    email_notifications = FALSE
+    theme = 'auto'
 WHERE user_id = 2;
 
 UPDATE user_settings SET 
@@ -1950,8 +1964,7 @@ UPDATE user_settings SET
 WHERE user_id = 3;
 
 UPDATE user_settings SET 
-    theme = 'dark',
-    push_notifications = TRUE
+    theme = 'dark'
 WHERE user_id = 4;
 
 -- Выводим информацию о созданных данных

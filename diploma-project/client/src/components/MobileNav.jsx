@@ -41,26 +41,31 @@ const MobileNav = () => {
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
         const settings = JSON.parse(savedSettings)
-        setCurrentTheme(settings.theme || 'light')
+        setCurrentTheme(prevTheme => {
+          const newTheme = settings.theme || 'light'
+          return newTheme !== prevTheme ? newTheme : prevTheme
+        })
       }
       
       // Обновляем данные пользователя при изменениях
       const updatedUser = getUserInfo()
-      if (updatedUser && JSON.stringify(updatedUser) !== JSON.stringify(user)) {
-        setUser(updatedUser)
-      }
+      setUser(prevUser => {
+        const updatedUserStr = JSON.stringify(updatedUser)
+        const currentUserStr = JSON.stringify(prevUser)
+        return updatedUserStr !== currentUserStr ? updatedUser : prevUser
+      })
     }
 
     window.addEventListener('storage', handleStorageChange)
     
-    // Проверяем изменения каждую секунду
-    const interval = setInterval(handleStorageChange, 1000)
+    // Проверяем изменения каждые 5 секунд (вместо каждой секунды)
+    const interval = setInterval(handleStorageChange, 5000)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       clearInterval(interval)
     }
-  }, [])
+  }, []) // Убрали все зависимости, используем функциональные обновления
 
   const mainNavItems = [
     { id: 'home', path: '/feed', icon: homeIcon },

@@ -264,26 +264,27 @@ router.post('/calculate', async (req, res) => {
     );
     
     const hadCalculationToday = existingCalcResult.rows.length > 0;
-    const previousSaved = hadCalculationToday ? parseFloat(existingCalcResult.rows[0].co2_saved) : 0;
     
-    // Сохраняем расчет (используем UPSERT для избежания дубликатов)
+    // Если уже был расчет сегодня - возвращаем ошибку
+    if (hadCalculationToday) {
+      return res.status(400).json({
+        success: false,
+        error: 'Вы уже сделали расчет сегодня. Попробуйте завтра!',
+        errorCode: 'CALCULATION_ALREADY_EXISTS_TODAY'
+      });
+    }
+    
+    // Сохраняем расчет
     const result = await db.query(
       `INSERT INTO carbon_calculations 
        (user_id, calculation_date, total_footprint, co2_saved, categories, is_baseline) 
        VALUES ($1, CURRENT_DATE, $2, $3, $4, false) 
-       ON CONFLICT (user_id, calculation_date, is_baseline) 
-       DO UPDATE SET 
-         total_footprint = EXCLUDED.total_footprint,
-         co2_saved = EXCLUDED.co2_saved,
-         categories = EXCLUDED.categories,
-         updated_at = CURRENT_TIMESTAMP
        RETURNING *`,
       [userId, totalFootprint, co2Saved, JSON.stringify(categories)]
     );
     
     // Обновляем общую экономию пользователя
-    // Добавляем только если это ПЕРВЫЙ расчет за сегодня
-    if (!hadCalculationToday && co2Saved > 0) {
+    if (co2Saved > 0) {
       await db.query(
         'UPDATE users SET carbon_saved = carbon_saved + $1 WHERE id = $2',
         [Math.round(co2Saved), userId]
@@ -296,7 +297,7 @@ router.post('/calculate', async (req, res) => {
       co2_saved: co2Saved,
       categories,
       calculation: result.rows[0],
-      isFirstToday: !hadCalculationToday
+      isFirstToday: true
     });
   } catch (error) {
     console.error('Error calculating carbon footprint:', error);
