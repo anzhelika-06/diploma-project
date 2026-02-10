@@ -186,7 +186,7 @@ router.get('/:userId/stats', async (req, res) => {
 // Простой расчет углеродного следа
 router.post('/calculate', async (req, res) => {
   try {
-    const { userId, transport, housing, food, waste } = req.body;
+    const { userId, transport, housing, food, waste, calculationDate } = req.body;
     
     if (!userId) {
       return res.status(400).json({
@@ -194,6 +194,9 @@ router.post('/calculate', async (req, res) => {
         error: 'Не указан ID пользователя'
       });
     }
+    
+    // Используем дату из запроса или текущую дату сервера
+    const calcDate = calculationDate || new Date().toISOString().split('T')[0];
     
     // Простой расчет CO2
     let totalFootprint = 0;
@@ -256,16 +259,16 @@ router.post('/calculate', async (req, res) => {
     const averageDailyFootprint = 27; // кг CO2 в день
     const co2Saved = Math.max(0, averageDailyFootprint - totalFootprint);
     
-    // Проверяем, был ли уже расчет за сегодня
+    // Проверяем, был ли уже расчет за эту дату
     const existingCalcResult = await db.query(
       `SELECT co2_saved FROM carbon_calculations 
-       WHERE user_id = $1 AND calculation_date = CURRENT_DATE AND is_baseline = false`,
-      [userId]
+       WHERE user_id = $1 AND calculation_date = $2 AND is_baseline = false`,
+      [userId, calcDate]
     );
     
     const hadCalculationToday = existingCalcResult.rows.length > 0;
     
-    // Если уже был расчет сегодня - возвращаем ошибку
+    // Если уже был расчет за эту дату - возвращаем ошибку
     if (hadCalculationToday) {
       return res.status(400).json({
         success: false,
@@ -278,9 +281,9 @@ router.post('/calculate', async (req, res) => {
     const result = await db.query(
       `INSERT INTO carbon_calculations 
        (user_id, calculation_date, total_footprint, co2_saved, categories, is_baseline) 
-       VALUES ($1, CURRENT_DATE, $2, $3, $4, false) 
+       VALUES ($1, $2, $3, $4, $5, false) 
        RETURNING *`,
-      [userId, totalFootprint, co2Saved, JSON.stringify(categories)]
+      [userId, calcDate, totalFootprint, co2Saved, JSON.stringify(categories)]
     );
     
     // Обновляем общую экономию пользователя

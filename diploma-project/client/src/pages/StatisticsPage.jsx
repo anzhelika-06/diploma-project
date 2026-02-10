@@ -99,13 +99,20 @@ const StatisticsPage = () => {
 
     setLoading(true);
     try {
+      // Создаем дату в локальном часовом поясе
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const localDate = `${year}-${month}-${day}`;
+      
       const response = await fetch('/api/calculations/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: currentUser.id,
           ...calculatorData,
-          calculationDate: new Date().toISOString().split('T')[0]
+          calculationDate: localDate
         })
       });
 
@@ -177,7 +184,15 @@ const StatisticsPage = () => {
   };
   
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    // Если дата в формате YYYY-MM-DD, парсим её как локальную дату
+    let date;
+    if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateString.split('-').map(Number);
+      date = new Date(year, month - 1, day);
+    } else {
+      date = new Date(dateString);
+    }
+    
     const currentLang = t('statsKg') === 'kg' ? 'EN' : (t('statsKg') === 'кг' ? 'RU' : 'BY');
     
     const months = {
@@ -400,7 +415,17 @@ const StatisticsPage = () => {
                             <div className="stats-bar-value">{calc.footprint.toFixed(1)}</div>
                           </div>
                           <div className="stats-bar-label">
-                            {new Date(calc.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'numeric' })}
+                            {(() => {
+                              // Парсим дату как локальную если в формате YYYY-MM-DD
+                              let date;
+                              if (typeof calc.date === 'string' && calc.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                const [year, month, day] = calc.date.split('-').map(Number);
+                                date = new Date(year, month - 1, day);
+                              } else {
+                                date = new Date(calc.date);
+                              }
+                              return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'numeric' });
+                            })()}
                           </div>
                         </div>
                       );

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAdminCheck } from '../hooks/useAdminCheck';
 import { getEmojiByCarbon } from '../utils/emojiMapper';
-import { exportUsers, exportSupportTickets, exportReports } from '../utils/excelExport';
+import { exportAllUsers, exportAllSupportTickets, exportAllReports } from '../utils/excelExport';
 import '../styles/pages/AdminPage.css';
 
 const AdminPage = () => {
@@ -2260,12 +2260,19 @@ const AdminPage = () => {
               {t('refresh') || 'Обновить'}
             </button>
             <button 
-              onClick={() => {
-                exportUsers(users, t);
+              onClick={async () => {
+                try {
+                  const result = await exportAllUsers(t);
+                  if (!result.success) {
+                    console.error('Export error:', result.error);
+                  }
+                } catch (error) {
+                  console.error('Export error:', error.message);
+                }
               }}
               className="export-button"
-              disabled={users.length === 0}
-              title={t('exportToExcel') || 'Экспорт в Excel'}
+              disabled={loading}
+              title={t('exportToExcel') || 'Экспорт в Excel (все пользователи)'}
             >
               <span className="material-icons">download</span>
             </button>
@@ -2598,12 +2605,19 @@ const AdminPage = () => {
               {t('refresh') || 'Обновить'}
             </button>
             <button 
-              onClick={() => {
-                exportSupportTickets(supportTickets, t);
+              onClick={async () => {
+                try {
+                  const result = await exportAllSupportTickets(t, currentLanguage);
+                  if (!result.success) {
+                    console.error('Export error:', result.error);
+                  }
+                } catch (error) {
+                  console.error('Export error:', error.message);
+                }
               }}
               className="export-button"
-              disabled={supportTickets.length === 0}
-              title={t('exportToExcel') || 'Экспорт в Excel'}
+              disabled={supportLoading}
+              title={t('exportToExcel') || 'Экспорт в Excel (все тикеты)'}
             >
               <span className="material-icons">download</span>
             </button>
@@ -3310,25 +3324,19 @@ const AdminPage = () => {
               {t('refresh') || 'Обновить'}
             </button>
             <button 
-              onClick={() => {
-                const result = exportReports(reports, t);
-                if (result.success) {
-                  showSuccessModal(
-                    t('success') || 'Успешно', 
-                    t('exportSuccess') || 'Данные успешно экспортированы'
-                  );
-                } else {
-                  setConfirmModal({
-                    isOpen: true,
-                    title: t('error') || 'Ошибка',
-                    message: result.error || t('exportError') || 'Ошибка при экспорте данных',
-                    onConfirm: () => setConfirmModal(prev => ({ ...prev, isOpen: false }))
-                  });
+              onClick={async () => {
+                try {
+                  const result = await exportAllReports(t);
+                  if (!result.success) {
+                    console.error('Export error:', result.error);
+                  }
+                } catch (error) {
+                  console.error('Export error:', error.message);
                 }
               }}
               className="export-button"
-              disabled={reports.length === 0}
-              title={t('exportToExcel') || 'Экспорт в Excel'}
+              disabled={reportsLoading}
+              title={t('exportToExcel') || 'Экспорт в Excel (все жалобы)'}
             >
               <span className="material-icons">download</span>
             </button>

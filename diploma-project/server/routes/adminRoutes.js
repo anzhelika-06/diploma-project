@@ -19,8 +19,8 @@ const validatePagination = (req, res, next) => {
     page = 1, 
     limit = 20, 
     search = '', 
-    sortBy = 'created_at', 
-    sortOrder = 'DESC',
+    sortBy = 'id', 
+    sortOrder = 'ASC',
     is_admin,
     is_banned
   } = req.query;
@@ -28,10 +28,10 @@ const validatePagination = (req, res, next) => {
   req.query.page = Math.max(1, parseInt(page));
   req.query.limit = Math.min(Math.max(1, parseInt(limit)), 100);
   req.query.search = String(search).substring(0, 100);
-  req.query.sortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+  req.query.sortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
   
   const validSortColumns = ['id', 'email', 'nickname', 'created_at', 'carbon_saved', 'eco_level', 'is_admin', 'is_banned'];
-  req.query.sortBy = validSortColumns.includes(sortBy) ? sortBy : 'created_at';
+  req.query.sortBy = validSortColumns.includes(sortBy) ? sortBy : 'id';
   
   // Обработка фильтров
   if (is_admin !== undefined) {
@@ -1234,6 +1234,55 @@ router.get('/all-users', authenticateToken, isAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Ошибка при загрузке всех пользователей',
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        code: error.code,
+        detail: error.detail
+      } : undefined
+    });
+  }
+});
+
+// Получение всех тикетов поддержки (без пагинации, для экспорта)
+router.get('/support/all-tickets', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    console.log('=== ALL SUPPORT TICKETS FOR EXPORT ===');
+    
+    const queryText = `
+      SELECT 
+        st.*,
+        u.email as user_email,
+        u.nickname as user_nickname,
+        u.nickname as username
+      FROM support_tickets st
+      LEFT JOIN users u ON st.user_id = u.id
+      WHERE u.deleted_at IS NULL
+      ORDER BY st.created_at DESC
+    `;
+    
+    const ticketsResult = await query(queryText);
+    console.log('Found', ticketsResult.rows.length, 'support tickets for export');
+    
+    // Форматируем даты
+    const formattedTickets = ticketsResult.rows.map(ticket => ({
+      ...ticket,
+      created_at: ticket.created_at ? new Date(ticket.created_at).toISOString() : null,
+      updated_at: ticket.updated_at ? new Date(ticket.updated_at).toISOString() : null,
+      responded_at: ticket.responded_at ? new Date(ticket.responded_at).toISOString() : null
+    }));
+    
+    res.json({
+      success: true,
+      tickets: formattedTickets,
+      total: ticketsResult.rows.length
+    });
+    
+  } catch (error) {
+    console.error('Error fetching all support tickets:', error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при загрузке всех обращений',
       error: process.env.NODE_ENV === 'development' ? {
         message: error.message,
         code: error.code,

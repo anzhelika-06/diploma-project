@@ -3,6 +3,55 @@ const router = express.Router();
 const db = require('../config/database');
 const { notifyAdminsAboutNewReport, notifyUserAboutReportResponse } = require('../utils/notificationHelper');
 
+// Получить ВСЕ жалобы (для экспорта) - ВАЖНО: этот роут должен быть ПЕРЕД /admin
+router.get('/admin/all', async (req, res) => {
+  try {
+    console.log('=== ALL REPORTS FOR EXPORT ===');
+    
+    const query = `
+      SELECT 
+        ur.id,
+        ur.reason,
+        ur.description,
+        ur.screenshots,
+        ur.status,
+        ur.admin_notes,
+        ur.admin_response,
+        ur.created_at,
+        ur.updated_at,
+        ur.reviewed_at,
+        reporter.id as reporter_id,
+        reporter.nickname as reporter_nickname,
+        reporter.email as reporter_email,
+        reported.id as reported_user_id,
+        reported.nickname as reported_nickname,
+        reported.email as reported_email,
+        reviewer.nickname as reviewer_nickname
+      FROM user_reports ur
+      JOIN users reporter ON ur.reporter_id = reporter.id
+      JOIN users reported ON ur.reported_user_id = reported.id
+      LEFT JOIN users reviewer ON ur.reviewed_by = reviewer.id
+      ORDER BY ur.created_at DESC
+    `;
+    
+    const result = await db.query(query);
+    console.log('Found', result.rows.length, 'reports for export');
+    
+    res.json({
+      success: true,
+      reports: result.rows,
+      total: result.rows.length
+    });
+    
+  } catch (error) {
+    console.error('Error fetching all reports:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Ошибка при загрузке всех жалоб'
+    });
+  }
+});
+
 // Получить все жалобы (для админа)
 router.get('/admin', async (req, res) => {
   try {

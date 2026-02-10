@@ -53,8 +53,8 @@ const validatePagination = (page, limit) => {
   const pageNum = parseInt(page) || 1;
   const limitNum = parseInt(limit) || 20;
   
-  // Ограничиваем максимальный лимит
-  const maxLimit = 100;
+  // Ограничиваем максимальный лимит (увеличено для экспорта)
+  const maxLimit = 10000;
   const validLimit = Math.min(limitNum, maxLimit);
   
   // Минимальная страница - 1
