@@ -135,6 +135,22 @@ io.on('connection', (socket) => {
   socket.on('join:room', (roomId) => {
     socket.join(roomId);
     console.log(`📍 Socket ${socket.id} присоединился к комнате: ${roomId}`);
+    
+    // Отправляем подтверждение присоединения
+    socket.emit('room:joined', {
+      roomId: roomId,
+      success: true,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Тестовое уведомление для проверки
+    setTimeout(() => {
+      io.to(roomId).emit('test:notification', {
+        message: `Тестовое уведомление для комнаты ${roomId}`,
+        timestamp: new Date().toISOString()
+      });
+      console.log(`🧪 Отправлено тестовое уведомление в комнату ${roomId}`);
+    }, 2000);
   });
   
   // Выход из комнаты

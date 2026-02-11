@@ -52,11 +52,6 @@ const AchievementsPage = () => {
           return
         }
         
-        trackEvent('achievements_page_viewed', {
-          userId: user.id,
-          timestamp: new Date().toISOString()
-        })
-        
         const achievementsRes = await fetch('/api/achievements')
         if (!achievementsRes.ok) throw new Error(`HTTP ${achievementsRes.status}`)
         const achievementsData = await achievementsRes.json()

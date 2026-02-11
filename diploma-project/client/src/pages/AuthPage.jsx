@@ -11,10 +11,12 @@ import listikBy from '../assets/audio/listik-by.mp3'
 import listikImage from '../assets/images/listik.png'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useUser } from '../contexts/UserContext'
 
 const AuthPage = () => {
   const navigate = useNavigate()
   const { currentLanguage, t } = useLanguage()
+  const { updateUser } = useUser() // Добавляем useUser
   const [formData, setFormData] = useState({
     login: '',
     password: ''
@@ -234,6 +236,14 @@ const AuthPage = () => {
           
           localStorage.setItem('user', JSON.stringify(userData))
           localStorage.setItem('isAuthenticated', 'true')
+          
+          // Обновляем контекст пользователя
+          updateUser(userData)
+          console.log('👤 Пользователь обновлен в контексте')
+          
+          // Уведомляем SocketProvider об изменении пользователя
+          window.dispatchEvent(new Event('userChanged'))
+          console.log('🔔 Отправлено событие userChanged')
           
           if (data.token) {
             localStorage.setItem('token', data.token)

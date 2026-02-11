@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSocket } from '../contexts/SocketContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { translateStoryContent, detectTextLanguage } from '../utils/translations';
-import io from 'socket.io-client';
 import '../styles/pages/FeedPage.css';
 
 const FeedPage = () => {
   const { t, currentLanguage } = useLanguage();
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
+  const { socket, isConnected } = useSocket(); // Используем глобальный socket
   
   // Проверка авторизации
   useEffect(() => {
@@ -85,31 +86,11 @@ const FeedPage = () => {
     }
   }, [t]);
 
-  // WebSocket для real-time обновлений
+  // WebSocket обработчики для real-time обновлений
   useEffect(() => {
-    const socket = io('/', {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
-    });
+    if (!socket || !currentUser) return;
     
-    socket.on('connect', () => {
-      console.log('✅ FeedPage: WebSocket подключен, ID:', socket.id);
-      // Аутентификация
-      socket.emit('authenticate', {
-        userId: currentUser?.id,
-        nickname: currentUser?.nickname
-      });
-    });
-    
-    socket.on('authenticated', (data) => {
-      console.log('✅ FeedPage: Аутентификация успешна:', data);
-    });
-    
-    socket.on('connect_error', (error) => {
-      console.error('❌ FeedPage: Ошибка подключения WebSocket:', error);
-    });
+    console.log('📡 FeedPage: Подключение обработчиков к глобальному socket');
     
     // Обработчики событий постов
     socket.on('post:created', (data) => {
@@ -211,15 +192,15 @@ const FeedPage = () => {
       });
     });
     
-    socket.on('disconnect', (reason) => {
-      console.log('🔌 FeedPage: WebSocket отключен:', reason);
-    });
-    
     return () => {
-      console.log('🔌 FeedPage: закрытие WebSocket');
-      socket.disconnect();
+      console.log('🔌 FeedPage: отключение обработчиков');
+      socket.off('post:created');
+      socket.off('post:deleted');
+      socket.off('post:like:update');
+      socket.off('post:comment:added');
+      socket.off('post:comment:deleted');
     };
-  }, [currentUser]);
+  }, [socket]); // Зависим только от socket, не от currentUser
 
   // Закрытие меню при клике вне его или при скролле
   useEffect(() => {
@@ -416,6 +397,9 @@ const FeedPage = () => {
             ? { ...p, user_liked: data.liked, likes_count: data.likesCount }
             : p
         ));
+      } else if (data.error === 'TOO_MANY_LIKES') {
+        setErrorMessage(data.message || t('tooManyLikes') || 'Слишком много лайков. Подождите немного.');
+        setShowErrorModal(true);
       }
     } catch (err) {
       console.error('Error liking post:', err);

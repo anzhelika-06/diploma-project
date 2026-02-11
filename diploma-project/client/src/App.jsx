@@ -25,6 +25,8 @@ import SearchPage from './pages/SearchPage';
 import AdminPage from './pages/AdminPage';
 import NotificationSystem from './components/NotificationSystem';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { UserProvider } from './contexts/UserContext';
+import { SocketProvider } from './contexts/SocketContext';
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
 import { isUserAdmin } from './utils/authUtils';
 import './styles/variables.css';
@@ -131,9 +133,11 @@ function App() {
 
   return (
     <LanguageProvider>
-      <div className="page-container">
-        <Router>
-          <Routes>
+      <UserProvider>
+        <SocketProvider>
+          <div className="page-container">
+            <Router>
+            <Routes>
             {/* Главная страница */}
             <Route 
               path="/" 
@@ -184,6 +188,8 @@ function App() {
           />
         </Router>
       </div>
+        </SocketProvider>
+      </UserProvider>
     </LanguageProvider>
   );
 }

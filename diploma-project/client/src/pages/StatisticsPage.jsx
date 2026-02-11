@@ -30,14 +30,6 @@ const StatisticsPage = () => {
     loadUserData();
     loadCalculations();
     
-    // Отслеживаем просмотр страницы статистики
-    const currentUser = getCurrentUser();
-    if (currentUser?.id) {
-      trackEvent('statistics_page_viewed', {
-        userId: currentUser.id,
-        timestamp: new Date().toISOString()
-      });
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Загружаем только при монтировании
 

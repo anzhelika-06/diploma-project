@@ -520,3 +520,22 @@
 [data-theme="dark"] .notification-card.unread {
   background: rgba(102, 187, 106, 0.08);
 }
+
+/* Темная тема - белые иконки в пустом состоянии и загрузке */
+[data-theme="dark"] .loading-state .material-icons,
+[data-theme="dark"] .empty-state .material-icons {
+  color: #ffffff !important;
+}
+
+/* Светлая тема - черные иконки в пустом состоянии и загрузке */
+[data-theme="light"] .loading-state .material-icons,
+[data-theme="light"] .empty-state .material-icons {
+  color: #000000 !important;
+}
+
+/* Исключение для spinning иконки - она всегда зеленая */
+[data-theme="dark"] .loading-state .spinning,
+[data-theme="light"] .loading-state .spinning {
+  color: var(--primary-color) !important;
+  opacity: 1 !important;
+}

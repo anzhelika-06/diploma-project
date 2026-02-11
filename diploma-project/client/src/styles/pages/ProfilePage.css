@@ -1708,3 +1708,175 @@
     max-height: 300px;
   }
 }
+
+/* Бейдж запросов в друзья */
+.friend-requests-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #000;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1;
+  box-shadow: 0 3px 8px rgba(255, 215, 0, 0.5), 0 0 0 2px white;
+  transition: all 0.2s;
+  animation: pulse-badge 2s infinite;
+}
+
+@keyframes pulse-badge {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.friend-requests-badge:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.7), 0 0 0 2px white;
+  animation: none;
+}
+
+/* Кнопки в модальном окне запросов */
+.btn-accept-request {
+  background: var(--success-color, #4caf50);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-accept-request:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.btn-reject-request {
+  background: var(--error-color, #f44336);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-reject-request:hover {
+  background: #da190b;
+  transform: scale(1.05);
+}
+
+.btn-report-request {
+  background: var(--warning-color, #ff9800);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-report-request:hover {
+  background: #e68900;
+  transform: scale(1.05);
+}
+
+.no-friends {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 20px;
+}
+
+/* Кнопка загрузки дополнительных постов */
+.btn-load-more {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 2px solid var(--accent-color);
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-load-more:hover:not(:disabled) {
+  background: var(--accent-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-load-more:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Ошибка профиля */
+.profile-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  min-height: 400px;
+}
+
+.profile-error .material-icons {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+  color: var(--text-secondary);
+}
+
+.profile-error p {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Темная тема - белые иконки и текст */
+[data-theme="dark"] .profile-error .material-icons {
+  color: #ffffff;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .profile-error p {
+  color: #ffffff;
+}
+
+/* Светлая тема - черные иконки и текст */
+[data-theme="light"] .profile-error .material-icons {
+  color: #000000;
+  opacity: 0.5;
+}
+
+[data-theme="light"] .profile-error p {
+  color: #000000;
+}

@@ -203,6 +203,16 @@ router.post('/:userId/posts', async (req, res) => {
       console.warn('⚠️ Socket.IO не доступен');
     }
     
+    // Трекинг достижений для создания поста
+    try {
+      const { processAchievementEvent } = require('./achievements');
+      await processAchievementEvent(Number(userId), 'post_created', { postId: post.id }, io);
+      console.log('✅ Трекинг достижения post_created выполнен');
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения:', trackError);
+      // Не прерываем выполнение, если трекинг не сработал
+    }
+    
     res.json({
       success: true,
       post: postWithUser
@@ -416,6 +426,15 @@ router.post('/:userId/posts/:postId/comments', async (req, res) => {
       console.warn('⚠️ Socket.IO не доступен');
     }
     
+    // Трекинг достижений для комментария
+    try {
+      const { processAchievementEvent } = require('./achievements');
+      await processAchievementEvent(userId, 'comment_added', { commentId: comment.id, postId: postId }, io);
+      console.log('✅ Трекинг достижения comment_added выполнен');
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения:', trackError);
+    }
+    
     res.json({
       success: true,
       comment: comment
@@ -498,17 +517,28 @@ router.post('/:userId/friends/request', async (req, res) => {
       });
     }
     
-    // Проверяем, нет ли уже запроса
+    // Проверяем, нет ли уже активного запроса (pending или accepted)
     const existing = await pool.query(
       'SELECT * FROM friendships WHERE (user_id = $1 AND friend_id = $2) OR (user_id = $2 AND friend_id = $1)',
       [userId, friendId]
     );
     
     if (existing.rows.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Запрос уже существует'
-      });
+      const friendship = existing.rows[0];
+      
+      // Если запрос был отклонен, удаляем старую запись
+      if (friendship.status === 'rejected') {
+        await pool.query(
+          'DELETE FROM friendships WHERE id = $1',
+          [friendship.id]
+        );
+      } else {
+        // Если запрос pending или accepted, возвращаем ошибку
+        return res.status(400).json({
+          success: false,
+          message: 'Запрос уже существует'
+        });
+      }
     }
     
     const result = await pool.query(`
@@ -516,6 +546,12 @@ router.post('/:userId/friends/request', async (req, res) => {
       VALUES ($1, $2, 'pending')
       RETURNING *
     `, [userId, friendId]);
+    
+    // Получаем информацию об отправителе для уведомления
+    const senderInfo = await pool.query(
+      'SELECT nickname FROM users WHERE id = $1',
+      [userId]
+    );
     
     // Отправляем через WebSocket
     const io = req.app.get('io');
@@ -525,6 +561,23 @@ router.post('/:userId/friends/request', async (req, res) => {
         toUserId: friendId,
         friendship: result.rows[0]
       });
+    }
+    
+    // Создаем уведомление ТОЛЬКО для получателя запроса
+    const notificationResult = await pool.query(`
+      INSERT INTO notifications (user_id, type, title, message, related_id)
+      VALUES ($1, 'friend_request', $2, $3, $4)
+      RETURNING *
+    `, [
+      friendId,
+      'Новый запрос в друзья',
+      `${senderInfo.rows[0].nickname} хочет добавить вас в друзья`,
+      userId
+    ]);
+    
+    // Отправляем WebSocket событие о новом уведомлении ТОЛЬКО получателю
+    if (io) {
+      io.to(`user:${friendId}`).emit('notification:new', notificationResult.rows[0]);
     }
     
     res.json({
@@ -549,7 +602,7 @@ router.put('/:userId/friends/:friendshipId/accept', async (req, res) => {
       UPDATE friendships
       SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
       WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING *
+      RETURNING user_id, friend_id
     `, [friendshipId, userId]);
     
     if (result.rows.length === 0) {
@@ -559,12 +612,51 @@ router.put('/:userId/friends/:friendshipId/accept', async (req, res) => {
       });
     }
     
+    const friendship = result.rows[0];
+    
     // Отправляем через WebSocket
     const io = req.app.get('io');
     if (io) {
       io.emit('friendship:accepted', {
-        friendship: result.rows[0]
+        userId: friendship.friend_id,
+        friendId: friendship.user_id
       });
+    }
+    
+    // Создаем уведомление для отправителя запроса
+    const notificationResult = await pool.query(`
+      INSERT INTO notifications (user_id, type, title, message, related_id)
+      VALUES ($1, 'friend_request', $2, $3, $4)
+      RETURNING *
+    `, [
+      friendship.user_id,
+      'Запрос в друзья принят',
+      'Ваш запрос в друзья был принят!',
+      friendship.friend_id
+    ]);
+    
+    // Отправляем WebSocket событие о новом уведомлении
+    if (io) {
+      io.to(`user:${friendship.user_id}`).emit('notification:new', notificationResult.rows[0]);
+    }
+    
+    // Трекинг достижений для обоих пользователей
+    try {
+      const { processAchievementEvent } = require('./achievements');
+      
+      // Для пользователя, который принял запрос
+      await processAchievementEvent(friendship.friend_id, 'friend_added', { 
+        friendId: friendship.user_id 
+      }, io);
+      
+      // Для пользователя, который отправил запрос
+      await processAchievementEvent(friendship.user_id, 'friend_added', { 
+        friendId: friendship.friend_id 
+      }, io);
+      
+      console.log('✅ Трекинг достижений friend_added выполнен для обоих пользователей');
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения friend_added:', trackError);
     }
     
     res.json({
@@ -589,7 +681,7 @@ router.put('/:userId/friends/:friendshipId/reject', async (req, res) => {
       UPDATE friendships
       SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
       WHERE id = $1 AND friend_id = $2 AND status = 'pending'
-      RETURNING *
+      RETURNING user_id, friend_id
     `, [friendshipId, userId]);
     
     if (result.rows.length === 0) {
@@ -597,6 +689,34 @@ router.put('/:userId/friends/:friendshipId/reject', async (req, res) => {
         success: false,
         message: 'Запрос не найден'
       });
+    }
+    
+    const friendship = result.rows[0];
+    
+    // Отправляем WebSocket событие
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('friendship:rejected', {
+        fromUserId: friendship.user_id,
+        toUserId: friendship.friend_id
+      });
+    }
+    
+    // Создаем уведомление для отправителя запроса
+    const notificationResult = await pool.query(`
+      INSERT INTO notifications (user_id, type, title, message, related_id)
+      VALUES ($1, 'friend_request', $2, $3, $4)
+      RETURNING *
+    `, [
+      friendship.user_id,
+      'Запрос в друзья отклонен',
+      'Ваш запрос в друзья был отклонен',
+      friendship.friend_id
+    ]);
+    
+    // Отправляем WebSocket событие о новом уведомлении
+    if (io) {
+      io.to(`user:${friendship.user_id}`).emit('notification:new', notificationResult.rows[0]);
     }
     
     res.json({
@@ -698,7 +818,7 @@ router.get('/:userId/friends/requests/incoming', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         f.id as friendship_id,
-        u.id,
+        u.id as user_id,
         u.nickname,
         u.avatar_emoji,
         u.eco_level,

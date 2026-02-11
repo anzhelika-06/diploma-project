@@ -677,7 +677,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION create_user_settings()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO user_settings (user_id) VALUES (NEW.id);
+    INSERT INTO user_settings (user_id, notifications_enabled, eco_tips_enabled) 
+    VALUES (NEW.id, TRUE, TRUE);
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -1649,10 +1650,10 @@ INSERT INTO achievements (
     ('carbon_100', 'Первые 100 кг', 'Сэкономить 100 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 100, 25, 'common', false, 40),
     ('carbon_500', '500 кг CO₂', 'Сэкономить 500 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 500, 75, 'rare', false, 41),
     ('carbon_1000', '1 тонна CO₂', 'Сэкономить 1000 кг CO₂', 'carbon', '🌍', 'carbon_saved', 'value', 1000, 150, 'epic', false, 42),
-    ('page_achievements', 'Любознательный', 'Посетите страницу достижений', 'exploration', '🏆', 'achievements_page_viewed', 'boolean', 1, 20, 'common', false, 50),
-    ('page_stories', 'Читатель', 'Посетите страницу историй', 'exploration', '📚', 'stories_page_viewed', 'boolean', 1, 15, 'common', false, 51),
-    ('page_profile', 'Знакомство', 'Посетите страницу профиля', 'exploration', '👤', 'profile_page_viewed', 'boolean', 1, 10, 'common', false, 52),
-    ('page_statistics', 'Аналитик', 'Посетите страницу статистики', 'exploration', '📊', 'statistics_page_viewed', 'boolean', 1, 15, 'common', false, 53),
+    ('first_friend', 'Первый друг', 'Добавьте своего первого друга', 'social', '👥', 'friend_added', 'count', 1, 50, 'common', false, 50),
+    ('friend_5', 'Дружелюбный', 'Добавьте 5 друзей', 'social', '🤝', 'friend_added', 'count', 5, 100, 'rare', false, 51),
+    ('friend_10', 'Социальная бабочка', 'Добавьте 10 друзей', 'social', '🦋', 'friend_added', 'count', 10, 200, 'epic', false, 52),
+    ('friend_25', 'Душа компании', 'Добавьте 25 друзей', 'social', '🎉', 'friend_added', 'count', 25, 400, 'legendary', false, 53),
     ('first_calculation', 'Первый шаг', 'Выполните первый расчет углеродного следа', 'calculations', '🧮', 'calculation_completed', 'count', 1, 50, 'common', false, 60),
     ('calculation_5', 'Регулярный пользователь', 'Выполните 5 расчетов', 'calculations', '📈', 'calculation_completed', 'count', 5, 100, 'rare', false, 61),
     ('calculation_10', 'Эко-аналитик', 'Выполните 10 расчетов', 'calculations', '📊', 'calculation_completed', 'count', 10, 200, 'epic', false, 62),
@@ -1941,11 +1942,13 @@ SELECT id FROM users
 WHERE id NOT IN (SELECT user_id FROM user_calculator_settings WHERE user_id IS NOT NULL)
 ON CONFLICT (user_id) DO NOTHING;
 
--- Создаем настройки для всех пользователей
-INSERT INTO user_settings (user_id)
-SELECT id FROM users 
+-- Создаем настройки для всех пользователей с включенными уведомлениями
+INSERT INTO user_settings (user_id, notifications_enabled, eco_tips_enabled)
+SELECT id, TRUE, TRUE FROM users 
 WHERE id NOT IN (SELECT user_id FROM user_settings WHERE user_id IS NOT NULL)
-ON CONFLICT (user_id) DO NOTHING;
+ON CONFLICT (user_id) DO UPDATE SET 
+    notifications_enabled = TRUE,
+    eco_tips_enabled = TRUE;
 
 -- Обновляем настройки для некоторых пользователей
 UPDATE user_settings SET 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { io } from 'socket.io-client'
+import { useSocket } from '../contexts/SocketContext'
 import '../styles/pages/AboutPage.css'
 import homeIcon from '../assets/images/home.png'
 import homeIconWhite from '../assets/images/home-white.png'
@@ -43,32 +43,18 @@ const AboutPage = () => {
     return currentTheme === 'dark' ? homeIconWhite : homeIcon
   }
 
-  // Подключение к WebSocket
+  // Получаем глобальный socket
+  const { socket: globalSocket, isConnected } = useSocket();
+
+  // Подключение обработчиков WebSocket
   useEffect(() => {
-    const newSocket = io('/api')
+    if (!globalSocket) return;
     
-    newSocket.on('connect', () => {
-      console.log('🔌 WebSocket подключен:', newSocket.id)
-      
-      // Аутентификация (для демо используем userId: 1)
-      // В реальном приложении userId должен браться из контекста авторизации
-      newSocket.emit('authenticate', {
-        userId: 1,
-        nickname: 'DemoUser'
-      })
-    })
-    
-    newSocket.on('authenticated', (data) => {
-      console.log('✅ Аутентификация успешна:', data)
-    })
-    
-    newSocket.on('disconnect', () => {
-      console.log('🔌 WebSocket отключен')
-    })
+    console.log('🔌 AboutPage: Подключение обработчиков к глобальному socket');
     
     // Слушаем обновления лайков
-    newSocket.on('story:like:update', (data) => {
-      console.log('📡 Получено обновление лайка:', data)
+    const handleLikeUpdate = (data) => {
+      console.log('📡 Получено обновление лайка:', data);
       
       // Обновляем оригинальные истории
       setStories(prevStories => 
@@ -77,7 +63,7 @@ const AboutPage = () => {
             ? { ...story, likes_count: data.likes }
             : story
         )
-      )
+      );
       
       // Обновляем переведенные истории
       setTranslatedStories(prevTranslated => 
@@ -86,31 +72,40 @@ const AboutPage = () => {
             ? { ...story, likes_count: data.likes }
             : story
         )
-      )
-    })
+      );
+    };
     
     // Слушаем события онлайн/офлайн пользователей
-    newSocket.on('user:online', (data) => {
-      console.log('👤 Пользователь онлайн:', data)
-    })
+    const handleUserOnline = (data) => {
+      console.log('👤 Пользователь онлайн:', data);
+    };
     
-    newSocket.on('user:offline', (data) => {
-      console.log('👋 Пользователь офлайн:', data)
-    })
+    const handleUserOffline = (data) => {
+      console.log('👋 Пользователь офлайн:', data);
+    };
     
     // Слушаем личные сообщения (для будущего функционала)
-    newSocket.on('message:received', (data) => {
-      console.log('💬 Получено личное сообщение:', data)
+    const handleMessageReceived = (data) => {
+      console.log('💬 Получено личное сообщение:', data);
       // Здесь можно показать уведомление
-    })
+    };
     
-    setSocket(newSocket)
+    globalSocket.on('story:like:update', handleLikeUpdate);
+    globalSocket.on('user:online', handleUserOnline);
+    globalSocket.on('user:offline', handleUserOffline);
+    globalSocket.on('message:received', handleMessageReceived);
     
-    // Отключаемся при размонтировании компонента
+    setSocket(globalSocket);
+    
+    // Отключаем обработчики при размонтировании компонента
     return () => {
-      newSocket.close()
-    }
-  }, [])
+      console.log('🔌 AboutPage: Отключение обработчиков');
+      globalSocket.off('story:like:update', handleLikeUpdate);
+      globalSocket.off('user:online', handleUserOnline);
+      globalSocket.off('user:offline', handleUserOffline);
+      globalSocket.off('message:received', handleMessageReceived);
+    };
+  }, [globalSocket]);
 
   // Функция для немедленной сортировки существующих историй
   const sortStoriesImmediately = (filter) => {
@@ -529,6 +524,12 @@ const AboutPage = () => {
           }
           return newSet
         })
+      } else if (data.error === 'TOO_MANY_LIKES') {
+        setErrorModalData({
+          title: t('error') || 'Ошибка',
+          message: data.message || t('tooManyLikes') || 'Слишком много лайков. Подождите немного.'
+        })
+        setShowErrorModal(true)
       } else {
         console.error('❌ Ошибка от сервера:', data)
       }

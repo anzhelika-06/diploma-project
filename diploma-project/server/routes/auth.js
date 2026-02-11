@@ -161,6 +161,20 @@ router.post('/register', async (req, res) => {
       nickname: newUser.nickname 
     });
 
+    // Создаем настройки пользователя с включенными уведомлениями по умолчанию
+    try {
+      const settingsQuery = `
+        INSERT INTO user_settings (user_id, notifications_enabled, eco_tips_enabled)
+        VALUES ($1, true, true)
+        ON CONFLICT (user_id) DO NOTHING
+      `;
+      await client.query(settingsQuery, [newUser.id]);
+      console.log(`✅ Настройки созданы для пользователя ${newUser.id} (уведомления включены)`);
+    } catch (settingsError) {
+      console.error('❌ Ошибка создания настроек:', settingsError);
+      // Не прерываем регистрацию
+    }
+
     // ✅ ПРИСВАИВАЕМ ДОСТИЖЕНИЕ first_login (согласно вашей структуре таблиц)
     try {
       // Получаем достижение по коду
@@ -228,6 +242,24 @@ router.post('/register', async (req, res) => {
 
     // Коммитим транзакцию
     await client.query('COMMIT');
+    
+    // Отправляем уведомление через WebSocket после коммита
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        const notificationResult = await client.query(
+          'SELECT * FROM notifications WHERE user_id = $1 AND type = $2 ORDER BY created_at DESC LIMIT 1',
+          [newUser.id, 'achievement']
+        );
+        
+        if (notificationResult.rows.length > 0) {
+          io.to(`user:${newUser.id}`).emit('notification:new', notificationResult.rows[0]);
+          console.log(`📡 Уведомление о first_login отправлено через WebSocket пользователю ${newUser.id}`);
+        }
+      }
+    } catch (wsError) {
+      console.error('❌ Ошибка отправки WebSocket уведомления:', wsError);
+    }
 
     // Генерация токена
     const token = jwt.sign(
@@ -457,6 +489,26 @@ router.post('/login', async (req, res) => {
 
     // Коммитим транзакцию
     await client.query('COMMIT');
+    
+    // Отправляем уведомление через WebSocket после коммита (только для первого входа)
+    if (!user.last_login_at) {
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          const notificationResult = await client.query(
+            'SELECT * FROM notifications WHERE user_id = $1 AND type = $2 ORDER BY created_at DESC LIMIT 1',
+            [user.id, 'achievement']
+          );
+          
+          if (notificationResult.rows.length > 0) {
+            io.to(`user:${user.id}`).emit('notification:new', notificationResult.rows[0]);
+            console.log(`📡 Уведомление о first_login отправлено через WebSocket пользователю ${user.id}`);
+          }
+        }
+      } catch (wsError) {
+        console.error('❌ Ошибка отправки WebSocket уведомления:', wsError);
+      }
+    }
 
     // Генерация JWT токена
     const token = jwt.sign(

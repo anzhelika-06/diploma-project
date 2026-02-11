@@ -9,10 +9,12 @@ import treeStage3 from '../assets/images/tree growth stage3.png'
 import { getRegistrationPhrase } from '../utils/randomPhrases'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
 import { useLanguage } from '../contexts/LanguageContext'
+import { useUser } from '../contexts/UserContext'
 
 const RegisterPage = () => {
   const navigate = useNavigate()
   const { currentLanguage, t } = useLanguage()
+  const { updateUser } = useUser()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     login: '',
@@ -379,6 +381,14 @@ const RegisterPage = () => {
         // Сохраняем пользователя и токен в localStorage
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('token', data.token) // ← СОХРАНЯЕМ ТОКЕН
+        
+        // Обновляем контекст пользователя
+        updateUser(data.user)
+        console.log('👤 Пользователь обновлен в контексте после регистрации')
+        
+        // Уведомляем SocketProvider об изменении пользователя
+        window.dispatchEvent(new Event('userChanged'))
+        console.log('🔔 Отправлено событие userChanged')
         
         // Показываем модалку успеха
         setShowSuccessModal(true)

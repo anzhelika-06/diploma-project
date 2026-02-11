@@ -5,7 +5,8 @@ export const getCurrentUser = () => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      console.log('📊 getCurrentUser из localStorage:', user);
+      // Убрано избыточное логирование
+      // console.log('📊 getCurrentUser из localStorage:', user);
       return user;
     }
     
@@ -20,7 +21,8 @@ export const getUserFromToken = () => {
   try {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('❌ Нет токена в localStorage');
+      // Убрано избыточное логирование
+      // console.log('❌ Нет токена в localStorage');
       return null;
     }
     
@@ -34,7 +36,8 @@ export const getUserFromToken = () => {
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     const decoded = JSON.parse(atob(base64));
     
-    console.log('🔍 Декодированный токен:', decoded);
+    // Убрано избыточное логирование
+    // console.log('🔍 Декодированный токен:', decoded);
     
     // ВАЖНО: Токен содержит только базовые поля, не carbon_saved!
     return {
@@ -56,21 +59,24 @@ export const getUserFromToken = () => {
 
 export const getUserInfo = () => {
   const user = getUserFromToken();
-  console.log('📋 getUserInfo результат:', user);
+  // Убрано избыточное логирование
+  // console.log('📋 getUserInfo результат:', user);
   return user;
 };
 
 // Вспомогательная функция для проверки админских прав
 export const isUserAdmin = () => {
   const user = getUserFromToken();
-  console.log('👑 isUserAdmin check - user:', user);
+  // Убрано избыточное логирование
+  // console.log('👑 isUserAdmin check - user:', user);
   return user?.is_admin || false;
 };
 
 // Функция для сохранения пользователя в localStorage (используется после успешного логина)
 export const saveUserToStorage = (userData) => {
   try {
-    console.log('💾 Сохранение пользователя в localStorage:', userData);
+    // Убрано избыточное логирование
+    // console.log('💾 Сохранение пользователя в localStorage:', userData);
     localStorage.setItem('user', JSON.stringify(userData));
     localStorage.setItem('token', userData.token || '');
   } catch (error) {
@@ -83,12 +89,14 @@ export const getUserFromStorage = () => {
   try {
     const userStr = localStorage.getItem('user');
     if (!userStr) {
-      console.log('📭 Нет пользователя в localStorage');
+      // Убрано избыточное логирование
+      // console.log('📭 Нет пользователя в localStorage');
       return null;
     }
     
     const user = JSON.parse(userStr);
-    console.log('📖 Пользователь из localStorage:', user);
+    // Убрано избыточное логирование
+    // console.log('📖 Пользователь из localStorage:', user);
     return user;
   } catch (error) {
     console.error('❌ Error getting user from storage:', error);
@@ -100,7 +108,8 @@ export const getUserFromStorage = () => {
 export const getUserAvatar = (user) => {
   if (!user) return '🌱';
   
-  console.log('🖼️ Получение аватара для пользователя:', user);
+  // Убрано избыточное логирование
+  // console.log('🖼️ Получение аватара для пользователя:', user);
   
   // Если у пользователя есть avatar_emoji
   if (user.avatar_emoji) {

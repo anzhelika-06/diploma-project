@@ -528,6 +528,24 @@ router.post('/:id/like', likeLimiter, async (req, res) => {
       
       await client.query('COMMIT');
       
+      // Вызываем processAchievementEvent для отправки уведомлений
+      try {
+        const { processAchievementEvent } = require('./achievements');
+        
+        if (isLiked) {
+          // Если поставили лайк
+          if (isOwnStory) {
+            await processAchievementEvent(validUserId, 'like_own_story', { storyId: storyId }, io);
+          } else {
+            await processAchievementEvent(validUserId, 'story_liked', { storyId: storyId }, io);
+            await processAchievementEvent(authorId, 'story_received_like', { storyId: storyId, likesCount: newLikesCount }, io);
+          }
+        }
+        console.log('✅ Трекинг достижений для лайка выполнен');
+      } catch (trackError) {
+        console.error('❌ Ошибка трекинга достижений:', trackError);
+      }
+      
       res.json({
         success: true,
         likes: newLikesCount,
@@ -827,6 +845,21 @@ router.post('/', async (req, res) => {
       
       await client.query('COMMIT');
       
+      // Вызываем processAchievementEvent для отправки уведомлений
+      try {
+        const { processAchievementEvent } = require('./achievements');
+        const io = req.app.get('io');
+        
+        await processAchievementEvent(userId, 'story_created', { 
+          storyId: newStory.id,
+          title: newStory.title 
+        }, io);
+        
+        console.log('✅ Трекинг достижения story_created выполнен');
+      } catch (trackError) {
+        console.error('❌ Ошибка трекинга достижения:', trackError);
+      }
+      
       res.json({
         success: true,
         message: 'История успешно создана и отправлена на проверку',
@@ -929,6 +962,19 @@ router.delete('/:id', async (req, res) => {
       }
       
       await client.query('COMMIT');
+      
+      // Трекинг достижения story_deleted
+      try {
+        const { processAchievementEvent } = require('./achievements');
+        
+        await processAchievementEvent(validUserId, 'story_deleted', { 
+          storyId: storyId
+        }, io);
+        
+        console.log('✅ Трекинг достижения story_deleted выполнен');
+      } catch (trackError) {
+        console.error('❌ Ошибка трекинга достижения:', trackError);
+      }
       
       res.json({
         success: true,
@@ -1470,6 +1516,20 @@ router.post('/admin/:id/publish', async (req, res) => {
       }
       
       await client.query('COMMIT');
+      
+      // Трекинг достижения story_published
+      try {
+        const { processAchievementEvent } = require('./achievements');
+        
+        await processAchievementEvent(authorId, 'story_published', { 
+          storyId: storyId,
+          title: storyTitle
+        }, io);
+        
+        console.log('✅ Трекинг достижения story_published выполнен');
+      } catch (trackError) {
+        console.error('❌ Ошибка трекинга достижения:', trackError);
+      }
       
       res.json({
         success: true,

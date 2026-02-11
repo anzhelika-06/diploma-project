@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { io } from 'socket.io-client';
+import { useSocket } from '../contexts/SocketContext';
 import '../styles/pages/ProfilePage.css';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
@@ -14,6 +14,7 @@ const ProfilePage = () => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   const currentUserId = currentUser?.id;
+  const { socket, isConnected } = useSocket(); // Используем глобальный socket
   
   console.log('🔄 ProfilePage рендер');
   console.log('   urlUserId из URL:', urlUserId, 'type:', typeof urlUserId);
@@ -35,7 +36,6 @@ const ProfilePage = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [socket, setSocket] = useState(null);
   
   // Посты
   const [posts, setPosts] = useState([]);
@@ -45,6 +45,9 @@ const ProfilePage = () => {
   const [comments, setComments] = useState({});
   const [translatedComments, setTranslatedComments] = useState({});
   const [newComment, setNewComment] = useState({});
+  const [postsPage, setPostsPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   
   // Дружба
   const [friendshipStatus, setFriendshipStatus] = useState('none');
@@ -52,9 +55,13 @@ const ProfilePage = () => {
   const [showFriendsList, setShowFriendsList] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
   const [friendsListOwnerId, setFriendsListOwnerId] = useState(null); // ID пользователя, чей список друзей мы смотрим
+  const [showFriendRequests, setShowFriendRequests] = useState(false);
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [friendRequestsCount, setFriendRequestsCount] = useState(0);
   
   // Модальные окна
   const [showReportModal, setShowReportModal] = useState(false);
+  const [reportingUserId, setReportingUserId] = useState(null); // ID пользователя, на которого жалуемся
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -77,45 +84,14 @@ const ProfilePage = () => {
   
   const [dateError, setDateError] = useState('');
 
-  // WebSocket подключение - создаем ОДИН РАЗ
+  // WebSocket обработчики
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!socket || !currentUserId) return;
 
-    console.log('🔌 Инициализация WebSocket подключения...');
-    
-    const newSocket = io('/', {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
-    });
-    
-    newSocket.on('connect', () => {
-      console.log('✅ WebSocket подключен, ID:', newSocket.id);
-      newSocket.emit('authenticate', {
-        userId: currentUserId,
-        nickname: currentUser.nickname
-      });
-    });
-    
-    newSocket.on('authenticated', (data) => {
-      console.log('✅ Аутентификация успешна:', data);
-    });
-    
-    newSocket.on('test:message', (data) => {
-      console.log('🧪 Получено тестовое сообщение:', data);
-    });
-    
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Ошибка подключения WebSocket:', error);
-    });
-    
-    newSocket.on('disconnect', (reason) => {
-      console.log('🔌 WebSocket отключен:', reason);
-    });
+    console.log('📡 ProfilePage: Подключение обработчиков к глобальному socket');
     
     // Обработчики событий постов
-    newSocket.on('post:created', (data) => {
+    socket.on('post:created', (data) => {
       console.log('📝 Новый пост создан:', data);
       // Обновляем посты
       setPosts(prev => {
@@ -127,7 +103,7 @@ const ProfilePage = () => {
       });
     });
     
-    newSocket.on('post:deleted', (data) => {
+    socket.on('post:deleted', (data) => {
       console.log('🗑️ Пост удален:', data);
       console.log('   postId:', data.postId, 'type:', typeof data.postId);
       setPosts(prev => {
@@ -137,7 +113,7 @@ const ProfilePage = () => {
       });
     });
     
-    newSocket.on('post:like:update', (data) => {
+    socket.on('post:like:update', (data) => {
       console.log('❤️ Лайк обновлен:', data);
       console.log('   Обновляем пост с ID:', data.postId, 'новый счетчик:', data.likesCount);
       setPosts(prev => {
@@ -157,7 +133,7 @@ const ProfilePage = () => {
       });
     });
     
-    newSocket.on('post:comment:added', (data) => {
+    socket.on('post:comment:added', (data) => {
       console.log('💬 Комментарий добавлен:', data);
       console.log('   К посту ID:', data.postId, 'комментарий:', data.comment.content);
       setComments(prev => {
@@ -180,7 +156,7 @@ const ProfilePage = () => {
       });
     });
     
-    newSocket.on('post:comment:deleted', (data) => {
+    socket.on('post:comment:deleted', (data) => {
       console.log('🗑️ Комментарий удален:', data);
       console.log('   Из поста ID:', data.postId, 'комментарий ID:', data.commentId);
       setComments(prev => {
@@ -204,14 +180,17 @@ const ProfilePage = () => {
     });
     
     // Обработчики событий дружбы
-    newSocket.on('friendship:request', (data) => {
+    socket.on('friendship:request', (data) => {
       console.log('👥 Запрос в друзья:', data);
       if (data.toUserId === currentUserId) {
         setFriendshipStatus('pending_received');
+        // Увеличиваем счетчик запросов и перезагружаем список
+        setFriendRequestsCount(prev => prev + 1);
+        loadFriendRequests();
       }
     });
     
-    newSocket.on('friendship:accepted', (data) => {
+    socket.on('friendship:accepted', (data) => {
       console.log('✅ Дружба принята:', data);
       setFriendshipStatus('accepted');
       // Обновляем счетчик друзей
@@ -219,9 +198,26 @@ const ProfilePage = () => {
         ...prev,
         friends_count: (prev.friends_count || 0) + 1
       }) : prev);
+      // Уменьшаем счетчик запросов если это мы приняли
+      if (data.userId === currentUserId || data.friendId === currentUserId) {
+        setFriendRequestsCount(prev => Math.max(0, prev - 1));
+      }
     });
     
-    newSocket.on('friendship:removed', (data) => {
+    socket.on('friendship:rejected', (data) => {
+      console.log('❌ Запрос в друзья отклонен:', data);
+      // Если нам отклонили запрос, возвращаем кнопку "Добавить в друзья"
+      if (data.fromUserId === currentUserId) {
+        setFriendshipStatus('none');
+        setFriendshipId(null);
+      }
+      // Если мы отклонили, уменьшаем счетчик запросов
+      if (data.toUserId === currentUserId) {
+        setFriendRequestsCount(prev => Math.max(0, prev - 1));
+      }
+    });
+    
+    socket.on('friendship:removed', (data) => {
       console.log('❌ Дружба удалена:', data);
       if (data.userId === currentUserId || data.friendId === currentUserId) {
         setFriendshipStatus('none');
@@ -233,13 +229,19 @@ const ProfilePage = () => {
       }
     });
     
-    setSocket(newSocket);
-    
     return () => {
-      console.log('🔌 Закрытие WebSocket подключения');
-      newSocket.close();
+      console.log('🔌 ProfilePage: отключение обработчиков');
+      socket.off('post:created');
+      socket.off('post:deleted');
+      socket.off('post:like:update');
+      socket.off('post:comment:added');
+      socket.off('post:comment:deleted');
+      socket.off('friendship:request');
+      socket.off('friendship:accepted');
+      socket.off('friendship:rejected');
+      socket.off('friendship:removed');
     };
-  }, [currentUserId, currentUser.nickname]); // Убрали viewingUserId и profileData из зависимостей
+  }, [socket, currentUserId]); // Переподключаем обработчики при смене socket
 
   // Функция для загрузки всех данных профиля
   const loadProfileData = useCallback(async (targetUserId) => {
@@ -259,7 +261,13 @@ const ProfilePage = () => {
       
       if (profileData.success) {
         console.log('✅ Профиль загружен:', profileData.user.nickname);
-        setProfileData(profileData.user);
+        // Преобразуем счетчики в числа
+        setProfileData({
+          ...profileData.user,
+          friends_count: Number(profileData.user.friends_count) || 0,
+          teams_count: Number(profileData.user.teams_count) || 0,
+          posts_count: Number(profileData.user.posts_count) || 0
+        });
         
         // Форматируем дату в ДД/ММ/ГГГГ (только дата, без времени)
         const dob = profileData.user.date_of_birth || '';
@@ -281,35 +289,37 @@ const ProfilePage = () => {
       }
       
       // Загрузка постов
-      const postsResponse = await fetch(`/api/users/${targetUserId}/posts`);
+      const postsResponse = await fetch(`/api/users/${targetUserId}/posts?page=1&limit=10`);
       const postsData = await postsResponse.json();
       
       if (postsData.success) {
         console.log('✅ Посты загружены:', postsData.posts.length);
         setPosts(postsData.posts);
+        setPostsPage(1);
+        setHasMorePosts(postsData.pagination && postsData.pagination.page < postsData.pagination.totalPages);
       }
       
       // Загрузка статуса дружбы
       if (!isOwn && currentUserId) {
+        console.log('🔍 Загружаем статус дружбы для:', { currentUserId, targetUserId });
         const friendshipResponse = await fetch(`/api/users/${currentUserId}/friends/status/${targetUserId}`);
         const friendshipData = await friendshipResponse.json();
+        
+        console.log('📊 Ответ API статуса дружбы:', friendshipData);
         
         if (friendshipData.success) {
           console.log('✅ Статус дружбы:', friendshipData.status);
           setFriendshipStatus(friendshipData.status);
           setFriendshipId(friendshipData.friendshipId);
+        } else {
+          console.log('⚠️ API вернул success: false, устанавливаем статус none');
+          setFriendshipStatus('none');
+          setFriendshipId(null);
         }
       } else {
+        console.log('ℹ️ Свой профиль или нет currentUserId, статус: none');
         setFriendshipStatus('none');
         setFriendshipId(null);
-      }
-      
-      if (currentUserId) {
-        trackEvent('profile_page_viewed', {
-          userId: currentUserId,
-          viewedUserId: targetUserId,
-          isOwnProfile: isOwn
-        });
       }
     } catch (error) {
       console.error('Ошибка загрузки данных профиля:', error);
@@ -473,6 +483,29 @@ const ProfilePage = () => {
     }
   }, []);
 
+  const loadFriendRequests = useCallback(async () => {
+    if (!currentUserId) return;
+    
+    try {
+      const response = await fetch(`/api/users/${currentUserId}/friends/requests/incoming`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setFriendRequests(data.requests);
+        setFriendRequestsCount(data.requests.length);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки запросов в друзья:', error);
+    }
+  }, [currentUserId]);
+
+  // Загружаем запросы в друзья при монтировании
+  useEffect(() => {
+    if (currentUserId) {
+      loadFriendRequests();
+    }
+  }, [currentUserId, loadFriendRequests]);
+
   const handleSendFriendRequest = async () => {
     try {
       const response = await fetch(`/api/users/${currentUser.id}/friends/request`, {
@@ -504,6 +537,7 @@ const ProfilePage = () => {
       const data = await response.json();
       if (data.success) {
         setFriendshipStatus('accepted');
+        // Счетчик друзей обновится через WebSocket событие 'friendship:accepted'
         trackEvent('friend_request_accepted', {
           userId: currentUser.id,
           friendId: profileData.id
@@ -532,8 +566,8 @@ const ProfilePage = () => {
 
   const handleRemoveFriend = async () => {
     setConfirmModalData({
-      title: t('confirmRemoveFriend'),
-      message: `${t('confirmRemoveFriend')} ${profileData.nickname}?`,
+      title: t('removeFriend') || 'Удаление друга',
+      message: `${t('confirmRemoveFriendMessage') || 'Вы уверены, что хотите удалить'} ${profileData.nickname} ${t('fromFriends') || 'из друзей'}?`,
       onConfirm: async () => {
         try {
           const response = await fetch(`/api/users/${currentUser.id}/friends/${profileData.id}`, {
@@ -544,6 +578,11 @@ const ProfilePage = () => {
           if (data.success) {
             setFriendshipStatus('none');
             setFriendshipId(null);
+            // Обновляем счетчик друзей
+            setProfileData(prev => prev ? ({
+              ...prev,
+              friends_count: Math.max(0, (prev.friends_count || 0) - 1)
+            }) : prev);
             trackEvent('friend_removed', {
               userId: currentUser.id,
               friendId: profileData.id
@@ -561,8 +600,8 @@ const ProfilePage = () => {
   // Удаление друга из списка друзей
   const handleRemoveFriendFromList = async (friendId, friendNickname) => {
     setConfirmModalData({
-      title: t('confirmRemoveFriend'),
-      message: `${t('confirmRemoveFriend')} ${friendNickname}?`,
+      title: t('removeFriend') || 'Удаление друга',
+      message: `${t('confirmRemoveFriendMessage') || 'Вы уверены, что хотите удалить'} ${friendNickname} ${t('fromFriends') || 'из друзей'}?`,
       onConfirm: async () => {
         try {
           const response = await fetch(`/api/users/${currentUserId}/friends/${friendId}`, {
@@ -573,6 +612,11 @@ const ProfilePage = () => {
           if (data.success) {
             // Обновляем список друзей
             setFriendsList(prev => prev.filter(f => f.id !== friendId));
+            // Обновляем счетчик друзей
+            setProfileData(prev => prev ? ({
+              ...prev,
+              friends_count: Math.max(0, (prev.friends_count || 0) - 1)
+            }) : prev);
             trackEvent('friend_removed', {
               userId: currentUserId,
               friendId: friendId
@@ -612,6 +656,71 @@ const ProfilePage = () => {
     }
   };
 
+  // Принять запрос в друзья из модального окна
+  const handleAcceptRequestFromModal = async (requestId, friendId) => {
+    try {
+      const response = await fetch(`/api/users/${currentUserId}/friends/${requestId}/accept`, {
+        method: 'PUT'
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Удаляем запрос из списка
+        setFriendRequests(prev => prev.filter(r => r.friendship_id !== requestId));
+        setFriendRequestsCount(prev => Math.max(0, prev - 1));
+        
+        trackEvent('friend_request_accepted', {
+          userId: currentUserId,
+          friendId: friendId
+        });
+        
+        setSuccessModalData({
+          title: t('success') || 'Успешно',
+          message: t('friendRequestAccepted') || 'Запрос в друзья принят'
+        });
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error('Ошибка принятия запроса:', error);
+    }
+  };
+
+  // Отклонить запрос в друзья из модального окна
+  const handleRejectRequestFromModal = async (requestId) => {
+    try {
+      const response = await fetch(`/api/users/${currentUserId}/friends/${requestId}/reject`, {
+        method: 'PUT'
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        // Удаляем запрос из списка
+        setFriendRequests(prev => prev.filter(r => r.friendship_id !== requestId));
+        setFriendRequestsCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Ошибка отклонения запроса:', error);
+    }
+  };
+
+  // Пожаловаться на пользователя из запроса
+  const handleReportFromRequest = (userId) => {
+    setShowFriendRequests(false);
+    setReportingUserId(userId);
+    setShowReportModal(true);
+  };
+
+  // Перейти к профилю из запроса
+  const handleViewProfileFromRequest = (userId) => {
+    console.log('👤 Клик на просмотр профиля из запроса в друзья');
+    console.log('   userId:', userId, 'type:', typeof userId);
+    setShowFriendRequests(false);
+    isInternalNavigation.current = true;
+    const friendId = Number(userId);
+    console.log('   Устанавливаем viewingUserId =', friendId);
+    setViewingUserId(friendId);
+  };
+
   const handleSubmitReport = async () => {
     if (!reportForm.reason || !reportForm.description) {
       setErrorModalData({
@@ -635,7 +744,7 @@ const ProfilePage = () => {
         })
       );
       
-      const response = await fetch(`/api/users/${profileData.id}/report`, {
+      const response = await fetch(`/api/users/${reportingUserId || profileData.id}/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -655,9 +764,10 @@ const ProfilePage = () => {
         setShowSuccessModal(true);
         setShowReportModal(false);
         setReportForm({ reason: '', description: '', screenshots: [] });
+        setReportingUserId(null); // Сбрасываем ID
         trackEvent('user_reported', {
           reporterId: currentUser.id,
-          reportedUserId: profileData.id
+          reportedUserId: reportingUserId || profileData.id
         });
       }
     } catch (error) {
@@ -925,6 +1035,12 @@ const ProfilePage = () => {
           }
           return [data.post, ...prev];
         });
+        // Обновляем счетчик постов
+        setProfileData(prev => prev ? ({
+          ...prev,
+          posts_count: (prev.posts_count || 0) + 1
+        }) : prev);
+        
         trackEvent('post_created', {
           userId: currentUser.id,
           postId: data.post.id
@@ -932,6 +1048,27 @@ const ProfilePage = () => {
       }
     } catch (error) {
       console.error('Ошибка создания поста:', error);
+    }
+  };
+
+  const loadMorePosts = async () => {
+    if (!profileData || loadingMorePosts || !hasMorePosts) return;
+    
+    try {
+      setLoadingMorePosts(true);
+      const nextPage = postsPage + 1;
+      const response = await fetch(`/api/users/${profileData.id}/posts?page=${nextPage}&limit=10`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setPosts(prev => [...prev, ...data.posts]);
+        setPostsPage(nextPage);
+        setHasMorePosts(data.pagination && data.pagination.page < data.pagination.totalPages);
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки постов:', error);
+    } finally {
+      setLoadingMorePosts(false);
     }
   };
 
@@ -947,6 +1084,14 @@ const ProfilePage = () => {
           
           const data = await response.json();
           if (data.success) {
+            // Оптимистичное обновление - удаляем пост из списка
+            setPosts(prev => prev.filter(p => p.id !== postId));
+            // Обновляем счетчик постов
+            setProfileData(prev => prev ? ({
+              ...prev,
+              posts_count: Math.max(0, (prev.posts_count || 0) - 1)
+            }) : prev);
+            
             trackEvent('post_deleted', {
               userId: currentUser.id,
               postId: postId
@@ -976,6 +1121,12 @@ const ProfilePage = () => {
           postId: postId,
           isLiked: data.isLiked
         });
+      } else if (data.error === 'TOO_MANY_LIKES') {
+        setErrorModalData({
+          title: t('error') || 'Ошибка',
+          message: data.message || t('tooManyLikes') || 'Слишком много лайков. Подождите немного.'
+        });
+        setShowErrorModal(true);
       }
     } catch (error) {
       console.error('Ошибка лайка поста:', error);
@@ -1067,6 +1218,7 @@ const ProfilePage = () => {
     return (
       <div className="profile-page">
         <div className="profile-error">
+          <span className="material-icons">person_off</span>
           <p>{t('profileNotFound')}</p>
         </div>
       </div>
@@ -1114,7 +1266,8 @@ const ProfilePage = () => {
               </>
             ) : (
               <>
-                {friendshipStatus === 'none' && (
+                {console.log('🔘 Рендер кнопок дружбы. friendshipStatus:', friendshipStatus, 'isOwnProfile:', isOwnProfile)}
+                {(friendshipStatus === 'none' || friendshipStatus === 'rejected') && (
                   <button 
                     className="profile-action-btn btn-add-friend"
                     onClick={handleSendFriendRequest}
@@ -1178,9 +1331,18 @@ const ProfilePage = () => {
             className="stat-item stat-clickable" 
             onClick={() => loadFriendsList(profileData.id)}
             title={t('viewFriends')}
+            style={{ position: 'relative' }}
           >
             <span className="stat-value">{profileData.friends_count || 0}</span>
             <span className="stat-label">{t('friends')}</span>
+            {isOwnProfile && friendRequestsCount > 0 && (
+              <span className="friend-requests-badge" onClick={(e) => {
+                e.stopPropagation();
+                setShowFriendRequests(true);
+              }}>
+                {friendRequestsCount}
+              </span>
+            )}
           </div>
           <div className="stat-item">
             <span className="stat-value">{profileData.posts_count || 0}</span>
@@ -1400,6 +1562,19 @@ const ProfilePage = () => {
               ))
             )}
           </div>
+          
+          {/* Кнопка загрузки дополнительных постов */}
+          {hasMorePosts && translatedPosts.length > 0 && (
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <button 
+                className="btn-load-more"
+                onClick={loadMorePosts}
+                disabled={loadingMorePosts}
+              >
+                {loadingMorePosts ? (t('loading') || 'Загрузка...') : (t('loadMore') || 'Загрузить еще')}
+              </button>
+            </div>
+          )}
         </div>
         {/* Модальное окно списка друзей */}
         {showFriendsList && (
@@ -1470,6 +1645,67 @@ const ProfilePage = () => {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Модальное окно запросов в друзья */}
+        {showFriendRequests && (
+          <div className="modal-overlay" onClick={() => setShowFriendRequests(false)}>
+            <div className="modal-content friends-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>{t('friendRequests') || 'Запросы в друзья'}</h2>
+                <button className="modal-close" onClick={() => setShowFriendRequests(false)}>
+                  <span className="material-icons">close</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                {friendRequests.length === 0 ? (
+                  <p className="no-friends">{t('noFriendRequests') || 'Нет входящих запросов'}</p>
+                ) : (
+                  <div className="friends-list">
+                    {friendRequests.map(request => (
+                      <div key={request.friendship_id} className="friend-item">
+                        <span className="friend-avatar">{request.avatar_emoji || '🌱'}</span>
+                        <div className="friend-info">
+                          <span className="friend-name">{request.nickname}</span>
+                          <span className="friend-level">{translateEcoLevel(request.eco_level, currentLanguage)}</span>
+                        </div>
+                        <div className="friend-actions">
+                          <button 
+                            className="btn-view-profile-icon"
+                            onClick={() => handleViewProfileFromRequest(request.user_id)}
+                            title={t('viewProfile')}
+                          >
+                            <span className="material-icons">visibility</span>
+                          </button>
+                          <button 
+                            className="btn-accept-request"
+                            onClick={() => handleAcceptRequestFromModal(request.friendship_id, request.user_id)}
+                            title={t('acceptRequest') || 'Принять'}
+                          >
+                            <span className="material-icons">check</span>
+                          </button>
+                          <button 
+                            className="btn-reject-request"
+                            onClick={() => handleRejectRequestFromModal(request.friendship_id)}
+                            title={t('rejectRequest') || 'Отклонить'}
+                          >
+                            <span className="material-icons">close</span>
+                          </button>
+                          <button 
+                            className="btn-report-request"
+                            onClick={() => handleReportFromRequest(request.user_id)}
+                            title={t('report') || 'Пожаловаться'}
+                          >
+                            <span className="material-icons">report</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

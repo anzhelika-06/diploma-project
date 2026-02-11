@@ -1,15 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
+import { useSocket } from '../contexts/SocketContext';
+import { useUser } from '../contexts/UserContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { getCurrentUser } from '../utils/authUtils';
 import { translateStoryContent, detectTextLanguage } from '../utils/translations';
 import '../styles/components/NotificationBell.css';
 
 const NotificationBell = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
+  const { currentUser } = useUser(); // Используем контекст пользователя
+  const { socket, isConnected } = useSocket(); // Используем глобальный socket
   
   const [notifications, setNotifications] = useState([]);
   const [translatedNotifications, setTranslatedNotifications] = useState([]);
@@ -17,7 +18,6 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
-  const socketRef = useRef(null);
 
   // Загрузка уведомлений
   const loadNotifications = async () => {
@@ -100,35 +100,67 @@ const NotificationBell = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifications.length, currentLanguage]);
 
-  // WebSocket подключение
+  // WebSocket обработчики
   useEffect(() => {
-    if (!currentUser) return;
+    if (!socket || !currentUser) return;
 
-    // Подключаемся к WebSocket
-    const socket = io('/', {
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5
-    });
-
-    socket.on('connect', () => {
-      console.log('🔔 NotificationBell: WebSocket подключен');
-      // Присоединяемся к комнате пользователя
-      socket.emit('join:room', `user_${currentUser.id}`);
-    });
+    console.log('🔔 NotificationBell: Подключение обработчиков к глобальному socket');
 
     // Слушаем новые уведомления
-    socket.on('notification:new', (notification) => {
-      console.log('🔔 Новое уведомление получено:', notification);
+    socket.on('notification:new', (data) => {
+      console.log('🔔 NotificationBell: Получено событие notification:new');
+      console.log('   Данные:', data);
+      console.log('   Тип данных:', typeof data);
+      console.log('   Ключи:', Object.keys(data));
+      console.log('   currentUser.id:', currentUser.id);
+      
+      // Поддерживаем два формата:
+      // 1. { userId, notification } - из profile.js
+      // 2. notification - из notificationHelper.js
+      let notification;
+      
+      if (data.notification) {
+        console.log('   Формат: { userId, notification }');
+        // Формат { userId, notification }
+        // Проверяем, что уведомление предназначено для текущего пользователя
+        if (data.userId && data.userId !== currentUser.id) {
+          console.log(`🔔 Уведомление не для текущего пользователя (data.userId: ${data.userId}, currentUser.id: ${currentUser.id}), игнорируем`);
+          return;
+        }
+        notification = data.notification;
+      } else if (data.user_id) {
+        console.log('   Формат: notification с user_id');
+        // Формат notification с полем user_id
+        // Проверяем, что уведомление предназначено для текущего пользователя
+        if (data.user_id !== currentUser.id) {
+          console.log(`🔔 Уведомление не для текущего пользователя (data.user_id: ${data.user_id}, currentUser.id: ${currentUser.id}), игнорируем`);
+          return;
+        }
+        notification = data;
+      } else {
+        console.log('   Формат: notification (без userId)');
+        // Формат просто notification (из notificationHelper через комнату)
+        // Если уведомление пришло в комнату user:X, значит оно для этого пользователя
+        notification = data;
+      }
+      
+      console.log('   Финальное уведомление:', notification);
+      console.log('   Тип уведомления:', notification.type);
+      
       setNotifications(prev => {
         const updated = [notification, ...prev].slice(0, 10);
+        console.log('   Обновленный список уведомлений:', updated.length);
         return updated;
       });
-      setUnreadCount(prev => prev + 1);
+      setUnreadCount(prev => {
+        const newCount = prev + 1;
+        console.log('   Новый счетчик непрочитанных:', newCount);
+        return newCount;
+      });
       
       // Показываем браузерное уведомление если разрешено
       if (Notification.permission === 'granted') {
+        console.log('   Показываем браузерное уведомление');
         new Notification(notification.title, {
           body: notification.message,
           icon: '/favicon.ico'
@@ -141,8 +173,6 @@ const NotificationBell = () => {
       console.log('🔔 Обновление счетчика непрочитанных:', data.count);
       setUnreadCount(data.count);
     });
-
-    socketRef.current = socket;
 
     // Загружаем уведомления при монтировании
     loadNotifications();
@@ -169,12 +199,12 @@ const NotificationBell = () => {
     window.addEventListener('notificationDeleted', handleNotificationDeleted);
 
     return () => {
-      console.log('🔔 NotificationBell: Отключение WebSocket');
-      socket.disconnect();
+      console.log('🔔 NotificationBell: Отключение обработчиков');
+      socket.off('notification:new');
+      socket.off('notification:unread-count');
       window.removeEventListener('notificationDeleted', handleNotificationDeleted);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Подключаемся только один раз при монтировании
+  }, [socket, currentUser]); // Переподключаем обработчики при смене socket
 
   // Закрытие dropdown при клике вне
   useEffect(() => {

@@ -196,6 +196,21 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
     
+    // Трекинг достижений для создания поста
+    try {
+      console.log('🎯 posts.js: Начинаем трекинг достижения post_created для пользователя', userId);
+      console.log('   io доступен:', !!io);
+      
+      const { processAchievementEvent } = require('./achievements');
+      console.log('   processAchievementEvent загружен:', typeof processAchievementEvent);
+      
+      const result = await processAchievementEvent(userId, 'post_created', { postId: post.id }, io);
+      console.log('✅ Трекинг достижения post_created выполнен, результат:', result);
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения:', trackError);
+      // Не прерываем выполнение, если трекинг не сработал
+    }
+    
     res.json({
       success: true,
       post: {
@@ -453,6 +468,15 @@ router.post('/:postId/comments', authenticateToken, async (req, res) => {
         ...user,
         postId: parseInt(postId)
       });
+    }
+    
+    // Трекинг достижений для комментария
+    try {
+      const { processAchievementEvent } = require('./achievements');
+      await processAchievementEvent(userId, 'comment_added', { commentId: comment.id, postId: postId }, io);
+      console.log('✅ Трекинг достижения comment_added выполнен');
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения:', trackError);
     }
     
     res.json({

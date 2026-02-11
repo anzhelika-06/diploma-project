@@ -292,6 +292,40 @@ router.post('/calculate', async (req, res) => {
         'UPDATE users SET carbon_saved = carbon_saved + $1 WHERE id = $2',
         [Math.round(co2Saved), userId]
       );
+      
+      // Трекинг достижения carbon_saved
+      try {
+        const { processAchievementEvent } = require('./achievements');
+        const io = req.app.get('io');
+        
+        // Получаем текущее значение carbon_saved
+        const userResult = await db.query('SELECT carbon_saved FROM users WHERE id = $1', [userId]);
+        const totalCarbonSaved = userResult.rows[0]?.carbon_saved || 0;
+        
+        await processAchievementEvent(userId, 'carbon_saved', { 
+          value: totalCarbonSaved,
+          addedAmount: Math.round(co2Saved)
+        }, io);
+        
+        console.log('✅ Трекинг достижения carbon_saved выполнен');
+      } catch (trackError) {
+        console.error('❌ Ошибка трекинга достижения:', trackError);
+      }
+    }
+    
+    // Трекинг достижения calculation_completed
+    try {
+      const { processAchievementEvent } = require('./achievements');
+      const io = req.app.get('io');
+      
+      await processAchievementEvent(userId, 'calculation_completed', { 
+        calculationId: result.rows[0].id,
+        totalFootprint: totalFootprint
+      }, io);
+      
+      console.log('✅ Трекинг достижения calculation_completed выполнен');
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения:', trackError);
     }
     
     res.json({

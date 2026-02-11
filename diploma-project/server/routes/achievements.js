@@ -22,6 +22,22 @@ const processAchievementEvent = async (userId, eventType, eventData = {}, io = n
     
     console.log(`🎯 Обработка события достижения: ${eventType} для пользователя ${userId}`);
     
+    // 0. Проверяем существование пользователя
+    const userCheck = await client.query(
+      'SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL',
+      [userId]
+    );
+    
+    if (userCheck.rows.length === 0) {
+      console.log(`⚠️ Пользователь ${userId} не найден или удален, пропускаем трекинг достижения`);
+      return { 
+        success: false, 
+        error: 'USER_NOT_FOUND',
+        unlocked: [], 
+        updated: [] 
+      };
+    }
+    
     // 1. Записываем событие в историю
     await client.query(`
       INSERT INTO achievement_events (user_id, event_type, event_data)
@@ -160,20 +176,26 @@ const processAchievementEvent = async (userId, eventType, eventData = {}, io = n
         
         console.log(`🏆 Разблокировано достижение: ${achievement.name} (${achievement.points} очков)`);
         console.log(`ℹ️ Награда будет получена только после клика "Забрать награду"`);
+        console.log(`📡 io передан в processAchievementEvent:`, !!io);
+        console.log(`   Тип io:`, typeof io);
         
         // Отправляем уведомление пользователю о новом достижении
         if (io) {
           try {
-            await notifyUserAboutAchievement(
+            console.log(`🔔 Вызываем notifyUserAboutAchievement для пользователя ${userId}`);
+            const notificationResult = await notifyUserAboutAchievement(
               userId,
               achievement.name,
               achievement.icon,
               achievement.id,
               io
             );
+            console.log(`✅ notifyUserAboutAchievement вернула:`, notificationResult ? 'успех' : 'null');
           } catch (notifError) {
-            console.error('Ошибка отправки уведомления о достижении:', notifError);
+            console.error('❌ Ошибка отправки уведомления о достижении:', notifError);
           }
+        } else {
+          console.error(`❌ io НЕ передан в processAchievementEvent! Уведомление не будет отправлено.`);
         }
       }
     }
@@ -717,4 +739,69 @@ router.post('/test-event', async (req, res) => {
   }
 });
 
+// Тестовый эндпоинт для прямой отправки уведомления
+router.post('/test-notification', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    console.log('🧪 POST /api/achievements/test-notification - тестовое уведомление');
+    console.log('   userId:', userId);
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: 'Отсутствует userId'
+      });
+    }
+    
+    const io = req.app.get('io');
+    console.log('   io доступен:', !!io);
+    console.log('   Тип io:', typeof io);
+    
+    if (!io) {
+      return res.status(500).json({
+        success: false,
+        error: 'IO_NOT_AVAILABLE',
+        message: 'Socket.IO не доступен'
+      });
+    }
+    
+    // Отправляем тестовое уведомление напрямую
+    const testNotification = {
+      id: Date.now(),
+      user_id: userId,
+      type: 'achievement',
+      title: '🧪 Тестовое уведомление о достижении',
+      message: 'Это тестовое уведомление для проверки системы',
+      link: '/achievements',
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+    
+    console.log('   Отправляем в комнату: user:' + userId);
+    console.log('   Уведомление:', testNotification);
+    
+    io.to(`user:${userId}`).emit('notification:new', testNotification);
+    
+    console.log('✅ Тестовое уведомление отправлено');
+    
+    res.json({
+      success: true,
+      message: 'Тестовое уведомление отправлено',
+      notification: testNotification,
+      roomId: `user:${userId}`
+    });
+    
+  } catch (error) {
+    console.error('❌ Ошибка отправки тестового уведомления:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
+module.exports.processAchievementEvent = processAchievementEvent;

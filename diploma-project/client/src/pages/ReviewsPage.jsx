@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { io } from 'socket.io-client'
+import { useSocket } from '../contexts/SocketContext'
 import '../styles/pages/ReviewsPage.css'
 import { getEmojiByCode } from '../utils/emojiMapper'
 import { 
@@ -159,29 +159,26 @@ const ReviewsPage = () => {
     })
   }, [currentUser, saveLikesToStorage])
 
-  // Подключение к WebSocket
-  useEffect(() => {
-    if (!currentUser) return
+  // Получаем глобальный socket
+  const { socket: globalSocket, isConnected } = useSocket();
 
-    const newSocket = io('/api')
+  // Используем глобальный socket
+  useEffect(() => {
+    if (globalSocket) {
+      setSocket(globalSocket);
+    }
+  }, [globalSocket]);
+
+  // Подключение обработчиков WebSocket
+  useEffect(() => {
+    if (!socket || !currentUser) return;
+
+    console.log('🔌 ReviewsPage: Подключение обработчиков к глобальному socket');
     
-    newSocket.on('connect', () => {
-      console.log('🔌 WebSocket подключен:', newSocket.id)
+    const handleLikeUpdate = (data) => {
+      console.log('🔄 WebSocket обновление лайков:', data);
       
-      newSocket.emit('authenticate', {
-        userId: currentUser.id,
-        nickname: currentUser.nickname
-      })
-    })
-    
-    newSocket.on('authenticated', (data) => {
-      console.log('✅ Аутентификация успешна:', data)
-    })
-    
-    newSocket.on('story:like:update', (data) => {
-      console.log('🔄 WebSocket обновление лайков:', data)
-      
-      skipTranslationRef.current = true
+      skipTranslationRef.current = true;
       
       setStories(prevStories => 
         prevStories.map(story => 
@@ -189,7 +186,7 @@ const ReviewsPage = () => {
             ? { ...story, likes_count: data.likes }
             : story
         )
-      )
+      );
       
       setTranslatedStories(prevTranslated => 
         prevTranslated.map(story => 
@@ -197,19 +194,20 @@ const ReviewsPage = () => {
             ? { ...story, likes_count: data.likes }
             : story
         )
-      )
+      );
       
       setTimeout(() => {
-        skipTranslationRef.current = false
-      }, 100)
-    })
+        skipTranslationRef.current = false;
+      }, 100);
+    };
     
-    setSocket(newSocket)
+    socket.on('story:like:update', handleLikeUpdate);
     
     return () => {
-      newSocket.close()
-    }
-  }, [currentUser])
+      console.log('🔌 ReviewsPage: Отключение обработчиков');
+      socket.off('story:like:update', handleLikeUpdate);
+    };
+  }, [socket, currentUser]);
 
   // Загрузка всех историй с пагинацией
   const loadAllStories = async (filter = 'all', category = 'all', page = 1) => {
@@ -544,6 +542,12 @@ const ReviewsPage = () => {
         setTimeout(() => {
           skipTranslationRef.current = false
         }, 100)
+      } else if (data.error === 'TOO_MANY_LIKES') {
+        setErrorModalData({
+          title: t('error') || 'Ошибка',
+          message: data.message || t('tooManyLikes') || 'Слишком много лайков. Подождите немного.'
+        })
+        setShowErrorModal(true)
       }
     } catch (error) {
       console.error('❌ Ошибка при лайке:', error)
@@ -819,18 +823,6 @@ const ReviewsPage = () => {
     const category = categories.find(c => c.category === newStory.category)
     return category ? translateCategory(category.category, currentLanguage) : newStory.category
   }
-
-  // Отслеживаем просмотр страницы историй
-  useEffect(() => {
-    if (currentUser) {
-      trackEvent('stories_page_viewed', {
-        userId: currentUser.id,
-        timestamp: new Date().toISOString(),
-        activeTab: activeTab
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser?.id, activeTab]) // Используем currentUser?.id вместо currentUser
 
   // Отслеживаем открытие модалки создания истории
   useEffect(() => {

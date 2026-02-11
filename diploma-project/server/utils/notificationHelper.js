@@ -48,8 +48,16 @@ async function createNotification(userId, type, title, message, link = null, rel
 
     // Если передан io, отправляем уведомление через WebSocket
     if (io) {
-      console.log(`📡 Отправка уведомления через WebSocket в комнату user_${userId}`);
-      io.to(`user_${userId}`).emit('notification:new', notification);
+      console.log(`📡 Отправка уведомления через WebSocket в комнату user:${userId}`);
+      console.log(`   Тип io:`, typeof io);
+      console.log(`   io.to доступен:`, typeof io.to === 'function');
+      
+      try {
+        io.to(`user:${userId}`).emit('notification:new', notification);
+        console.log(`✅ WebSocket событие notification:new отправлено в комнату user:${userId}`);
+      } catch (emitError) {
+        console.error(`❌ Ошибка отправки WebSocket события:`, emitError);
+      }
       
       // Получаем обновленное количество непрочитанных
       const unreadResult = await pool.query(
@@ -60,9 +68,14 @@ async function createNotification(userId, type, title, message, link = null, rel
       const unreadCount = parseInt(unreadResult.rows[0].count);
       console.log(`📊 Непрочитанных уведомлений: ${unreadCount}`);
       
-      io.to(`user_${userId}`).emit('notification:unread-count', {
-        count: unreadCount
-      });
+      try {
+        io.to(`user:${userId}`).emit('notification:unread-count', {
+          count: unreadCount
+        });
+        console.log(`✅ WebSocket событие notification:unread-count отправлено в комнату user:${userId}`);
+      } catch (emitError) {
+        console.error(`❌ Ошибка отправки WebSocket события unread-count:`, emitError);
+      }
     } else {
       console.log(`⚠️ Socket.IO instance не передан, уведомление не отправлено через WebSocket`);
     }
@@ -184,14 +197,20 @@ async function notifyUserAboutStoryRejection(userId, storyId, storyTitle, reason
  */
 async function notifyUserAboutAchievement(userId, achievementName, achievementIcon, achievementId, io = null) {
   try {
+    console.log(`🔔 notifyUserAboutAchievement вызвана для пользователя ${userId}`);
+    console.log(`   Достижение: ${achievementIcon} ${achievementName}`);
+    console.log(`   io передан:`, !!io);
+    
     const title = 'Новое достижение!';
     const message = `Поздравляем! Вы получили достижение "${achievementIcon} ${achievementName}"`;
     const link = '/achievements';
 
-    await createNotification(userId, 'achievement', title, message, link, achievementId, io);
-    console.log(`✅ Уведомление о достижении "${achievementName}" отправлено пользователю ${userId}`);
+    const notification = await createNotification(userId, 'achievement', title, message, link, achievementId, io);
+    console.log(`✅ Уведомление о достижении "${achievementName}" ${notification ? 'создано' : 'НЕ создано'} для пользователя ${userId}`);
+    return notification;
   } catch (error) {
-    console.error('Ошибка отправки уведомления о достижении:', error);
+    console.error('❌ Ошибка отправки уведомления о достижении:', error);
+    return null;
   }
 }
 

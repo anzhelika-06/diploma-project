@@ -138,4 +138,99 @@ router.post('/', async (req, res) => {
   }
 });
 
+// ТЕСТОВЫЙ ЭНДПОИНТ - отправить тестовое уведомление
+router.post('/test/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log(`🧪 Тестовая отправка уведомления пользователю ${userId}`);
+    
+    // Создаем тестовое уведомление в БД
+    const result = await pool.query(
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       VALUES ($1, 'system', 'Тестовое уведомление', 'Это тестовое уведомление для проверки WebSocket', '/profile')
+       RETURNING *`,
+      [userId]
+    );
+    
+    const notification = result.rows[0];
+    console.log(`✅ Тестовое уведомление создано в БД:`, notification.id);
+    
+    // Отправляем через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      console.log(`📡 Отправка через WebSocket в комнату user:${userId}`);
+      io.to(`user:${userId}`).emit('notification:new', notification);
+      console.log(`✅ WebSocket событие отправлено`);
+      
+      // Также отправляем счетчик
+      const unreadResult = await pool.query(
+        'SELECT COUNT(*) as count FROM notifications WHERE user_id = $1 AND is_read = false',
+        [userId]
+      );
+      const unreadCount = parseInt(unreadResult.rows[0].count);
+      
+      io.to(`user:${userId}`).emit('notification:unread-count', { count: unreadCount });
+      console.log(`✅ Счетчик непрочитанных отправлен: ${unreadCount}`);
+    } else {
+      console.error(`❌ Socket.IO не доступен`);
+    }
+    
+    res.json({ 
+      success: true, 
+      notification: notification,
+      message: 'Тестовое уведомление отправлено'
+    });
+  } catch (error) {
+    console.error('Ошибка отправки тестового уведомления:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Тестовый эндпоинт для проверки уведомлений о достижениях
+router.post('/test/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const io = req.app.get('io');
+    
+    console.log(`🧪 Тестовый эндпоинт: создание уведомления для пользователя ${userId}`);
+    console.log(`   io доступен:`, !!io);
+    
+    if (!io) {
+      return res.status(500).json({
+        success: false,
+        error: 'IO_NOT_AVAILABLE',
+        message: 'Socket.IO не доступен'
+      });
+    }
+    
+    // Создаем тестовое уведомление о достижении
+    const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
+    
+    const notification = await notifyUserAboutAchievement(
+      parseInt(userId),
+      'Тестовое достижение',
+      '🧪',
+      999,
+      io
+    );
+    
+    console.log(`✅ Тестовое уведомление создано:`, notification);
+    
+    res.json({
+      success: true,
+      message: 'Тестовое уведомление отправлено',
+      notification: notification,
+      ioAvailable: !!io
+    });
+  } catch (error) {
+    console.error('❌ Ошибка в тестовом эндпоинте:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
