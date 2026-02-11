@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import '../styles/pages/AchievementsPage.css'
 import { useLanguage } from '../contexts/LanguageContext'
-import { translateStoryContent } from '../utils/translations'
+import { translateStoryContent, detectTextLanguage } from '../utils/translations'
 import ecoinsImage from '../assets/images/ecoins.png'
 import { useEventTracker } from '../hooks/useEventTracker'
 
@@ -164,43 +164,123 @@ const AchievementsPage = () => {
 
   useEffect(() => {
     const translateAchievements = async () => {
-      if (visibleAchievements.length === 0) {
+      // Переводим ВСЕ достижения, включая скрытые
+      if (allAchievements.length === 0) {
         setTranslatedAchievements([])
         return
       }
 
       if (!('Translator' in self)) {
         console.warn('Chrome Translator API не поддерживается')
-        setTranslatedAchievements(visibleAchievements)
+        setTranslatedAchievements(allAchievements)
         return
       }
 
       setTranslating(true)
       
       try {
+        // Словарь переводов для достижений (fallback)
+        const achievementTranslations = {
+          'en': {
+            'Первый комментарий': 'First Comment',
+            'Оставьте свой первый комментарий': 'Leave your first comment',
+            'Активный комментатор': 'Active Commenter',
+            'Оставьте 10 комментариев': 'Leave 10 comments',
+            'Король комментариев': 'Comment King',
+            'Оставьте 50 комментариев': 'Leave 50 comments',
+            'Мастер дискуссий': 'Discussion Master',
+            'Оставьте 25 комментариев': 'Leave 25 comments',
+            'Первый пост': 'First Post',
+            'Создайте свой первый пост': 'Create your first post',
+            'Активный блогер': 'Active Blogger',
+            'Создайте 5 постов': 'Create 5 posts',
+            'Опытный блогер': 'Experienced Blogger',
+            'Создайте 10 постов': 'Create 10 posts',
+            'Мастер постов': 'Post Master',
+            'Создайте 25 постов': 'Create 25 posts'
+          },
+          'by': {
+            'Первый комментарий': 'Першы каментар',
+            'Оставьте свой первый комментарий': 'Пакіньце свой першы каментар',
+            'Активный комментатор': 'Актыўны каментатар',
+            'Оставьте 10 комментариев': 'Пакіньце 10 каментароў',
+            'Король комментариев': 'Кароль каментароў',
+            'Оставьте 50 комментариев': 'Пакіньце 50 каментароў',
+            'Мастер дискуссий': 'Майстар дыскусій',
+            'Оставьте 25 комментариев': 'Пакіньце 25 каментароў',
+            'Первый пост': 'Першы пост',
+            'Создайте свой первый пост': 'Стварыце свой першы пост',
+            'Активный блогер': 'Актыўны блогер',
+            'Создайте 5 постов': 'Стварыце 5 пастоў',
+            'Опытный блогер': 'Вопытны блогер',
+            'Создайте 10 постов': 'Стварыце 10 пастоў',
+            'Мастер постов': 'Майстар пастоў',
+            'Создайте 25 постов': 'Стварыце 25 пастоў'
+          }
+        };
+        
         const translated = await Promise.all(
-          visibleAchievements.map(async (achievement) => {
+          allAchievements.map(async (achievement) => {
             try {
-              const nameLanguage = detectLanguage(achievement.name)
-              const descLanguage = detectLanguage(achievement.description)
+              const nameLanguage = detectTextLanguage(achievement.name)
+              const descLanguage = detectTextLanguage(achievement.description)
               const targetLang = currentLanguage.toLowerCase()
+              
+              console.log(`🔍 Достижение: "${achievement.name}"`);
+              console.log(`   Язык названия: ${nameLanguage}, Язык описания: ${descLanguage}, Целевой: ${targetLang}`);
               
               let translatedName = achievement.name
               let translatedDescription = achievement.description
               
               if (nameLanguage !== targetLang) {
-                try {
-                  translatedName = await translateStoryContent(achievement.name, currentLanguage, nameLanguage)
-                } catch (error) {
-                  translatedName = achievement.name
+                // Проверяем точное совпадение в словаре
+                const trimmedName = achievement.name.trim();
+                const hasInDict = achievementTranslations[targetLang]?.[trimmedName];
+                
+                console.log(`   Проверка словаря для названия:`);
+                console.log(`   - Оригинал: "${achievement.name}" (длина: ${achievement.name.length})`);
+                console.log(`   - Обрезанный: "${trimmedName}" (длина: ${trimmedName.length})`);
+                console.log(`   - Есть в словаре: ${!!hasInDict}`);
+                
+                if (hasInDict) {
+                  translatedName = hasInDict;
+                  console.log(`   ✅ Название из словаря: "${translatedName}"`);
+                } else {
+                  // Если нет в словаре, пробуем API
+                  try {
+                    console.log(`   🌐 Переводим название через API с ${nameLanguage} на ${targetLang}`);
+                    translatedName = await translateStoryContent(trimmedName, currentLanguage, nameLanguage);
+                    console.log(`   ✅ Переведено через API: "${translatedName}"`);
+                  } catch (error) {
+                    console.warn(`   ⚠️ Ошибка API перевода названия:`, error.message);
+                    translatedName = achievement.name;
+                  }
                 }
               }
               
               if (descLanguage !== targetLang) {
-                try {
-                  translatedDescription = await translateStoryContent(achievement.description, currentLanguage, descLanguage)
-                } catch (error) {
-                  translatedDescription = achievement.description
+                // Проверяем точное совпадение в словаре
+                const trimmedDesc = achievement.description.trim();
+                const hasInDict = achievementTranslations[targetLang]?.[trimmedDesc];
+                
+                console.log(`   Проверка словаря для описания:`);
+                console.log(`   - Оригинал: "${achievement.description}" (длина: ${achievement.description.length})`);
+                console.log(`   - Обрезанный: "${trimmedDesc}" (длина: ${trimmedDesc.length})`);
+                console.log(`   - Есть в словаре: ${!!hasInDict}`);
+                
+                if (hasInDict) {
+                  translatedDescription = hasInDict;
+                  console.log(`   ✅ Описание из словаря: "${translatedDescription}"`);
+                } else {
+                  // Если нет в словаре, пробуем API
+                  try {
+                    console.log(`   🌐 Переводим описание через API с ${descLanguage} на ${targetLang}`);
+                    translatedDescription = await translateStoryContent(trimmedDesc, currentLanguage, descLanguage);
+                    console.log(`   ✅ Переведено через API: "${translatedDescription}"`);
+                  } catch (error) {
+                    console.warn(`   ⚠️ Ошибка API перевода описания:`, error.message);
+                    translatedDescription = achievement.description;
+                  }
                 }
               }
               
@@ -210,6 +290,7 @@ const AchievementsPage = () => {
                 description: translatedDescription
               }
             } catch (error) {
+              console.error(`❌ Ошибка обработки достижения:`, error);
               return achievement
             }
           })
@@ -217,14 +298,15 @@ const AchievementsPage = () => {
         
         setTranslatedAchievements(translated)
       } catch (error) {
-        setTranslatedAchievements(visibleAchievements)
+        console.error(`❌ Ошибка перевода достижений:`, error);
+        setTranslatedAchievements(allAchievements)
       } finally {
         setTranslating(false)
       }
     }
 
     translateAchievements()
-  }, [currentLanguage, visibleAchievements])
+  }, [currentLanguage, allAchievements])
 
   const getAchievementsWithProgress = () => {
     let achievementsToShow = []

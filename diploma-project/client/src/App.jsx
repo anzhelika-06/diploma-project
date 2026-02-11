@@ -168,6 +168,7 @@ function App() {
               <Route path="/contribution" element={<ContributionPage />} />
               <Route path="/reviews" element={<ReviewsPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/search" element={<SearchPage />} />
               

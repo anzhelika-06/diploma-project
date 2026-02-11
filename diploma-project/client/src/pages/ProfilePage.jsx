@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import '../styles/pages/ProfilePage.css';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -11,15 +11,23 @@ const ProfilePage = () => {
   const { t, currentLanguage } = useLanguage();
   const { trackEvent } = useEventTracker();
   const { userId: urlUserId } = useParams();
+  const location = useLocation();
   const currentUser = getCurrentUser();
   const currentUserId = currentUser?.id;
+  
+  console.log('🔄 ProfilePage рендер');
+  console.log('   urlUserId из URL:', urlUserId, 'type:', typeof urlUserId);
+  console.log('   currentUserId:', currentUserId, 'type:', typeof currentUserId);
+  console.log('   location.state:', location.state);
   
   // Флаг для отслеживания программного изменения viewingUserId (не через URL)
   const isInternalNavigation = useRef(false);
   
   // ID профиля, который сейчас просматриваем (всегда число)
   const [viewingUserId, setViewingUserId] = useState(() => {
-    const id = urlUserId || currentUserId;
+    // Приоритет: state из навигации > URL параметр > текущий пользователь
+    const id = location.state?.viewUserId || urlUserId || currentUserId;
+    console.log('   Инициализация viewingUserId:', id ? Number(id) : null);
     return id ? Number(id) : null;
   });
   
@@ -323,7 +331,7 @@ const ProfilePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewingUserId]); // Убрали loadProfileData из зависимостей
   
-  // Обновляем viewingUserId при изменении URL (но НЕ при программном изменении!)
+  // Обновляем viewingUserId при изменении URL или state
   useEffect(() => {
     // Если это внутренняя навигация (клик по кнопке), пропускаем
     if (isInternalNavigation.current) {
@@ -332,19 +340,21 @@ const ProfilePage = () => {
       return;
     }
     
-    const newUserId = Number(urlUserId || currentUserId);
-    console.log('🔄 useEffect [urlUserId, currentUserId] сработал');
+    // Приоритет: state из навигации > URL параметр > текущий пользователь
+    const newUserId = Number(location.state?.viewUserId || urlUserId || currentUserId);
+    console.log('🔄 useEffect [location.state, urlUserId, currentUserId] сработал');
+    console.log('   location.state?.viewUserId:', location.state?.viewUserId);
     console.log('   urlUserId:', urlUserId);
     console.log('   currentUserId:', currentUserId);
     console.log('   newUserId:', newUserId);
     console.log('   Текущий viewingUserId:', viewingUserId);
     
-    // Обновляем только если URL изменился
+    // Обновляем только если изменился
     if (newUserId && newUserId !== viewingUserId) {
-      console.log('✅ URL изменился! Меняем viewingUserId на:', newUserId);
+      console.log('✅ Меняем viewingUserId на:', newUserId);
       setViewingUserId(newUserId);
     }
-  }, [urlUserId, currentUserId, viewingUserId]);
+  }, [location.state, urlUserId, currentUserId, viewingUserId]);
 
   // Перевод постов при изменении языка или постов
   useEffect(() => {
@@ -1314,7 +1324,7 @@ const ProfilePage = () => {
                   </div>
                   
                   <div className="post-content">
-                    {post.content}
+                    <p>{post.content}</p>
                   </div>
                   
                   <div className="post-actions">

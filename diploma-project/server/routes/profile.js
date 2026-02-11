@@ -115,7 +115,11 @@ router.get('/:userId/posts', async (req, res) => {
     
     const result = await pool.query(`
       SELECT 
-        p.*,
+        p.id,
+        p.user_id,
+        p.content,
+        p.created_at,
+        p.updated_at,
         u.nickname,
         u.avatar_emoji,
         (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,

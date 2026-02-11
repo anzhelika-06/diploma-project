@@ -20,6 +20,7 @@ const achievementsRoutes = require('./routes/achievements');
 const leaderboardRoutes = require('./routes/leaderboard');
 const userSettingsRoutes = require('./routes/user-settings');
 const supportRoutes = require('./routes/support');
+const postsRoutes = require('./routes/posts');
 const calculationsRouter = require('./routes/calculations');
 const profileRouter = require('./routes/profile');
 const app = express();
@@ -216,6 +217,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/posts', postsRoutes);
 app.use('/api/calculations', calculationsRouter);
 app.use('/api/users', profileRouter); 
 // Временный роут для эко-советов - исправленная версия
