@@ -190,7 +190,9 @@ router.post('/', authenticateToken, async (req, res) => {
       io.emit('post:created', {
         ...post,
         ...user,
-        user_liked: false
+        user_liked: false,
+        likes_count: 0,
+        comments_count: 0
       });
     }
     
@@ -199,7 +201,9 @@ router.post('/', authenticateToken, async (req, res) => {
       post: {
         ...post,
         ...user,
-        user_liked: false
+        user_liked: false,
+        likes_count: 0,
+        comments_count: 0
       }
     });
   } catch (error) {

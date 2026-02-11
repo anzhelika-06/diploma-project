@@ -376,7 +376,15 @@ const FeedPage = () => {
       
       if (data.success) {
         setNewPost('');
-        // Не добавляем пост вручную, WebSocket сделает это автоматически
+        // Добавляем пост сразу (оптимистичное обновление)
+        // WebSocket может добавить дубликат, но проверка в обработчике предотвратит это
+        setPosts(prev => {
+          // Проверяем, нет ли уже этого поста
+          if (prev.some(p => p.id === data.post.id)) {
+            return prev;
+          }
+          return [data.post, ...prev];
+        });
       }
     } catch (err) {
       console.error('Error creating post:', err);

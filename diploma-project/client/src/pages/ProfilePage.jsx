@@ -917,6 +917,14 @@ const ProfilePage = () => {
       const data = await response.json();
       if (data.success) {
         setNewPostContent('');
+        // Добавляем пост сразу (оптимистичное обновление)
+        setPosts(prev => {
+          // Проверяем, нет ли уже этого поста
+          if (prev.some(p => p.id === data.post.id)) {
+            return prev;
+          }
+          return [data.post, ...prev];
+        });
         trackEvent('post_created', {
           userId: currentUser.id,
           postId: data.post.id
