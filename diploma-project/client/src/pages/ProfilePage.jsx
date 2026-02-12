@@ -255,8 +255,11 @@ const ProfilePage = () => {
     try {
       setLoading(true);
       
-      // Загрузка профиля
-      const profileResponse = await fetch(`/api/users/${targetUserId}/profile`);
+      // Загрузка профиля с передачей currentUserId для подсчета общих друзей
+      const profileUrl = currentUserId 
+        ? `/api/users/${targetUserId}/profile?currentUserId=${currentUserId}`
+        : `/api/users/${targetUserId}/profile`;
+      const profileResponse = await fetch(profileUrl);
       const profileData = await profileResponse.json();
       
       if (profileData.success) {
@@ -266,7 +269,8 @@ const ProfilePage = () => {
           ...profileData.user,
           friends_count: Number(profileData.user.friends_count) || 0,
           teams_count: Number(profileData.user.teams_count) || 0,
-          posts_count: Number(profileData.user.posts_count) || 0
+          posts_count: Number(profileData.user.posts_count) || 0,
+          mutual_friends_count: Number(profileData.user.mutual_friends_count) || 0
         });
         
         // Форматируем дату в ДД/ММ/ГГГГ (только дата, без времени)
@@ -1248,7 +1252,14 @@ const ProfilePage = () => {
             <span className="avatar-emoji">{profileData.avatar_emoji || '🌱'}</span>
           </div>
           <div className="profile-info">
-            <h1 className="profile-nickname">{profileData.nickname}</h1>
+            <h1 className="profile-nickname">
+              {profileData.nickname}
+              {!isOwnProfile && profileData.mutual_friends_count > 0 && (
+                <span className="mutual-friends-badge">
+                  ({profileData.mutual_friends_count} {t('mutualFriends') || 'общих друзей'})
+                </span>
+              )}
+            </h1>
             <p className="profile-email">{profileData.email}</p>
           </div>
           

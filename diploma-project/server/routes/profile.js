@@ -7,6 +7,40 @@ const { notifyAdminsAboutNewReport } = require('../utils/notificationHelper');
 router.get('/:userId/profile', async (req, res) => {
   try {
     const { userId } = req.params;
+    const { currentUserId } = req.query; // ID пользователя, который смотрит профиль
+    
+    let mutualFriendsQuery = '0 as mutual_friends_count';
+    
+    // Если передан currentUserId и это не тот же пользователь, считаем общих друзей
+    if (currentUserId && currentUserId !== userId) {
+      mutualFriendsQuery = `(
+        SELECT COUNT(DISTINCT mutual_friend_id)
+        FROM (
+          -- Друзья текущего пользователя
+          SELECT 
+            CASE 
+              WHEN f2.user_id = ${parseInt(currentUserId)} THEN f2.friend_id
+              ELSE f2.user_id
+            END as mutual_friend_id
+          FROM friendships f2
+          WHERE (f2.user_id = ${parseInt(currentUserId)} OR f2.friend_id = ${parseInt(currentUserId)}) 
+            AND f2.status = 'accepted'
+            AND (f2.user_id != u.id AND f2.friend_id != u.id)
+        ) AS current_user_friends
+        WHERE mutual_friend_id IN (
+          -- Друзья просматриваемого пользователя
+          SELECT 
+            CASE 
+              WHEN f3.user_id = u.id THEN f3.friend_id
+              ELSE f3.user_id
+            END
+          FROM friendships f3
+          WHERE (f3.user_id = u.id OR f3.friend_id = u.id) 
+            AND f3.status = 'accepted'
+            AND (f3.user_id != ${parseInt(currentUserId)} AND f3.friend_id != ${parseInt(currentUserId)})
+        )
+      ) as mutual_friends_count`;
+    }
     
     const result = await pool.query(`
       SELECT 
@@ -26,7 +60,8 @@ router.get('/:userId/profile', async (req, res) => {
         u.created_at,
         (SELECT COUNT(*) FROM friendships WHERE (user_id = u.id OR friend_id = u.id) AND status = 'accepted') as friends_count,
         (SELECT COUNT(*) FROM team_members WHERE user_id = u.id) as teams_count,
-        (SELECT COUNT(*) FROM user_posts WHERE user_id = u.id AND deleted_at IS NULL) as posts_count
+        (SELECT COUNT(*) FROM user_posts WHERE user_id = u.id AND deleted_at IS NULL) as posts_count,
+        ${mutualFriendsQuery}
       FROM users u
       WHERE u.id = $1 AND u.deleted_at IS NULL
     `, [userId]);
@@ -499,9 +534,6 @@ router.delete('/:userId/posts/:postId/comments/:commentId', async (req, res) => 
   }
 });
 
-module.exports = router;
-
-
 // ============ СИСТЕМА ДРУЖБЫ ============
 
 // Отправить запрос в друзья
@@ -785,7 +817,34 @@ router.get('/:userId/friends', async (req, res) => {
         u.eco_level,
         u.carbon_saved,
         f.status,
-        f.created_at as friendship_date
+        f.created_at as friendship_date,
+        (
+          SELECT COUNT(DISTINCT mutual_friend_id)
+          FROM (
+            -- Друзья текущего пользователя
+            SELECT 
+              CASE 
+                WHEN f2.user_id = $1 THEN f2.friend_id
+                ELSE f2.user_id
+              END as mutual_friend_id
+            FROM friendships f2
+            WHERE (f2.user_id = $1 OR f2.friend_id = $1) 
+              AND f2.status = 'accepted'
+              AND (f2.user_id != u.id AND f2.friend_id != u.id)
+          ) AS current_user_friends
+          WHERE mutual_friend_id IN (
+            -- Друзья этого друга
+            SELECT 
+              CASE 
+                WHEN f3.user_id = u.id THEN f3.friend_id
+                ELSE f3.user_id
+              END
+            FROM friendships f3
+            WHERE (f3.user_id = u.id OR f3.friend_id = u.id) 
+              AND f3.status = 'accepted'
+              AND (f3.user_id != $1 AND f3.friend_id != $1)
+          )
+        ) as mutual_friends_count
       FROM friendships f
       JOIN users u ON (
         CASE 
@@ -810,6 +869,67 @@ router.get('/:userId/friends', async (req, res) => {
   }
 });
 
+// Получить рекомендации друзей (пользователи с общими друзьями)
+router.get('/:userId/friends/recommendations', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await pool.query(`
+      WITH my_friends AS (
+        SELECT 
+          CASE 
+            WHEN user_id = $1 THEN friend_id
+            ELSE user_id
+          END as friend_id
+        FROM friendships
+        WHERE (user_id = $1 OR friend_id = $1) AND status = 'accepted'
+      ),
+      friends_of_friends AS (
+        SELECT 
+          CASE 
+            WHEN f.user_id IN (SELECT friend_id FROM my_friends) THEN f.friend_id
+            ELSE f.user_id
+          END as potential_friend_id,
+          COUNT(*) as mutual_friends_count
+        FROM friendships f
+        WHERE (f.user_id IN (SELECT friend_id FROM my_friends) OR f.friend_id IN (SELECT friend_id FROM my_friends))
+          AND f.status = 'accepted'
+          AND f.user_id != $1 
+          AND f.friend_id != $1
+        GROUP BY potential_friend_id
+      )
+      SELECT 
+        u.id,
+        u.nickname,
+        u.avatar_emoji,
+        u.eco_level,
+        u.carbon_saved,
+        fof.mutual_friends_count
+      FROM friends_of_friends fof
+      JOIN users u ON u.id = fof.potential_friend_id
+      WHERE u.id NOT IN (SELECT friend_id FROM my_friends)
+        AND u.id != $1
+        AND NOT EXISTS (
+          SELECT 1 FROM friendships 
+          WHERE ((user_id = $1 AND friend_id = u.id) OR (user_id = u.id AND friend_id = $1))
+        )
+      ORDER BY fof.mutual_friends_count DESC, u.carbon_saved DESC
+      LIMIT 20
+    `, [userId]);
+    
+    res.json({
+      success: true,
+      recommendations: result.rows
+    });
+  } catch (error) {
+    console.error('Ошибка получения рекомендаций:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
 // Получить входящие запросы в друзья
 router.get('/:userId/friends/requests/incoming', async (req, res) => {
   try {
@@ -818,11 +938,36 @@ router.get('/:userId/friends/requests/incoming', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         f.id as friendship_id,
-        u.id as user_id,
+        u.id,
         u.nickname,
         u.avatar_emoji,
         u.eco_level,
-        f.created_at
+        f.created_at,
+        (
+          SELECT COUNT(DISTINCT mutual_friend_id)
+          FROM (
+            SELECT 
+              CASE 
+                WHEN f2.user_id = $1 THEN f2.friend_id
+                ELSE f2.user_id
+              END as mutual_friend_id
+            FROM friendships f2
+            WHERE (f2.user_id = $1 OR f2.friend_id = $1) 
+              AND f2.status = 'accepted'
+          ) AS my_friends
+          WHERE mutual_friend_id IN (
+            SELECT 
+              CASE 
+                WHEN f3.user_id = u.id THEN f3.friend_id
+                ELSE f3.user_id
+              END
+            FROM friendships f3
+            WHERE (f3.user_id = u.id OR f3.friend_id = u.id) 
+              AND f3.status = 'accepted'
+          )
+          AND mutual_friend_id != u.id
+          AND mutual_friend_id != $1
+        ) as mutual_friends_count
       FROM friendships f
       JOIN users u ON u.id = f.user_id
       WHERE f.friend_id = $1 AND f.status = 'pending'
@@ -835,6 +980,87 @@ router.get('/:userId/friends/requests/incoming', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка получения запросов:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+// Получить исходящие запросы в друзья
+router.get('/:userId/friends/requests/outgoing', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await pool.query(`
+      SELECT 
+        f.id as friendship_id,
+        u.id,
+        u.nickname,
+        u.avatar_emoji,
+        u.eco_level,
+        f.created_at,
+        (
+          SELECT COUNT(DISTINCT mutual_friend_id)
+          FROM (
+            SELECT 
+              CASE 
+                WHEN f2.user_id = $1 THEN f2.friend_id
+                ELSE f2.user_id
+              END as mutual_friend_id
+            FROM friendships f2
+            WHERE (f2.user_id = $1 OR f2.friend_id = $1) 
+              AND f2.status = 'accepted'
+          ) AS my_friends
+          WHERE mutual_friend_id IN (
+            SELECT 
+              CASE 
+                WHEN f3.user_id = u.id THEN f3.friend_id
+                ELSE f3.user_id
+              END
+            FROM friendships f3
+            WHERE (f3.user_id = u.id OR f3.friend_id = u.id) 
+              AND f3.status = 'accepted'
+          )
+          AND mutual_friend_id != u.id
+          AND mutual_friend_id != $1
+        ) as mutual_friends_count
+      FROM friendships f
+      JOIN users u ON u.id = f.friend_id
+      WHERE f.user_id = $1 AND f.status = 'pending'
+      ORDER BY f.created_at DESC
+    `, [userId]);
+    
+    res.json({
+      success: true,
+      requests: result.rows
+    });
+  } catch (error) {
+    console.error('Ошибка получения исходящих запросов:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+// Отменить исходящий запрос в друзья
+router.post('/:userId/friends/cancel', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { friendId } = req.body;
+    
+    await pool.query(`
+      DELETE FROM friendships
+      WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'
+    `, [userId, friendId]);
+    
+    res.json({
+      success: true,
+      message: 'Запрос отменен'
+    });
+  } catch (error) {
+    console.error('Ошибка отмены запроса:', error);
     res.status(500).json({
       success: false,
       message: 'Ошибка сервера'
@@ -994,6 +1220,183 @@ router.put('/:userId/password', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка смены пароля:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+module.exports = router;
+
+// ============ СИСТЕМА ДРУЖБЫ ============
+
+// Поиск пользователей по никнейму
+router.get('/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    const currentUserId = req.query.currentUserId;
+    
+    if (!query || query.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Запрос должен содержать минимум 2 символа'
+      });
+    }
+    
+    const result = await pool.query(`
+      SELECT 
+        u.id,
+        u.nickname,
+        u.avatar_emoji,
+        u.eco_level,
+        u.carbon_saved,
+        u.bio,
+        (
+          SELECT COUNT(*) 
+          FROM friendships f1
+          WHERE (f1.user_id = u.id OR f1.friend_id = u.id) 
+            AND f1.status = 'accepted'
+        ) as friends_count,
+        COALESCE((
+          SELECT COUNT(*)
+          FROM (
+            -- Друзья найденного пользователя
+            SELECT DISTINCT
+              CASE 
+                WHEN f1.user_id = u.id THEN f1.friend_id 
+                ELSE f1.user_id 
+              END as friend_id
+            FROM friendships f1
+            WHERE (f1.user_id = u.id OR f1.friend_id = u.id)
+              AND f1.status = 'accepted'
+          ) AS target_friends
+          WHERE target_friends.friend_id IN (
+            -- Друзья текущего пользователя
+            SELECT DISTINCT
+              CASE 
+                WHEN f2.user_id = $2 THEN f2.friend_id 
+                ELSE f2.user_id 
+              END
+            FROM friendships f2
+            WHERE (f2.user_id = $2 OR f2.friend_id = $2)
+              AND f2.status = 'accepted'
+          )
+          AND target_friends.friend_id != $2  -- Исключаем текущего пользователя
+          AND target_friends.friend_id != u.id  -- Исключаем найденного пользователя
+        ), 0) as mutual_friends_count,
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM friendships 
+            WHERE ((user_id = $2 AND friend_id = u.id) OR (user_id = u.id AND friend_id = $2))
+              AND status = 'accepted'
+          ) THEN 'accepted'
+          WHEN EXISTS (
+            SELECT 1 FROM friendships 
+            WHERE user_id = $2 AND friend_id = u.id AND status = 'pending'
+          ) THEN 'pending_sent'
+          WHEN EXISTS (
+            SELECT 1 FROM friendships 
+            WHERE user_id = u.id AND friend_id = $2 AND status = 'pending'
+          ) THEN 'pending_received'
+          ELSE 'none'
+        END as friendship_status
+      FROM users u
+      WHERE u.nickname ILIKE $1 
+        AND u.id != $2
+        AND u.deleted_at IS NULL
+        AND u.is_banned = FALSE
+      ORDER BY 
+        CASE WHEN u.nickname ILIKE $1 THEN 0 ELSE 1 END,
+        mutual_friends_count DESC,
+        u.carbon_saved DESC
+      LIMIT 20
+    `, [`%${query}%`, currentUserId]);
+    
+    // Отладка
+    console.log('=== SEARCH DEBUG ===');
+    console.log('Search query:', query);
+    console.log('Current user ID:', currentUserId);
+    console.log('Results:', result.rows.map(r => ({
+      id: r.id,
+      nickname: r.nickname,
+      friends_count: r.friends_count,
+      mutual_friends_count: r.mutual_friends_count,
+      friendship_status: r.friendship_status
+    })));
+    console.log('===================');
+    
+    res.json({
+      success: true,
+      users: result.rows
+    });
+  } catch (error) {
+    console.error('Ошибка поиска пользователей:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+// Получить рекомендации друзей (люди с общими друзьями)
+router.get('/:userId/friends/recommendations', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const result = await pool.query(`
+      WITH user_friends AS (
+        SELECT 
+          CASE 
+            WHEN user_id = $1 THEN friend_id 
+            ELSE user_id 
+          END as friend_id
+        FROM friendships
+        WHERE (user_id = $1 OR friend_id = $1) AND status = 'accepted'
+      ),
+      potential_friends AS (
+        SELECT 
+          CASE 
+            WHEN f.user_id IN (SELECT friend_id FROM user_friends) THEN f.friend_id
+            ELSE f.user_id
+          END as potential_friend_id,
+          COUNT(*) as mutual_count
+        FROM friendships f
+        WHERE (f.user_id IN (SELECT friend_id FROM user_friends) 
+           OR f.friend_id IN (SELECT friend_id FROM user_friends))
+          AND f.status = 'accepted'
+          AND f.user_id != $1 
+          AND f.friend_id != $1
+        GROUP BY potential_friend_id
+        HAVING COUNT(*) > 0
+      )
+      SELECT 
+        u.id,
+        u.nickname,
+        u.avatar_emoji,
+        u.eco_level,
+        u.carbon_saved,
+        u.bio,
+        pf.mutual_count as mutual_friends_count
+      FROM potential_friends pf
+      JOIN users u ON u.id = pf.potential_friend_id
+      WHERE u.id NOT IN (SELECT friend_id FROM user_friends)
+        AND u.deleted_at IS NULL
+        AND u.is_banned = FALSE
+        AND NOT EXISTS (
+          SELECT 1 FROM friendships 
+          WHERE ((user_id = $1 AND friend_id = u.id) OR (user_id = u.id AND friend_id = $1))
+        )
+      ORDER BY pf.mutual_count DESC, u.carbon_saved DESC
+      LIMIT 10
+    `, [userId]);
+    
+    res.json({
+      success: true,
+      recommendations: result.rows
+    });
+  } catch (error) {
+    console.error('Ошибка получения рекомендаций:', error);
     res.status(500).json({
       success: false,
       message: 'Ошибка сервера'

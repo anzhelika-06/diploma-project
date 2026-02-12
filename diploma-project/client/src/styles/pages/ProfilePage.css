@@ -97,6 +97,19 @@
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mutual-friends-badge {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--primary-light);
+  padding: 4px 12px;
+  border-radius: 12px;
 }
 
 .profile-email {
@@ -297,6 +310,16 @@
 [data-theme="dark"] .profile-edit-form,
 [data-theme="dark"] .detail-section {
   background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .mutual-friends-badge {
+  color: var(--text-primary);
+  background: var(--primary-light);
+}
+
+[data-theme="dark"] .stat-clickable:hover .stat-value,
+[data-theme="dark"] .stat-clickable:hover .stat-label {
+  color: white !important;
 }
 
 /* Адаптивность */
@@ -713,15 +736,15 @@
 }
 
 .btn-remove-friend {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background: #f44336;
+  color: white;
+  border: 1px solid #f44336;
 }
 
 .btn-remove-friend:hover {
-  background: #f44336;
+  background: #d32f2f;
   color: white;
-  border-color: #f44336;
+  border-color: #d32f2f;
 }
 
 .btn-report {
@@ -731,8 +754,8 @@
 }
 
 .btn-report:hover {
-  background: #ff9800;
-  color: white;
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
   border-color: #ff9800;
 }
 
@@ -923,7 +946,7 @@
 
 .stat-clickable:hover .stat-value,
 .stat-clickable:hover .stat-label {
-  color: white;
+  color: white !important;
 }
 
 /* Toggle switch for public profile */
