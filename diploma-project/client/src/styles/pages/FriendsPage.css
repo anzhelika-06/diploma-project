@@ -628,7 +628,7 @@
 }
 
 [data-theme="dark"] .loading-state p {
-  color: var(--text-secondary);
+  color: var(--text-primary) !important;
 }
 
 /* Адаптивность */

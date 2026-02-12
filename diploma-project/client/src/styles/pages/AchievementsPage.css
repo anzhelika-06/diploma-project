@@ -650,7 +650,7 @@
 }
 
 .loading-container p {
-  color: #666666;
+  color: var(--text-secondary);
   font-size: 16px;
   margin: 0;
 }
@@ -1197,6 +1197,10 @@
 [data-theme="dark"] .loading-spinner {
   border-color: var(--border-color);
   border-top-color: var(--primary-color);
+}
+
+[data-theme="dark"] .loading-container p {
+  color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .empty-state .material-icons {

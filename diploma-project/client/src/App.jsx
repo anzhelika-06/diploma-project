@@ -30,7 +30,6 @@ import { SocketProvider } from './contexts/SocketContext';
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
 import { isUserAdmin } from './utils/authUtils';
 import './styles/variables.css';
-import loadingGif from './assets/videos/loading-tree.gif';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -121,12 +120,15 @@ function App() {
         flexDirection: 'column',
         gap: '20px'
       }}>
-        <img 
-          src={loadingGif} 
-          alt="Загрузка..." 
-          style={{ width: '150px', height: '150px' }}
-        />
-        <div style={{ fontSize: '24px' }}>Загрузка...</div>
+        <div style={{
+          width: '50px',
+          height: '50px',
+          border: '4px solid #e0e0e0',
+          borderTop: '4px solid #4caf50',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <div style={{ fontSize: '18px', color: '#666' }}>Загрузка...</div>
       </div>
     );
   }

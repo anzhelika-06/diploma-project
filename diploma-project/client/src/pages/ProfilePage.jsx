@@ -1323,21 +1323,21 @@ const ProfilePage = () => {
                       {t('sendMessage')}
                     </button>
                     <button 
-                      className="profile-action-btn btn-remove-friend"
+                      className="profile-action-btn btn-remove-friend btn-icon-only"
                       onClick={handleRemoveFriend}
+                      title={t('removeFriend')}
                     >
                       <span className="material-icons">person_remove</span>
-                      {t('removeFriend')}
                     </button>
                   </>
                 )}
                 
                 <button 
-                  className="profile-action-btn btn-report"
+                  className="profile-action-btn btn-report btn-icon-only"
                   onClick={() => setShowReportModal(true)}
+                  title={t('reportUser')}
                 >
                   <span className="material-icons">flag</span>
-                  {t('reportUser')}
                 </button>
               </>
             )}
