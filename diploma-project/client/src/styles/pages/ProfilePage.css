@@ -142,6 +142,35 @@
   font-size: 18px;
 }
 
+.back-to-profile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.1rem;
+  position: relative;
+}
+
+.back-to-profile-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+}
+
+.back-to-profile-btn .material-icons {
+  font-size: 20px;
+}
+
 /* Статистика */
 .profile-stats {
   display: grid;
@@ -315,6 +344,18 @@
 [data-theme="dark"] .mutual-friends-badge {
   color: var(--text-primary);
   background: var(--primary-light);
+}
+
+[data-theme="dark"] .back-to-profile-btn {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .back-to-profile-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
 }
 
 [data-theme="dark"] .stat-clickable:hover .stat-value,
@@ -706,6 +747,16 @@
 }
 
 .btn-add-friend:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.btn-send-message {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-send-message:hover {
   background: #45a049;
   transform: translateY(-2px);
 }

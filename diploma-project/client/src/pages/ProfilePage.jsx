@@ -1236,16 +1236,15 @@ const ProfilePage = () => {
         <div className="profile-header">
           {!isOwnProfile && (
             <button 
-              className="btn-back-to-own-profile"
+              className="back-to-profile-btn"
               onClick={() => {
                 console.log('⬅️ Возврат к своему профилю:', currentUserId);
                 isInternalNavigation.current = true;
                 setViewingUserId(Number(currentUserId));
               }}
-              style={{ marginBottom: '1rem' }}
+              title={t('backToMyProfile') || 'Вернуться к моему профилю'}
             >
               <span className="material-icons">arrow_back</span>
-              {t('backToMyProfile') || 'Вернуться к моему профилю'}
             </button>
           )}
           <div className="profile-avatar">
@@ -1315,13 +1314,22 @@ const ProfilePage = () => {
                 )}
                 
                 {friendshipStatus === 'accepted' && (
-                  <button 
-                    className="profile-action-btn btn-remove-friend"
-                    onClick={handleRemoveFriend}
-                  >
-                    <span className="material-icons">person_remove</span>
-                    {t('removeFriend')}
-                  </button>
+                  <>
+                    <button 
+                      className="profile-action-btn btn-send-message"
+                      onClick={() => alert(t('messagesComingSoon') || 'Функция сообщений будет доступна в следующей версии!')}
+                    >
+                      <span className="material-icons">message</span>
+                      {t('sendMessage')}
+                    </button>
+                    <button 
+                      className="profile-action-btn btn-remove-friend"
+                      onClick={handleRemoveFriend}
+                    >
+                      <span className="material-icons">person_remove</span>
+                      {t('removeFriend')}
+                    </button>
+                  </>
                 )}
                 
                 <button 
