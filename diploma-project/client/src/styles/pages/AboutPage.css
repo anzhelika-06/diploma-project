@@ -348,11 +348,13 @@
   font-weight: 600;
   color: var(--about-text);
   font-size: clamp(14px, 1.1vw, 16px);
+  flex-shrink: 0;
 }
 
 .story-date {
   font-size: clamp(12px, 1vw, 14px);
   color: #999;
+  flex-shrink: 0;
 }
 
 .story-title {
@@ -667,6 +669,7 @@
 .categories-island-content {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 15px;
   flex-wrap: wrap;
 }
@@ -677,13 +680,6 @@
   border: 2px solid rgba(124, 179, 66, 0.3);
   border-radius: 25px;
   padding: 15px 20px;
-}
-
-.categories-island-content {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
 }
 
 
@@ -717,6 +713,7 @@
   white-space: nowrap;
   position: relative;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
 .category-chip::before {
@@ -762,14 +759,22 @@
   border-radius: 10px;
   font-size: 11px;
   font-weight: 500;
+  display: inline-block;
+  flex-shrink: 0;
+  min-width: auto !important;
+  width: auto !important;
 }
 
 .story-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 10px;
   gap: 10px;
+}
+
+.story-date {
+  margin-left: auto;
 }
 
 /* Адаптивность */

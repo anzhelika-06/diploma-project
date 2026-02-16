@@ -298,9 +298,10 @@
   transition: all 0.3s ease;
   font-family: 'Libre Caslon Text', serif;
   min-height: 40px;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .reviews-category-chip:hover:not(.reviews-category-chip-active) {

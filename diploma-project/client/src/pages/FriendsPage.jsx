@@ -21,6 +21,10 @@ const FriendsPage = () => {
   const [searching, setSearching] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [userToAccept, setUserToAccept] = useState(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [userToReject, setUserToReject] = useState(null);
   const [pendingRequests, setPendingRequests] = useState(new Set()); // Отслеживаем отправленные запросы
 
   // Загрузка друзей и рекомендаций
@@ -250,6 +254,9 @@ const FriendsPage = () => {
         }
         // Обновляем рекомендации после принятия запроса
         loadRecommendations();
+        // Закрываем модальное окно
+        setShowAcceptModal(false);
+        setUserToAccept(null);
       }
     } catch (error) {
       console.error('Ошибка принятия запроса:', error);
@@ -269,6 +276,9 @@ const FriendsPage = () => {
         setIncomingRequests(prev => prev.filter(u => u.id !== userId));
         // Обновляем рекомендации после отклонения запроса
         loadRecommendations();
+        // Закрываем модальное окно
+        setShowRejectModal(false);
+        setUserToReject(null);
       }
     } catch (error) {
       console.error('Ошибка отклонения запроса:', error);
@@ -504,14 +514,20 @@ const FriendsPage = () => {
                           <div className="user-card-right">
                             <button
                               className="btn-icon btn-accept"
-                              onClick={() => handleAcceptRequest(user.id)}
+                              onClick={() => {
+                                setUserToAccept(user);
+                                setShowAcceptModal(true);
+                              }}
                             >
                               <span className="material-icons">check</span>
                               {t('accept') || 'Принять'}
                             </button>
                             <button
                               className="btn-icon btn-reject"
-                              onClick={() => handleRejectRequest(user.id)}
+                              onClick={() => {
+                                setUserToReject(user);
+                                setShowRejectModal(true);
+                              }}
                             >
                               <span className="material-icons">close</span>
                               {t('reject') || 'Отклонить'}
@@ -609,6 +625,58 @@ const FriendsPage = () => {
               </button>
               <button className="friends-page-modal-btn danger" onClick={confirmRemoveFriend}>
                 {t('removeFriend') || 'Удалить'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Модальное окно принятия запроса */}
+      {showAcceptModal && (
+        <>
+          <div className="friends-page-modal-overlay" onClick={() => setShowAcceptModal(false)}></div>
+          <div className="friends-page-modal-content">
+            <div className="friends-page-modal-header">
+              <h2>{t('confirmAcceptRequest') || 'Принять запрос в друзья'}?</h2>
+              <button className="friends-page-modal-close" onClick={() => setShowAcceptModal(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="friends-page-modal-body">
+              <p>{t('confirmAcceptRequestMessage') || 'Вы уверены, что хотите добавить'} <strong>{userToAccept?.nickname}</strong> {t('toFriends') || 'в друзья'}?</p>
+            </div>
+            <div className="friends-page-modal-footer">
+              <button className="friends-page-modal-btn secondary" onClick={() => setShowAcceptModal(false)}>
+                {t('cancel') || 'Отмена'}
+              </button>
+              <button className="friends-page-modal-btn success" onClick={() => handleAcceptRequest(userToAccept.id)}>
+                {t('accept') || 'Принять'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Модальное окно отклонения запроса */}
+      {showRejectModal && (
+        <>
+          <div className="friends-page-modal-overlay" onClick={() => setShowRejectModal(false)}></div>
+          <div className="friends-page-modal-content">
+            <div className="friends-page-modal-header">
+              <h2>{t('confirmRejectRequest') || 'Отклонить запрос в друзья'}?</h2>
+              <button className="friends-page-modal-close" onClick={() => setShowRejectModal(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="friends-page-modal-body">
+              <p>{t('confirmRejectRequestMessage') || 'Вы уверены, что хотите отклонить запрос от'} <strong>{userToReject?.nickname}</strong>?</p>
+            </div>
+            <div className="friends-page-modal-footer">
+              <button className="friends-page-modal-btn secondary" onClick={() => setShowRejectModal(false)}>
+                {t('cancel') || 'Отмена'}
+              </button>
+              <button className="friends-page-modal-btn danger" onClick={() => handleRejectRequest(userToReject.id)}>
+                {t('reject') || 'Отклонить'}
               </button>
             </div>
           </div>

@@ -1539,7 +1539,7 @@
 
 [data-theme="dark"] .reward-plus-inline,
 [data-theme="dark"] .reward-number-inline {
-  color: #66bb6a; /* Светло-зеленый для темной темы */
+  color: #ffffff; /* Белый цвет для темной темы */
 }
 
 /* Адаптивность */

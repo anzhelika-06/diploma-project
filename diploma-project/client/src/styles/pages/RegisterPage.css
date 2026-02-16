@@ -136,7 +136,7 @@
 
 /* Специально для 3 шага - поднимаем гендер выше */
 .form-group:has(.custom-gender-dropdown) {
-  margin-top: -10px;
+  margin-top: -12px;
 }
 
 .form-group {
@@ -584,6 +584,10 @@
   text-align: center;
   width: 100%;
   white-space: normal;
+}
+
+.error-message.gender-error {
+  top: 42px;
 }
 
 /* Кнопки */
@@ -1191,8 +1195,23 @@
   width: min(90vw, 400px);
   padding: 0;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.3s ease;
+  animation: errorModalFadeIn 0.2s ease !important;
   border-top: 4px solid var(--auth-error-color);
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+@keyframes errorModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .error-modal-header {
@@ -1341,8 +1360,23 @@
   width: min(90vw, 400px);
   padding: 0;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  animation: slideIn 0.3s ease;
+  animation: successModalFadeIn 0.2s ease !important;
   border-top: 4px solid var(--primary-green);
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+}
+
+@keyframes successModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .success-modal-header {
@@ -1409,17 +1443,6 @@
   }
   to {
     opacity: 1;
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 

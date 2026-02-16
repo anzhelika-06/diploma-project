@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAdminCheck } from '../hooks/useAdminCheck';
 import { getEmojiByCarbon } from '../utils/emojiMapper';
 import { exportAllUsers, exportAllSupportTickets, exportAllReports } from '../utils/excelExport';
+import { translateStoryContent, detectTextLanguage } from '../utils/translations';
 import '../styles/pages/AdminPage.css';
 
 const AdminPage = () => {
@@ -172,6 +173,11 @@ const AdminPage = () => {
   const [storyCategoryDropdownOpen, setStoryCategoryDropdownOpen] = useState(false);
   const [selectedStory, setSelectedStory] = useState(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [translatedContent, setTranslatedContent] = useState({
+    title: '',
+    content: '',
+    isTranslating: false
+  });
 
   // Рефы
   const isInitialMount = useRef(true);
@@ -1007,14 +1013,72 @@ const AdminPage = () => {
     }
   };
 
-  const openStoryPreview = (story) => {
+  const openStoryPreview = async (story) => {
     setSelectedStory(story);
     setPreviewModalOpen(true);
+    setTranslatedContent({
+      title: '',
+      content: '',
+      isTranslating: false
+    });
+
+    // Если язык не русский, переводим контент
+    if (currentLanguage !== 'ru' && story.content) {
+      setTranslatedContent(prev => ({ ...prev, isTranslating: true }));
+      
+      try {
+        // Определяем язык заголовка и контента
+        const titleLanguage = await detectTextLanguage(story.title);
+        const contentLanguage = await detectTextLanguage(story.content);
+        const targetLang = currentLanguage.toLowerCase();
+
+        let translatedTitle = story.title;
+        let translatedContent = story.content;
+
+        // Переводим заголовок если нужно
+        if (titleLanguage !== targetLang) {
+          try {
+            translatedTitle = await translateStoryContent(story.title, currentLanguage, titleLanguage);
+          } catch (error) {
+            console.warn('⚠️ Ошибка перевода заголовка:', error);
+            translatedTitle = story.title;
+          }
+        }
+
+        // Переводим контент если нужно
+        if (contentLanguage !== targetLang) {
+          try {
+            translatedContent = await translateStoryContent(story.content, currentLanguage, contentLanguage);
+          } catch (error) {
+            console.warn('⚠️ Ошибка перевода контента:', error);
+            translatedContent = story.content;
+          }
+        }
+
+        setTranslatedContent({
+          title: translatedTitle,
+          content: translatedContent,
+          isTranslating: false
+        });
+      } catch (error) {
+        console.error('Translation error:', error);
+        setTranslatedContent({
+          title: story.title,
+          content: story.content,
+          isTranslating: false
+        });
+      }
+    }
   };
 
   const closeStoryPreview = () => {
     setPreviewModalOpen(false);
     setSelectedStory(null);
+    setTranslatedContent({
+      title: '',
+      content: '',
+      isTranslating: false
+    });
   };
 
   const handlePublishStory = (story) => {
@@ -3927,7 +3991,11 @@ const AdminPage = () => {
             <div className="modal-body">
               <div className="story-preview-content">
                 <div className="story-preview-header">
-                  <h2 className="story-preview-title">{selectedStory.title}</h2>
+                  <h2 className="story-preview-title">
+                    {currentLanguage !== 'ru' && translatedContent.title 
+                      ? translatedContent.title 
+                      : selectedStory.title}
+                  </h2>
                   <div className="story-preview-meta">
                     <div className="story-author-preview">
                       <span className="material-icons">person</span>
@@ -3952,7 +4020,16 @@ const AdminPage = () => {
                 
                 <div className="story-preview-body">
                   <div className="story-content-preview">
-                    {selectedStory.content}
+                    {translatedContent.isTranslating ? (
+                      <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+                        <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
+                        {t('translating') || 'Перевод...'}
+                      </div>
+                    ) : (
+                      currentLanguage !== 'ru' && translatedContent.content 
+                        ? translatedContent.content 
+                        : selectedStory.content
+                    )}
                   </div>
                 </div>
                 
@@ -4167,7 +4244,7 @@ const AdminPage = () => {
                           setScreenshotPreviewModal({
                             isOpen: true,
                             imageUrl: screenshot,
-                            imageName: `Скриншот ${index + 1}`
+                            imageName: `${t('screenshot') || 'Скриншот'} ${index + 1}`
                           });
                         }}
                       >

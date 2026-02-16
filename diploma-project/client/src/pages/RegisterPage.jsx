@@ -693,7 +693,7 @@ const RegisterPage = () => {
                   </div>
                 )}
               </div>
-              {errors.gender && <div className="error-message">{errors.gender}</div>}
+              {errors.gender && <div className="error-message gender-error">{errors.gender}</div>}
             </div>
           </>
         )

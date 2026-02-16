@@ -808,6 +808,15 @@
   background: #d32f2f;
 }
 
+.friends-page-modal-btn.success {
+  background: #4caf50;
+  color: #fff;
+}
+
+.friends-page-modal-btn.success:hover {
+  background: #45a049;
+}
+
 /* Темная тема для модального окна */
 [data-theme="dark"] .friends-page-modal-content {
   background: var(--bg-primary);

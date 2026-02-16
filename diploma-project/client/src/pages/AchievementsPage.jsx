@@ -905,8 +905,8 @@ const AchievementsPage = () => {
       </div>
 
       {showClaimModal && selectedAchievement && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">
                 {t('confirmClaim')}

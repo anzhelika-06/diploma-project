@@ -511,6 +511,52 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
+/* Кастомный скроллбар для таблиц */
+.users-table-container::-webkit-scrollbar,
+.support-tickets-container::-webkit-scrollbar,
+.stories-table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.users-table-container::-webkit-scrollbar-track,
+.support-tickets-container::-webkit-scrollbar-track,
+.stories-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.users-table-container::-webkit-scrollbar-thumb,
+.support-tickets-container::-webkit-scrollbar-thumb,
+.stories-table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.users-table-container::-webkit-scrollbar-thumb:hover,
+.support-tickets-container::-webkit-scrollbar-thumb:hover,
+.stories-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+[data-theme="dark"] .users-table-container::-webkit-scrollbar-track,
+[data-theme="dark"] .support-tickets-container::-webkit-scrollbar-track,
+[data-theme="dark"] .stories-table-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .users-table-container::-webkit-scrollbar-thumb,
+[data-theme="dark"] .support-tickets-container::-webkit-scrollbar-thumb,
+[data-theme="dark"] .stories-table-container::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+[data-theme="dark"] .users-table-container::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .support-tickets-container::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .stories-table-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
 .users-table {
   width: 100%;
   border-collapse: collapse;
@@ -678,6 +724,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  color: white;
 }
 
 .status-badge.admin {
@@ -2552,25 +2599,26 @@
   letter-spacing: 0.3px;
   min-width: 80px;
   text-align: center;
+  color: white;
 }
 
-/* Убираем фоновый цвет для статуса answered, оставляем только цвет текста */
+/* Цветные фоны для статусов */
 .status-badge[style*="answered"] {
-  background-color: transparent !important;
-  color: #388e3c !important;
-  border: 1px solid rgba(56, 142, 60, 0.3);
+  background-color: #4caf50 !important;
+  color: white !important;
+  border: none;
 }
 
 .status-badge[style*="pending"] {
-  background-color: transparent !important;
-  color: #f57c00 !important;
-  border: 1px solid rgba(245, 124, 0, 0.3);
+  background-color: #ff9800 !important;
+  color: white !important;
+  border: none;
 }
 
 .status-badge[style*="closed"] {
-  background-color: transparent !important;
-  color: #9e9e9e !important;
-  border: 1px solid rgba(158, 158, 158, 0.3);
+  background-color: #9e9e9e !important;
+  color: white !important;
+  border: none;
 }
 
 .ticket-date {
@@ -2618,6 +2666,37 @@
 .response-modal .modal-body {
   flex: 1;
   padding: 24px;
+}
+
+/* Кастомный скроллбар для модального окна поддержки */
+.response-modal .modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.response-modal .modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.response-modal .modal-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.response-modal .modal-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+[data-theme="dark"] .response-modal .modal-body::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .response-modal .modal-body::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+[data-theme="dark"] .response-modal .modal-body::-webkit-scrollbar-thumb:hover {
+  background: #777;
 }
 
 .ticket-info-section {
@@ -2777,23 +2856,23 @@
   color: var(--text-primary) !important; /* Фиксим белый текст */
 }
 
-/* В темной теме для status badges тоже убираем фон */
+/* В темной теме для status badges оставляем цветные фоны */
 [data-theme="dark"] .status-badge[style*="answered"] {
-  background-color: transparent !important;
-  color: #81c784 !important; /* Светло-зеленый для темной темы */
-  border: 1px solid rgba(129, 199, 132, 0.3);
+  background-color: #4caf50 !important;
+  color: white !important;
+  border: none;
 }
 
 [data-theme="dark"] .status-badge[style*="pending"] {
-  background-color: transparent !important;
-  color: #ffb74d !important; /* Светло-оранжевый для темной темы */
-  border: 1px solid rgba(255, 183, 77, 0.3);
+  background-color: #ff9800 !important;
+  color: white !important;
+  border: none;
 }
 
 [data-theme="dark"] .status-badge[style*="closed"] {
-  background-color: transparent !important;
-  color: #979393 !important; /* Светло-серый для темной темы */
-  border: 1px solid rgba(176, 176, 176, 0.3);
+  background-color: #9e9e9e !important;
+  color: white !important;
+  border: none;
 }
 
 [data-theme="dark"] .action-button.view-response {
@@ -3791,7 +3870,8 @@
 .status-select.status-reviewing {
   background: rgba(33, 150, 243, 0.1);
   border-color: #2196f3;
-  color: #2196f3;
+  color: #1565c0;
+  font-weight: 600;
 }
 
 .status-select.status-resolved {
@@ -3820,7 +3900,8 @@
 [data-theme="dark"] .status-select.status-reviewing {
   background: rgba(33, 150, 243, 0.15);
   border-color: #42a5f5;
-  color: #42a5f5;
+  color: #90caf9;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .status-select.status-resolved {
@@ -3867,7 +3948,7 @@
 
 .stat-icon.reviewing {
   background: linear-gradient(135deg, rgba(33, 150, 243, 0.1) 0%, rgba(33, 150, 243, 0.2) 100%);
-  color: #2196f3;
+  color: #1565c0;
 }
 
 .stat-icon.resolved {
@@ -3882,7 +3963,7 @@
 
 [data-theme="dark"] .stat-icon.reviewing {
   background: linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.25) 100%);
-  color: #42a5f5;
+  color: #90caf9;
 }
 
 [data-theme="dark"] .stat-icon.resolved {
@@ -3911,7 +3992,8 @@
 
 /* ==================== МОДАЛЬНОЕ ОКНО ДЕТАЛЕЙ ЖАЛОБЫ ==================== */
 
-.report-details-modal {
+.modal-overlay .report-details-modal {
+  position: relative;
   width: 90%;
   max-width: 700px;
   max-height: 90vh;
@@ -3919,17 +4001,20 @@
   border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: modalSlideIn 0.3s ease;
+  animation: reportModalFadeIn 0.2s ease !important;
+  transform: none !important;
+  top: auto !important;
+  left: auto !important;
 }
 
-@keyframes modalSlideIn {
+@keyframes reportModalFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 
@@ -4060,12 +4145,12 @@
   padding: 12px;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 3px solid #2196f3;
+  border-left: 3px solid #6c757d;
 }
 
 [data-theme="dark"] .report-detail-section .report-user-info {
   background: var(--bg-secondary);
-  border-left-color: #42a5f5;
+  border-left-color: #888888;
 }
 
 .report-detail-section .report-user-name {
@@ -4104,10 +4189,12 @@
   cursor: pointer;
   transition: all 0.3s ease;
   border: 2px solid #e9ecef;
+  background: repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
 }
 
 [data-theme="dark"] .report-screenshot-item {
   border-color: var(--border-color);
+  background: repeating-conic-gradient(#2a2a2a 0% 25%, #1e1e1e 0% 50%) 50% / 20px 20px;
 }
 
 .report-screenshot-item:hover {
@@ -4264,7 +4351,7 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  animation: modalSlideIn 0.3s ease;
+  animation: modalFadeIn 0.2s ease;
 }
 
 .screenshot-preview-header {
@@ -4307,7 +4394,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #000000;
+  background: #1a1a1a;
   max-height: calc(90vh - 70px);
   overflow: auto;
 }
@@ -4493,9 +4580,10 @@
 }
 
 .report-status-badge.status-reviewing {
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.25) 100%);
-  color: #2196f3;
-  border: 1px solid rgba(33, 150, 243, 0.3);
+  background: #2196f3;
+  color: white;
+  border: 1px solid #2196f3;
+  font-weight: 600;
 }
 
 .report-status-badge.status-resolved {
@@ -4517,9 +4605,10 @@
 }
 
 [data-theme="dark"] .report-status-badge.status-reviewing {
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.2) 0%, rgba(33, 150, 243, 0.3) 100%);
-  color: #42a5f5;
-  border-color: rgba(33, 150, 243, 0.4);
+  background: #42a5f5;
+  color: white;
+  border-color: #42a5f5;
+  font-weight: 600;
 }
 
 [data-theme="dark"] .report-status-badge.status-resolved {
@@ -4692,4 +4781,608 @@
   background: linear-gradient(135deg, rgba(186, 104, 200, 0.15) 0%, rgba(186, 104, 200, 0.25) 100%);
   color: #ba68c8;
   border-color: rgba(186, 104, 200, 0.3);
+}
+
+
+/* ==================== АДАПТИВНОСТЬ ДЛЯ ТАБЛИЦЫ ЖАЛОБ ==================== */
+
+@media (max-width: 1200px) {
+  .reports-table th,
+  .reports-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+  
+  .report-user-name {
+    font-size: 13px;
+  }
+  
+  .report-user-email {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .reports-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .reports-table {
+    min-width: 900px;
+  }
+  
+  .reports-table th,
+  .reports-table td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+  
+  .report-action-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .report-action-btn .material-icons {
+    font-size: 18px;
+  }
+  
+  .report-status-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reports-table {
+    min-width: 800px;
+  }
+  
+  .reports-table th,
+  .reports-table td {
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+  
+  .report-user-name {
+    font-size: 12px;
+  }
+  
+  .report-user-email {
+    font-size: 10px;
+  }
+  
+  .report-actions {
+    gap: 4px;
+  }
+  
+  .report-action-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .report-action-btn .material-icons {
+    font-size: 16px;
+  }
+}
+
+
+/* ==================== МОДАЛЬНОЕ ОКНО ПРОСМОТРА ИСТОРИИ/ОТЗЫВА ==================== */
+
+/* Модальное окно истории - увеличенный размер */
+.story-preview-modal.large {
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Заголовок модального окна истории */
+.story-preview-modal .modal-header {
+  background: #f8f8f8;
+  color: #1a1a1a;
+  padding: 20px 24px;
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.story-preview-modal .modal-header h3 {
+  color: #1a1a1a;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.story-preview-modal .modal-header .material-icons {
+  font-size: 22px;
+  color: #666666;
+}
+
+.story-preview-modal .modal-close {
+  color: #666666;
+  background: transparent;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px !important;
+  transition: all 0.2s ease;
+}
+
+.story-preview-modal .modal-close:hover {
+  background: #f0f0f0;
+  color: #1a1a1a;
+}
+
+/* Тело модального окна */
+.story-preview-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+  background: #ffffff;
+}
+
+/* Контент истории */
+.story-preview-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Заголовок истории */
+.story-preview-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.story-preview-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* Метаданные истории */
+.story-preview-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.story-author-preview,
+.story-category-preview,
+.story-date-preview,
+.story-carbon-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f8f8f8;
+  border-radius: 6px !important;
+  font-size: 13px;
+  color: #555555;
+  font-weight: 500;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.story-author-preview:hover,
+.story-category-preview:hover,
+.story-date-preview:hover,
+.story-carbon-preview:hover {
+  background: #f0f0f0;
+}
+
+.story-author-preview .material-icons,
+.story-category-preview .material-icons,
+.story-date-preview .material-icons,
+.story-carbon-preview .material-icons {
+  font-size: 18px;
+  color: #4caf50;
+}
+
+.story-carbon-preview {
+  background: #f0f0f0;
+  color: #555555;
+  font-weight: 600;
+  border-color: #d0d0d0;
+}
+
+.story-carbon-preview .material-icons {
+  color: #555555;
+}
+
+/* Тело истории */
+.story-preview-body {
+  padding: 20px;
+  background: #fafafa;
+  border-radius: 8px !important;
+  border: 1px solid #e0e0e0;
+}
+
+.story-content-preview {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #333333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Футер истории */
+.story-preview-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8f8f8;
+  border-radius: 8px !important;
+  border: 1px solid #e0e0e0;
+}
+
+.story-stats-preview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.story-likes-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555555;
+}
+
+.story-likes-preview::before {
+  content: '❤️';
+  font-size: 16px;
+}
+
+.story-status-preview {
+  display: flex;
+  align-items: center;
+}
+
+.story-status-preview .status-badge {
+  padding: 6px 16px;
+  border-radius: 16px !important;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+}
+
+/* Футер модального окна */
+.story-preview-modal .modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+  border-radius: 0 0 12px 12px !important;
+  gap: 10px;
+}
+
+.story-preview-modal .modal-footer .btn {
+  padding: 10px 20px;
+  border-radius: 6px !important;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.story-preview-modal .modal-footer .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.story-preview-modal .modal-footer .btn .material-icons {
+  font-size: 18px;
+}
+
+.story-preview-modal .modal-footer .btn-secondary {
+  background: #f0f0f0;
+  color: #555555;
+  border: 1px solid #d0d0d0;
+}
+
+.story-preview-modal .modal-footer .btn-secondary:hover {
+  background: #e0e0e0;
+  border-color: #b0b0b0;
+}
+
+.story-preview-modal .modal-footer .btn-danger {
+  background: #f44336;
+  border: 1px solid #f44336;
+  color: white;
+}
+
+.story-preview-modal .modal-footer .btn-danger:hover {
+  background: #d32f2f;
+  border-color: #d32f2f;
+}
+
+.story-preview-modal .modal-footer .btn-success {
+  background: #4caf50;
+  border: 1px solid #4caf50;
+  color: white;
+}
+
+.story-preview-modal .modal-footer .btn-success:hover {
+  background: #45a049;
+  border-color: #45a049;
+}
+
+.story-preview-modal .modal-footer .btn-warning {
+  background: #ff9800;
+  border: 1px solid #ff9800;
+  color: white;
+}
+
+.story-preview-modal .modal-footer .btn-warning:hover {
+  background: #f57c00;
+  border-color: #f57c00;
+}
+
+/* Темная тема для модального окна истории */
+[data-theme="dark"] .story-preview-modal.large {
+  background: #2a2a2a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .story-preview-modal .modal-header {
+  background: #1e1e1e;
+  border-bottom-color: #333333;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-header h3 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-header .material-icons {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-close {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-close:hover {
+  background: #333333;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-body {
+  background: #2a2a2a;
+}
+
+[data-theme="dark"] .story-preview-content {
+  background: transparent;
+}
+
+[data-theme="dark"] .story-preview-header {
+  border-bottom-color: #333333;
+}
+
+[data-theme="dark"] .story-preview-title {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .story-author-preview,
+[data-theme="dark"] .story-category-preview,
+[data-theme="dark"] .story-date-preview,
+[data-theme="dark"] .story-carbon-preview {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  border-color: #333333;
+}
+
+[data-theme="dark"] .story-author-preview .material-icons,
+[data-theme="dark"] .story-category-preview .material-icons,
+[data-theme="dark"] .story-date-preview .material-icons,
+[data-theme="dark"] .story-carbon-preview .material-icons {
+  color: #4caf50;
+}
+
+[data-theme="dark"] .story-carbon-preview {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #4a4a4a;
+}
+
+[data-theme="dark"] .story-carbon-preview .material-icons {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .story-preview-body {
+  background: #1e1e1e;
+  border-color: #333333;
+}
+
+[data-theme="dark"] .story-content-preview {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .story-preview-footer {
+  background: #1e1e1e;
+  border-color: #333333;
+}
+
+[data-theme="dark"] .story-likes-preview {
+  color: #e0e0e0;
+}
+
+[data-theme="dark"] .story-status-preview .status-badge {
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-footer {
+  background: #1e1e1e;
+  border-top-color: #333333;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-footer .btn-secondary {
+  background: #3a3a3a;
+  color: #e0e0e0;
+  border-color: #4a4a4a;
+}
+
+[data-theme="dark"] .story-preview-modal .modal-footer .btn-secondary:hover {
+  background: #4a4a4a;
+  border-color: #5a5a5a;
+}
+
+/* Адаптивность для модального окна истории */
+@media (max-width: 768px) {
+  .story-preview-modal.large {
+    width: 95%;
+    max-width: 95%;
+    border-radius: 16px !important;
+  }
+
+  .story-preview-modal .modal-header {
+    padding: 20px 20px;
+    border-radius: 16px 16px 0 0 !important;
+  }
+
+  .story-preview-modal .modal-header h3 {
+    font-size: 18px;
+  }
+
+  .story-preview-content {
+    padding: 20px;
+    gap: 20px;
+  }
+
+  .story-preview-title {
+    font-size: 24px;
+  }
+
+  .story-preview-meta {
+    gap: 12px;
+  }
+
+  .story-author-preview,
+  .story-category-preview,
+  .story-date-preview,
+  .story-carbon-preview {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .story-preview-body {
+    padding: 20px;
+  }
+
+  .story-content-preview {
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .story-preview-footer {
+    padding: 16px 20px;
+  }
+
+  .story-stats-preview {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .story-likes-preview {
+    justify-content: center;
+  }
+
+  .story-status-preview {
+    justify-content: center;
+  }
+
+  .story-preview-modal .modal-footer {
+    padding: 16px 20px;
+    flex-direction: column;
+  }
+
+  .story-preview-modal .modal-footer .btn {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .story-preview-modal.large {
+    width: 98%;
+    border-radius: 12px !important;
+  }
+
+  .story-preview-modal .modal-header {
+    padding: 16px;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  .story-preview-modal .modal-header h3 {
+    font-size: 16px;
+  }
+
+  .story-preview-content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .story-preview-title {
+    font-size: 20px;
+  }
+
+  .story-preview-meta {
+    gap: 8px;
+  }
+
+  .story-author-preview,
+  .story-category-preview,
+  .story-date-preview,
+  .story-carbon-preview {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .story-preview-body {
+    padding: 16px;
+  }
+
+  .story-content-preview {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .story-preview-footer {
+    padding: 12px 16px;
+  }
+
+  .story-preview-modal .modal-footer {
+    padding: 12px 16px;
+  }
+
+  .story-preview-modal .modal-footer .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+    min-width: auto;
+  }
 }

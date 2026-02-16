@@ -597,14 +597,15 @@ router.post('/:userId/friends/request', async (req, res) => {
     
     // Создаем уведомление ТОЛЬКО для получателя запроса
     const notificationResult = await pool.query(`
-      INSERT INTO notifications (user_id, type, title, message, related_id)
-      VALUES ($1, 'friend_request', $2, $3, $4)
+      INSERT INTO notifications (user_id, type, title, message, related_id, link)
+      VALUES ($1, 'friend_request', $2, $3, $4, $5)
       RETURNING *
     `, [
       friendId,
       'Новый запрос в друзья',
       `${senderInfo.rows[0].nickname} хочет добавить вас в друзья`,
-      userId
+      userId,
+      '/friends'
     ]);
     
     // Отправляем WebSocket событие о новом уведомлении ТОЛЬКО получателю
@@ -657,14 +658,15 @@ router.put('/:userId/friends/:friendshipId/accept', async (req, res) => {
     
     // Создаем уведомление для отправителя запроса
     const notificationResult = await pool.query(`
-      INSERT INTO notifications (user_id, type, title, message, related_id)
-      VALUES ($1, 'friend_request', $2, $3, $4)
+      INSERT INTO notifications (user_id, type, title, message, related_id, link)
+      VALUES ($1, 'friend_request', $2, $3, $4, $5)
       RETURNING *
     `, [
       friendship.user_id,
       'Запрос в друзья принят',
       'Ваш запрос в друзья был принят!',
-      friendship.friend_id
+      friendship.friend_id,
+      '/friends'
     ]);
     
     // Отправляем WebSocket событие о новом уведомлении
@@ -736,14 +738,15 @@ router.put('/:userId/friends/:friendshipId/reject', async (req, res) => {
     
     // Создаем уведомление для отправителя запроса
     const notificationResult = await pool.query(`
-      INSERT INTO notifications (user_id, type, title, message, related_id)
-      VALUES ($1, 'friend_request', $2, $3, $4)
+      INSERT INTO notifications (user_id, type, title, message, related_id, link)
+      VALUES ($1, 'friend_request', $2, $3, $4, $5)
       RETURNING *
     `, [
       friendship.user_id,
       'Запрос в друзья отклонен',
       'Ваш запрос в друзья был отклонен',
-      friendship.friend_id
+      friendship.friend_id,
+      '/friends'
     ]);
     
     // Отправляем WebSocket событие о новом уведомлении
@@ -862,6 +865,168 @@ router.get('/:userId/friends', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка получения друзей:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+// Принять запрос в друзья (новый эндпоинт)
+router.post('/:userId/friends/accept', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { friendId } = req.body;
+    
+    const result = await pool.query(`
+      UPDATE friendships
+      SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'
+      RETURNING *
+    `, [friendId, userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Запрос не найден'
+      });
+    }
+    
+    const friendship = result.rows[0];
+    
+    // Отправляем через WebSocket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${friendId}`).emit('friendRequestAccepted', {
+        userId: userId,
+        friendId: friendId
+      });
+    }
+    
+    // Создаем уведомление для отправителя запроса
+    const senderInfo = await pool.query(
+      'SELECT nickname FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    const notificationResult = await pool.query(`
+      INSERT INTO notifications (user_id, type, title, message, related_id, link)
+      VALUES ($1, 'friend_request', $2, $3, $4, $5)
+      RETURNING *
+    `, [
+      friendId,
+      'Запрос в друзья принят',
+      `${senderInfo.rows[0].nickname} принял ваш запрос в друзья!`,
+      userId,
+      '/friends'
+    ]);
+    
+    // Отправляем WebSocket событие о новом уведомлении
+    if (io) {
+      io.to(`user:${friendId}`).emit('notification:new', notificationResult.rows[0]);
+    }
+    
+    // Трекинг достижений для обоих пользователей
+    try {
+      const { processAchievementEvent } = require('./achievements');
+      
+      // Для пользователя, который принял запрос
+      await processAchievementEvent(Number(userId), 'friend_added', { 
+        friendId: Number(friendId)
+      }, io);
+      
+      // Для пользователя, который отправил запрос
+      await processAchievementEvent(Number(friendId), 'friend_added', { 
+        friendId: Number(userId)
+      }, io);
+      
+      console.log('✅ Трекинг достижений friend_added выполнен для обоих пользователей');
+    } catch (trackError) {
+      console.error('❌ Ошибка трекинга достижения friend_added:', trackError);
+    }
+    
+    res.json({
+      success: true,
+      friendship: friendship
+    });
+  } catch (error) {
+    console.error('Ошибка принятия запроса:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+// Отклонить запрос в друзья (новый эндпоинт)
+router.post('/:userId/friends/reject', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { friendId } = req.body;
+    
+    const result = await pool.query(`
+      UPDATE friendships
+      SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'
+      RETURNING *
+    `, [friendId, userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Запрос не найден'
+      });
+    }
+    
+    const friendship = result.rows[0];
+    
+    // Отправляем WebSocket событие
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${friendId}`).emit('friendRequestRejected', {
+        userId: userId,
+        friendId: friendId
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Запрос отклонен'
+    });
+  } catch (error) {
+    console.error('Ошибка отклонения запроса:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сервера'
+    });
+  }
+});
+
+// Отменить исходящий запрос в друзья
+router.post('/:userId/friends/cancel', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { friendId } = req.body;
+    
+    const result = await pool.query(`
+      DELETE FROM friendships
+      WHERE user_id = $1 AND friend_id = $2 AND status = 'pending'
+      RETURNING *
+    `, [userId, friendId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Запрос не найден'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Запрос отменен'
+    });
+  } catch (error) {
+    console.error('Ошибка отмены запроса:', error);
     res.status(500).json({
       success: false,
       message: 'Ошибка сервера'
