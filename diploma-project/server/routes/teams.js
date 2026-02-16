@@ -135,6 +135,8 @@ router.get('/:id', async (req, res) => {
 
 // Создать команду
 router.post('/', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { name, description, avatar_emoji, goal_description, goal_target, creator_id } = req.body;
 
@@ -145,13 +147,16 @@ router.post('/', async (req, res) => {
       });
     }
 
+    await client.query('BEGIN');
+
     // Проверяем, существует ли команда с таким именем
-    const existingTeam = await pool.query(
+    const existingTeam = await client.query(
       'SELECT id FROM teams WHERE name = $1',
       [name]
     );
 
     if (existingTeam.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Команда с таким названием уже существует'
@@ -159,7 +164,7 @@ router.post('/', async (req, res) => {
     }
 
     // Создаем команду
-    const teamResult = await pool.query(`
+    const teamResult = await client.query(`
       INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, member_count)
       VALUES ($1, $2, $3, $4, $5, 1)
       RETURNING id, name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count, created_at
@@ -174,26 +179,118 @@ router.post('/', async (req, res) => {
     const team = teamResult.rows[0];
 
     // Добавляем создателя как админа
-    await pool.query(`
+    await client.query(`
       INSERT INTO team_members (team_id, user_id, role)
       VALUES ($1, $2, 'admin')
     `, [team.id, creator_id]);
+
+    // Проверяем и начисляем достижение "Основатель"
+    const achievementCheck = await client.query(
+      'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
+      [creator_id, 'team_creator']
+    );
+
+    if (achievementCheck.rows.length === 0) {
+      const achievementInfo = await client.query(
+        'SELECT points FROM achievements WHERE code = $1',
+        ['team_creator']
+      );
+
+      if (achievementInfo.rows.length > 0) {
+        const points = achievementInfo.rows[0].points;
+
+        // Начисляем достижение
+        await client.query(`
+          INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+          VALUES ($1, $2, 1, true)
+        `, [creator_id, 'team_creator']);
+
+        // Начисляем очки
+        await client.query(
+          'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
+          [points, creator_id]
+        );
+
+        // Отправляем уведомление о достижении
+        await client.query(`
+          INSERT INTO notifications (user_id, type, title, message)
+          VALUES ($1, $2, $3, $4)
+        `, [
+          creator_id,
+          'achievement_unlocked',
+          'Новое достижение!',
+          `Вы получили достижение "Основатель" (+${points} очков)`
+        ]);
+      }
+    }
+
+    // Также проверяем достижение "Командный игрок" если это первая команда
+    const teamCountResult = await client.query(
+      'SELECT COUNT(*) as count FROM team_members WHERE user_id = $1',
+      [creator_id]
+    );
+    const teamCount = parseInt(teamCountResult.rows[0].count);
+
+    if (teamCount === 1) {
+      const firstTeamCheck = await client.query(
+        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
+        [creator_id, 'first_team']
+      );
+
+      if (firstTeamCheck.rows.length === 0) {
+        const achievementInfo = await client.query(
+          'SELECT points FROM achievements WHERE code = $1',
+          ['first_team']
+        );
+
+        if (achievementInfo.rows.length > 0) {
+          const points = achievementInfo.rows[0].points;
+
+          await client.query(`
+            INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+            VALUES ($1, $2, 1, true)
+          `, [creator_id, 'first_team']);
+
+          await client.query(
+            'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
+            [points, creator_id]
+          );
+
+          await client.query(`
+            INSERT INTO notifications (user_id, type, title, message)
+            VALUES ($1, $2, $3, $4)
+          `, [
+            creator_id,
+            'achievement_unlocked',
+            'Новое достижение!',
+            `Вы получили достижение "Командный игрок" (+${points} очков)`
+          ]);
+        }
+      }
+    }
+
+    await client.query('COMMIT');
 
     res.json({
       success: true,
       team
     });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Ошибка создания команды:', error);
     res.status(500).json({
       success: false,
       message: 'Ошибка сервера'
     });
+  } finally {
+    client.release();
   }
 });
 
 // Присоединиться к команде
 router.post('/:id/join', async (req, res) => {
+  const client = await pool.connect();
+  
   try {
     const { id } = req.params;
     const { user_id } = req.body;
@@ -205,26 +302,32 @@ router.post('/:id/join', async (req, res) => {
       });
     }
 
+    await client.query('BEGIN');
+
     // Проверяем, существует ли команда
-    const teamResult = await pool.query(
-      'SELECT id FROM teams WHERE id = $1',
+    const teamResult = await client.query(
+      'SELECT id, name FROM teams WHERE id = $1',
       [id]
     );
 
     if (teamResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({
         success: false,
         message: 'Команда не найдена'
       });
     }
 
+    const team = teamResult.rows[0];
+
     // Проверяем, не состоит ли уже пользователь в команде
-    const memberCheck = await pool.query(
+    const memberCheck = await client.query(
       'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
       [id, user_id]
     );
 
     if (memberCheck.rows.length > 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         message: 'Вы уже состоите в этой команде'
@@ -232,27 +335,151 @@ router.post('/:id/join', async (req, res) => {
     }
 
     // Добавляем пользователя в команду
-    await pool.query(`
+    await client.query(`
       INSERT INTO team_members (team_id, user_id, role)
       VALUES ($1, $2, 'member')
     `, [id, user_id]);
 
     // Обновляем счетчик участников
-    await pool.query(
+    await client.query(
       'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
       [id]
     );
+
+    // Получаем информацию о пользователе
+    const userResult = await client.query(
+      'SELECT nickname FROM users WHERE id = $1',
+      [user_id]
+    );
+    const userNickname = userResult.rows[0]?.nickname || 'Пользователь';
+
+    // Получаем админа команды для отправки уведомления
+    const adminResult = await client.query(
+      'SELECT user_id FROM team_members WHERE team_id = $1 AND role = $2',
+      [id, 'admin']
+    );
+
+    if (adminResult.rows.length > 0) {
+      const adminId = adminResult.rows[0].user_id;
+      
+      // Отправляем уведомление админу
+      await client.query(`
+        INSERT INTO notifications (user_id, type, title, message, related_id)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [
+        adminId,
+        'team_member_joined',
+        'Новый участник команды',
+        `${userNickname} присоединился к вашей команде "${team.name}"`,
+        id
+      ]);
+    }
+
+    // Проверяем и начисляем достижения
+    // 1. Достижение "Командный игрок" - первая команда
+    const teamCountResult = await client.query(
+      'SELECT COUNT(*) as count FROM team_members WHERE user_id = $1',
+      [user_id]
+    );
+    const teamCount = parseInt(teamCountResult.rows[0].count);
+
+    if (teamCount === 1) {
+      // Проверяем, есть ли уже это достижение
+      const achievementCheck = await client.query(
+        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
+        [user_id, 'first_team']
+      );
+
+      if (achievementCheck.rows.length === 0) {
+        // Получаем информацию о достижении
+        const achievementInfo = await client.query(
+          'SELECT points FROM achievements WHERE code = $1',
+          ['first_team']
+        );
+
+        if (achievementInfo.rows.length > 0) {
+          const points = achievementInfo.rows[0].points;
+
+          // Начисляем достижение
+          await client.query(`
+            INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+            VALUES ($1, $2, 1, true)
+          `, [user_id, 'first_team']);
+
+          // Начисляем очки
+          await client.query(
+            'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
+            [points, user_id]
+          );
+
+          // Отправляем уведомление о достижении
+          await client.query(`
+            INSERT INTO notifications (user_id, type, title, message)
+            VALUES ($1, $2, $3, $4)
+          `, [
+            user_id,
+            'achievement_unlocked',
+            'Новое достижение!',
+            `Вы получили достижение "Командный игрок" (+${points} очков)`
+          ]);
+        }
+      }
+    }
+
+    // 2. Достижение "Коллективист" - 5 команд
+    if (teamCount === 5) {
+      const achievementCheck = await client.query(
+        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
+        [user_id, 'team_5']
+      );
+
+      if (achievementCheck.rows.length === 0) {
+        const achievementInfo = await client.query(
+          'SELECT points FROM achievements WHERE code = $1',
+          ['team_5']
+        );
+
+        if (achievementInfo.rows.length > 0) {
+          const points = achievementInfo.rows[0].points;
+
+          await client.query(`
+            INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+            VALUES ($1, $2, 5, true)
+          `, [user_id, 'team_5']);
+
+          await client.query(
+            'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
+            [points, user_id]
+          );
+
+          await client.query(`
+            INSERT INTO notifications (user_id, type, title, message)
+            VALUES ($1, $2, $3, $4)
+          `, [
+            user_id,
+            'achievement_unlocked',
+            'Новое достижение!',
+            `Вы получили достижение "Коллективист" (+${points} очков)`
+          ]);
+        }
+      }
+    }
+
+    await client.query('COMMIT');
 
     res.json({
       success: true,
       message: 'Вы присоединились к команде'
     });
   } catch (error) {
+    await client.query('ROLLBACK');
     console.error('Ошибка присоединения к команде:', error);
     res.status(500).json({
       success: false,
       message: 'Ошибка сервера'
     });
+  } finally {
+    client.release();
   }
 });
 

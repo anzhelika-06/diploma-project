@@ -352,6 +352,8 @@ const NotificationBell = () => {
         return 'person_add';
       case 'achievement':
         return 'emoji_events';
+      case 'achievement_unlocked':
+        return 'emoji_events';
       case 'story_approved':
         return 'check_circle';
       case 'story_rejected':
@@ -360,6 +362,8 @@ const NotificationBell = () => {
         return 'eco';
       case 'system':
         return 'info';
+      case 'team_member_joined':
+        return 'group_add';
       default:
         return 'notifications';
     }

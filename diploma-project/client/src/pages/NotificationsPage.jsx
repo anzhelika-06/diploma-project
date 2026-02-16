@@ -207,10 +207,12 @@ const NotificationsPage = () => {
       case 'new_report': return 'report';
       case 'friend_request': return 'person_add';
       case 'achievement': return 'emoji_events';
+      case 'achievement_unlocked': return 'emoji_events';
       case 'story_approved': return 'check_circle';
       case 'story_rejected': return 'cancel';
       case 'eco_tip': return 'eco';
       case 'system': return 'info';
+      case 'team_member_joined': return 'group_add';
       default: return 'notifications';
     }
   };

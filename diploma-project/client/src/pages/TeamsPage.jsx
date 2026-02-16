@@ -15,7 +15,11 @@ const TeamsPage = () => {
   const [myTeams, setMyTeams] = useState([]);
   const [allTeams, setAllTeams] = useState([]);
   const [translatedTeams, setTranslatedTeams] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  
+  const TEAMS_PER_PAGE = 9;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
@@ -379,6 +383,153 @@ const TeamsPage = () => {
     return team && team.role === 'admin';
   };
 
+  // Фильтрация команд по поисковому запросу
+  const filterTeams = (teams) => {
+    if (!searchQuery.trim()) return teams;
+    
+    const query = searchQuery.toLowerCase();
+    return teams.filter(team => 
+      team.name.toLowerCase().includes(query)
+    );
+  };
+
+  // Получаем отфильтрованные команды
+  const getDisplayTeams = () => {
+    const teamsToDisplay = translatedTeams.length > 0 ? translatedTeams : (activeTab === 'my' ? myTeams : allTeams);
+    return filterTeams(teamsToDisplay);
+  };
+
+  // Пагинация
+  const getPaginatedTeams = () => {
+    const filteredTeams = getDisplayTeams();
+    const startIndex = (currentPage - 1) * TEAMS_PER_PAGE;
+    const endIndex = startIndex + TEAMS_PER_PAGE;
+    return filteredTeams.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = () => {
+    const filteredTeams = getDisplayTeams();
+    return Math.ceil(filteredTeams.length / TEAMS_PER_PAGE);
+  };
+
+  const handlePageChange = (page) => {
+    if (page < 1 || page > getTotalPages()) return;
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Рендер пагинации
+  const renderPagination = () => {
+    const totalPages = getTotalPages();
+    
+    if (totalPages <= 1) {
+      return null;
+    }
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // Кнопка "Предыдущая"
+    if (currentPage > 1) {
+      pages.push(
+        <button
+          key="prev"
+          className="teams-pagination-button"
+          onClick={() => handlePageChange(currentPage - 1)}
+          aria-label={t('previousPage') || 'Предыдущая страница'}
+        >
+          <span className="material-icons">chevron_left</span>
+        </button>
+      );
+    }
+
+    // Первая страница
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className="teams-pagination-button"
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(<span key="dots1" className="teams-pagination-ellipsis">...</span>);
+      }
+    }
+
+    // Страницы
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`teams-pagination-button ${currentPage === i ? 'active' : ''}`}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Последняя страница
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<span key="dots2" className="teams-pagination-ellipsis">...</span>);
+      }
+      pages.push(
+        <button
+          key={totalPages}
+          className="teams-pagination-button"
+          onClick={() => handlePageChange(totalPages)}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+    
+    // Кнопка "Следующая"
+    if (currentPage < totalPages) {
+      pages.push(
+        <button
+          key="next"
+          className="teams-pagination-button"
+          onClick={() => handlePageChange(currentPage + 1)}
+          aria-label={t('nextPage') || 'Следующая страница'}
+        >
+          <span className="material-icons">chevron_right</span>
+        </button>
+      );
+    }
+    
+    const filteredTeams = getDisplayTeams();
+    const startIndex = (currentPage - 1) * TEAMS_PER_PAGE + 1;
+    const endIndex = Math.min(currentPage * TEAMS_PER_PAGE, filteredTeams.length);
+    
+    return (
+      <div className="teams-pagination-container">
+        <div className="teams-pagination-info">
+          {t('showingTeams') || 'Показано'} <strong>{startIndex}-{endIndex}</strong> {t('ofTotal') || 'из'} <strong>{filteredTeams.length}</strong>
+        </div>
+        <div className="teams-pagination-buttons">
+          {pages}
+        </div>
+      </div>
+    );
+  };
+
+  // Сброс страницы при изменении фильтров
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
   if (!currentUser) {
     return (
       <div className="teams-page">
@@ -419,6 +570,20 @@ const TeamsPage = () => {
         </button>
       </div>
 
+      {/* Поиск */}
+      <div className="teams-search-section">
+        <div className="teams-search-form">
+          <input
+            type="text"
+            placeholder={t('searchTeams') || 'Поиск по названию команды...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="teams-search-input"
+          />
+          <span className="material-icons teams-search-icon">search</span>
+        </div>
+      </div>
+
       <div className="teams-content">
         {loading ? (
           <div className="teams-loading-state">
@@ -428,69 +593,87 @@ const TeamsPage = () => {
         ) : (
           <>
             {activeTab === 'my' && (
-              <div className="teams-grid">
-                {myTeams.length === 0 ? (
-                  <div className="teams-empty-state">
-                    <span className="material-icons">group_off</span>
-                    <h3>{t('noTeamsYet')}</h3>
-                    <p>{t('noTeamsYetDesc')}</p>
-                  </div>
-                ) : (
-                  (translatedTeams.length > 0 ? translatedTeams : myTeams).map(team => (
-                    <TeamCard 
-                      key={team.id}
-                      team={team}
-                      isMember={true}
-                      isAdmin={team.role === 'admin'}
-                      onViewMembers={handleViewMembers}
-                      onLeave={(teamId) => {
-                        setSelectedTeam(team);
-                        setShowLeaveModal(true);
-                      }}
-                      onDelete={(teamId) => {
-                        setSelectedTeam(team);
-                        setShowDeleteModal(true);
-                      }}
-                      onViewProfile={() => navigate(`/profile/${team.id}`)}
-                    />
-                  ))
-                )}
-              </div>
+              <>
+                <div className="teams-grid">
+                  {myTeams.length === 0 ? (
+                    <div className="teams-empty-state">
+                      <span className="material-icons">group_off</span>
+                      <h3>{t('noTeamsYet')}</h3>
+                      <p>{t('noTeamsYetDesc')}</p>
+                    </div>
+                  ) : getDisplayTeams().length === 0 ? (
+                    <div className="teams-empty-state">
+                      <span className="material-icons">search_off</span>
+                      <h3>{t('noSearchResults')}</h3>
+                      <p>{t('noSearchResultsDesc')}</p>
+                    </div>
+                  ) : (
+                    getPaginatedTeams().map(team => (
+                      <TeamCard 
+                        key={team.id}
+                        team={team}
+                        isMember={true}
+                        isAdmin={team.role === 'admin'}
+                        onViewMembers={handleViewMembers}
+                        onLeave={(teamId) => {
+                          setSelectedTeam(team);
+                          setShowLeaveModal(true);
+                        }}
+                        onDelete={(teamId) => {
+                          setSelectedTeam(team);
+                          setShowDeleteModal(true);
+                        }}
+                        onViewProfile={() => navigate(`/profile/${team.id}`)}
+                      />
+                    ))
+                  )}
+                </div>
+                {myTeams.length > 0 && getDisplayTeams().length > 0 && renderPagination()}
+              </>
             )}
 
             {activeTab === 'all' && (
-              <div className="teams-grid">
-                {allTeams.length === 0 ? (
-                  <div className="teams-empty-state">
-                    <span className="material-icons">search_off</span>
-                    <h3>{t('noTeamsExist')}</h3>
-                    <p>{t('noTeamsExistDesc')}</p>
-                  </div>
-                ) : (
-                  (translatedTeams.length > 0 ? translatedTeams : allTeams).map(team => (
-                    <TeamCard 
-                      key={team.id}
-                      team={team}
-                      isMember={isTeamMember(team.id)}
-                      isAdmin={isTeamAdmin(team.id)}
-                      onViewMembers={handleViewMembers}
-                      onJoin={(teamId) => {
-                        setSelectedTeam(team);
-                        setShowJoinModal(true);
-                      }}
-                      onLeave={(teamId) => {
-                        setSelectedTeam(team);
-                        setShowLeaveModal(true);
-                      }}
-                      onDelete={(teamId) => {
-                        setSelectedTeam(team);
-                        setShowDeleteModal(true);
-                      }}
-                      onViewProfile={() => navigate(`/profile/${team.id}`)}
-                    />
-                  ))
-                )}
-              </div>
+              <>
+                <div className="teams-grid">
+                  {allTeams.length === 0 ? (
+                    <div className="teams-empty-state">
+                      <span className="material-icons">search_off</span>
+                      <h3>{t('noTeamsExist')}</h3>
+                      <p>{t('noTeamsExistDesc')}</p>
+                    </div>
+                  ) : getDisplayTeams().length === 0 ? (
+                    <div className="teams-empty-state">
+                      <span className="material-icons">search_off</span>
+                      <h3>{t('noSearchResults')}</h3>
+                      <p>{t('noSearchResultsDesc')}</p>
+                    </div>
+                  ) : (
+                    getPaginatedTeams().map(team => (
+                      <TeamCard 
+                        key={team.id}
+                        team={team}
+                        isMember={isTeamMember(team.id)}
+                        isAdmin={isTeamAdmin(team.id)}
+                        onViewMembers={handleViewMembers}
+                        onJoin={(teamId) => {
+                          setSelectedTeam(team);
+                          setShowJoinModal(true);
+                        }}
+                        onLeave={(teamId) => {
+                          setSelectedTeam(team);
+                          setShowLeaveModal(true);
+                        }}
+                        onDelete={(teamId) => {
+                          setSelectedTeam(team);
+                          setShowDeleteModal(true);
+                        }}
+                        onViewProfile={() => navigate(`/profile/${team.id}`)}
+                      />
+                    ))
+                  )}
+                </div>
+                {allTeams.length > 0 && getDisplayTeams().length > 0 && renderPagination()}
+              </>
             )}
           </>
         )}

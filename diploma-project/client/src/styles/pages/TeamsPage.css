@@ -99,6 +99,50 @@
   font-size: 20px;
 }
 
+/* Поиск */
+.teams-search-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 30px;
+}
+
+.teams-search-form {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+}
+
+.teams-search-input {
+  width: 100%;
+  padding: 14px 50px 14px 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 16px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+}
+
+.teams-search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.teams-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.teams-search-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+  font-size: 24px;
+}
+
 /* Сетка команд */
 .teams-grid {
   display: grid;
@@ -851,5 +895,90 @@
   
   .teams-emoji-picker {
     grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+  }
+}
+
+/* Пагинация */
+.teams-pagination-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 40px;
+  padding: 20px 0;
+}
+
+.teams-pagination-info {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.teams-pagination-info strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.teams-pagination-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.teams-pagination-button {
+  min-width: 40px;
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.teams-pagination-button:hover {
+  background: var(--hover-bg);
+  border-color: var(--primary-color);
+}
+
+.teams-pagination-button.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.teams-pagination-button .material-icons {
+  font-size: 20px;
+}
+
+.teams-pagination-ellipsis {
+  padding: 8px 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .teams-pagination-container {
+    margin-top: 30px;
+  }
+  
+  .teams-pagination-info {
+    font-size: 13px;
+  }
+  
+  .teams-pagination-button {
+    min-width: 36px;
+    height: 36px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .teams-pagination-button .material-icons {
+    font-size: 18px;
   }
 }

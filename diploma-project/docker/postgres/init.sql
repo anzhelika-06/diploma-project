@@ -1702,6 +1702,13 @@ INSERT INTO achievements (
     ('calculation_5', 'Регулярный пользователь', 'Выполните 5 расчетов', 'calculations', '📈', 'calculation_completed', 'count', 5, 100, 'rare', false, 61),
     ('calculation_10', 'Эко-аналитик', 'Выполните 10 расчетов', 'calculations', '📊', 'calculation_completed', 'count', 10, 200, 'epic', false, 62),
     ('calculation_20', 'Мастер расчетов', 'Выполните 20 расчетов', 'calculations', '🎯', 'calculation_completed', 'count', 20, 350, 'legendary', false, 63),
+    ('first_team', 'Командный игрок', 'Вступите в свою первую команду', 'teams', '👥', 'team_joined', 'count', 1, 50, 'common', false, 70),
+    ('team_creator', 'Основатель', 'Создайте свою первую команду', 'teams', '🏗️', 'team_created', 'count', 1, 100, 'rare', false, 71),
+    ('team_5', 'Коллективист', 'Вступите в 5 команд', 'teams', '🤝', 'team_joined', 'count', 5, 200, 'epic', false, 72),
+    ('team_admin', 'Лидер сообщества', 'Управляйте командой из 10+ участников', 'teams', '👑', 'team_members', 'value', 10, 300, 'epic', false, 73),
+    ('team_goal_100', 'Командная цель', 'Команда достигла цели в 100 кг CO₂', 'teams', '🎯', 'team_goal_reached', 'value', 100, 150, 'rare', false, 74),
+    ('team_goal_500', 'Большая цель', 'Команда достигла цели в 500 кг CO₂', 'teams', '🏆', 'team_goal_reached', 'value', 500, 250, 'epic', false, 75),
+    ('team_goal_1000', 'Командный триумф', 'Команда достигла цели в 1000 кг CO₂', 'teams', '🌟', 'team_goal_reached', 'value', 1000, 400, 'legendary', false, 76),
     ('story_deleted', 'Переосмысление', 'Удалите свою историю', 'special', '🗑️', 'story_deleted', 'count', 1, 25, 'rare', true, 100),
     ('like_own_story', 'Самолюбование', 'Поставьте лайк своей истории', 'special', '😊', 'like_own_story', 'boolean', 1, 10, 'common', true, 101),
     ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', true, 102)
