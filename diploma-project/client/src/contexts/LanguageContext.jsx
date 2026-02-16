@@ -4,6 +4,7 @@ import {
   getSavedLanguage, 
   saveLanguageEverywhere, 
   loadLanguageFromDatabase,
+  saveLanguageToDatabase,
   defaultLanguage 
 } from '../utils/translations'
 
@@ -25,22 +26,35 @@ export const LanguageProvider = ({ children }) => {
   useEffect(() => {
     const initializeLanguage = async () => {
       try {
+        // Получаем язык из localStorage
+        const localLanguage = getSavedLanguage()
+        
         // Сначала пытаемся загрузить из БД (если пользователь авторизован)
         const dbLanguage = await loadLanguageFromDatabase()
         
         if (dbLanguage) {
+          // Если в БД есть язык, используем его
           setCurrentLanguage(dbLanguage)
           // Синхронизируем с localStorage
           localStorage.setItem('selectedLanguage', dbLanguage)
         } else {
-          // Используем язык из localStorage
-          const savedLanguage = getSavedLanguage()
-          setCurrentLanguage(savedLanguage)
+          // Если в БД нет языка, используем язык из localStorage
+          setCurrentLanguage(localLanguage)
+          
+          // Если пользователь авторизован, сохраняем язык из localStorage в БД
+          const userData = localStorage.getItem('user')
+          if (userData) {
+            // Асинхронно сохраняем в БД без ожидания
+            saveLanguageToDatabase(localLanguage).catch(err => {
+              console.warn('Не удалось сохранить язык в БД:', err)
+            })
+          }
         }
       } catch (error) {
         console.warn('Ошибка загрузки языка:', error)
-        // Fallback к языку по умолчанию
-        setCurrentLanguage(defaultLanguage)
+        // Fallback к языку из localStorage
+        const savedLanguage = getSavedLanguage()
+        setCurrentLanguage(savedLanguage)
       } finally {
         setIsLoading(false)
       }

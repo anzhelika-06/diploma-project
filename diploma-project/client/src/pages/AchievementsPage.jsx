@@ -716,7 +716,10 @@ const AchievementsPage = () => {
     <div className="achievements-page">
       <div className="achievements-container">
         <div className="achievements-header">
-          <h1 className="achievements-title">{t('titleAch')}</h1>
+          <div className="achievements-title">
+            <h1>{t('titleAch')}</h1>
+            <p className="achievements-description">{t('achievementsDesc')}</p>
+          </div>
           <div className="eco-coins-balance">
             <img 
               src={ecoinsImage} 

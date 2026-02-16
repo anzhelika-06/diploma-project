@@ -859,6 +859,7 @@ ticketClosedSuccess: "Обращение {ticketNumber} закрыто",
     ecoNovice: "Эко-новичок",
     //достижения
     titleAch: "Достижения",
+    achievementsDesc: "Ваши эко-достижения и награды",
       myAchievements: "Мои достижения",
       allAchievements: "Все достижения",
       ecoCoins: "Эко-коины",
@@ -1279,6 +1280,68 @@ achievements: "достижений",
     reject: "Отклонить",
     cancelRequest: "Отменить запрос",
     messagesComingSoon: "Функция сообщений будет доступна в следующей версии!",
+    
+    // Переводы для команд - жалобы
+    reportMember: "Пожаловаться",
+    reportMemberTitle: "Пожаловаться на участника",
+    reportMemberMessage: "Вы собираетесь пожаловаться на участника",
+    reportWillBeSent: "Жалоба будет отправлена администраторам для рассмотрения.",
+    sendReport: "Отправить жалобу",
+    reportSentSuccess: "Жалоба отправлена администраторам",
+    reportReason: "Причина жалобы",
+    selectReason: "Выберите причину",
+    reportDescription: "Описание проблемы",
+    reportDescriptionPlaceholder: "Опишите подробно, что произошло...",
+    screenshots: "Скриншоты",
+    uploadScreenshots: "Загрузить скриншоты",
+    leaveTeamFromModal: "Выйти из команды",
+    leaveTeamTitle: "Покинуть команду?",
+    leaveTeamMessage: "Вы уверены, что хотите покинуть команду",
+    leaveTeamButton: "Покинуть",
+    joinTeamTitle: "Вступить в команду?",
+    joinTeamMessage: "Вы уверены, что хотите вступить в команду",
+    joinTeamButton: "Вступить",
+    deleteTeamTitle: "Удалить команду?",
+    deleteTeamMessage: "Вы уверены, что хотите удалить команду",
+    deleteTeamWarning: "Это действие нельзя отменить! Все участники будут удалены из команды.",
+    deleteTeamButton: "Удалить команду",
+    successTitle: "Успешно!",
+    closeButton: "Закрыть",
+    
+    // Переводы для страницы команд
+    teamsPageTitle: "Команды",
+    teamsPageSubtitle: "Эко-команды и сообщества",
+    createTeamButton: "Создать команду",
+    myTeamsTab: "Мои команды",
+    allTeamsTab: "Все команды",
+    noTeamsYet: "Вы не состоите в командах",
+    noTeamsYetDesc: "Создайте свою команду или присоединитесь к существующей",
+    noTeamsExist: "Команд пока нет",
+    noTeamsExistDesc: "Создайте первую команду!",
+    createTeamTitle: "Создать команду",
+    teamNameLabel: "Название команды",
+    teamNamePlaceholder: "Введите название",
+    teamDescriptionLabel: "Описание",
+    teamDescriptionPlaceholder: "Расскажите о команде",
+    teamGoalLabel: "Цель команды",
+    teamGoalPlaceholder: "Например: Сэкономить CO₂",
+    teamTargetLabel: "Целевое значение (кг CO₂)",
+    teamTargetPlaceholder: "1000",
+    teamIconLabel: "Иконка команды",
+    createButton: "Создать",
+    membersButton: "Участники",
+    leaveButton: "Выйти",
+    joinButton: "Вступить",
+    teamMembersTitle: "Участники команды",
+    adminBadge: "Админ",
+    memberBadge: "Участник",
+    membersCount: "участников",
+    kgCO2: "кг CO₂",
+    completed: "выполнено",
+    teamCreatedSuccess: "Команда успешно создана!",
+    teamJoinedSuccess: "Вы успешно вступили в команду",
+    teamLeftSuccess: "Вы покинули команду",
+    teamDeletedSuccess: "Команда успешно удалена",
   },
   EN: {
     mainTitle: "Reduce your carbon footprint",
@@ -2179,6 +2242,7 @@ achievements: "achievements",
   //достижения
    // Заголовки и основные тексты
    titleAch: "Achievements",
+   achievementsDesc: "Your eco-achievements and rewards",
    myAchievements: "My Achievements",
    allAchievements: "All Achievements",
    ecoCoins: "Eco-Coins",
@@ -2597,6 +2661,68 @@ achievements: "achievements",
   resetPasswordTitle: "Reset password",
   resetPasswordDesc: "We will send a password reset link to your email:",
   checkSpamFolder: "Check your spam folder if you don't receive the email within a few minutes.",
+  
+  // Translations for teams - reports
+  reportMember: "Report",
+  reportMemberTitle: "Report member",
+  reportMemberMessage: "You are about to report member",
+  reportWillBeSent: "The report will be sent to administrators for review.",
+  sendReport: "Send report",
+  reportSentSuccess: "Report sent to administrators",
+  reportReason: "Report reason",
+  selectReason: "Select reason",
+  reportDescription: "Problem description",
+  reportDescriptionPlaceholder: "Describe in detail what happened...",
+  screenshots: "Screenshots",
+  uploadScreenshots: "Upload screenshots",
+  leaveTeamFromModal: "Leave team",
+  leaveTeamTitle: "Leave team?",
+  leaveTeamMessage: "Are you sure you want to leave the team",
+  leaveTeamButton: "Leave",
+  joinTeamTitle: "Join team?",
+  joinTeamMessage: "Are you sure you want to join the team",
+  joinTeamButton: "Join",
+  deleteTeamTitle: "Delete team?",
+  deleteTeamMessage: "Are you sure you want to delete the team",
+  deleteTeamWarning: "This action cannot be undone! All members will be removed from the team.",
+  deleteTeamButton: "Delete team",
+  successTitle: "Success!",
+  closeButton: "Close",
+  
+  // Translations for teams page
+  teamsPageTitle: "Teams",
+  teamsPageSubtitle: "Eco-teams and communities",
+  createTeamButton: "Create team",
+  myTeamsTab: "My teams",
+  allTeamsTab: "All teams",
+  noTeamsYet: "You are not in any teams",
+  noTeamsYetDesc: "Create your own team or join an existing one",
+  noTeamsExist: "No teams yet",
+  noTeamsExistDesc: "Create the first team!",
+  createTeamTitle: "Create team",
+  teamNameLabel: "Team name",
+  teamNamePlaceholder: "Enter name",
+  teamDescriptionLabel: "Description",
+  teamDescriptionPlaceholder: "Tell about the team",
+  teamGoalLabel: "Team goal",
+  teamGoalPlaceholder: "For example: Save CO₂",
+  teamTargetLabel: "Target value (kg CO₂)",
+  teamTargetPlaceholder: "1000",
+  teamIconLabel: "Team icon",
+  createButton: "Create",
+  membersButton: "Members",
+  leaveButton: "Leave",
+  joinButton: "Join",
+  teamMembersTitle: "Team members",
+  adminBadge: "Admin",
+  memberBadge: "Member",
+  membersCount: "members",
+  kgCO2: "kg CO₂",
+  completed: "completed",
+  teamCreatedSuccess: "Team created successfully!",
+  teamJoinedSuccess: "You have successfully joined the team",
+  teamLeftSuccess: "You left the team",
+  teamDeletedSuccess: "Team deleted successfully",
   },
   BY: {
     mainTitle: "Паменшыце свой вугляродны след",
@@ -3299,6 +3425,7 @@ editResponse: "Рэдагаваць адказ",
   //достижения
    // Заголовки и основные тексты
    titleAch: "Дасягненні",
+   achievementsDesc: "Вашы эка-дасягненні і ўзнагароды",
    myAchievements: "Мае дасягненні",
    allAchievements: "Усе дасягненні",
    ecoCoins: "Эка-манеты",
@@ -3917,6 +4044,68 @@ editResponse: "Рэдагаваць адказ",
   resetPasswordTitle: "Скід пароля",
   resetPasswordDesc: "Мы адправім спасылку для скіду пароля на ваш email:",
   checkSpamFolder: "Праверце папку \"Спам\", калі ліст не прыйдзе на працягу некалькіх хвілін.",
+  
+  // Пераклады для каманд - скаргі
+  reportMember: "Паскардзіцца",
+  reportMemberTitle: "Паскардзіцца на ўдзельніка",
+  reportMemberMessage: "Вы збіраецеся паскардзіцца на ўдзельніка",
+  reportWillBeSent: "Скарга будзе адпраўлена адміністратарам для разгляду.",
+  sendReport: "Адправіць скаргу",
+  reportSentSuccess: "Скарга адпраўлена адміністратарам",
+  reportReason: "Прычына скаргі",
+  selectReason: "Выберыце прычыну",
+  reportDescription: "Апісанне праблемы",
+  reportDescriptionPlaceholder: "Апішыце падрабязна, што адбылося...",
+  screenshots: "Скрыншоты",
+  uploadScreenshots: "Загрузіць скрыншоты",
+  leaveTeamFromModal: "Выйсці з каманды",
+  leaveTeamTitle: "Пакінуць каманду?",
+  leaveTeamMessage: "Вы ўпэўненыя, што хочаце пакінуць каманду",
+  leaveTeamButton: "Пакінуць",
+  joinTeamTitle: "Уступіць у каманду?",
+  joinTeamMessage: "Вы ўпэўненыя, што хочаце ўступіць у каманду",
+  joinTeamButton: "Уступіць",
+  deleteTeamTitle: "Выдаліць каманду?",
+  deleteTeamMessage: "Вы ўпэўненыя, што хочаце выдаліць каманду",
+  deleteTeamWarning: "Гэта дзеянне нельга адмяніць! Усе ўдзельнікі будуць выдалены з каманды.",
+  deleteTeamButton: "Выдаліць каманду",
+  successTitle: "Паспяхова!",
+  closeButton: "Зачыніць",
+  
+  // Пераклады для старонкі каманд
+  teamsPageTitle: "Каманды",
+  teamsPageSubtitle: "Эка-каманды і супольнасці",
+  createTeamButton: "Стварыць каманду",
+  myTeamsTab: "Мае каманды",
+  allTeamsTab: "Усе каманды",
+  noTeamsYet: "Вы не ўваходзіце ў каманды",
+  noTeamsYetDesc: "Стварыце сваю каманду або далучыцеся да існуючай",
+  noTeamsExist: "Каманд пакуль няма",
+  noTeamsExistDesc: "Стварыце першую каманду!",
+  createTeamTitle: "Стварыць каманду",
+  teamNameLabel: "Назва каманды",
+  teamNamePlaceholder: "Увядзіце назву",
+  teamDescriptionLabel: "Апісанне",
+  teamDescriptionPlaceholder: "Раскажыце пра каманду",
+  teamGoalLabel: "Мэта каманды",
+  teamGoalPlaceholder: "Напрыклад: Зэканоміць CO₂",
+  teamTargetLabel: "Мэтавае значэнне (кг CO₂)",
+  teamTargetPlaceholder: "1000",
+  teamIconLabel: "Іконка каманды",
+  createButton: "Стварыць",
+  membersButton: "Удзельнікі",
+  leaveButton: "Выйсці",
+  joinButton: "Уступіць",
+  teamMembersTitle: "Удзельнікі каманды",
+  adminBadge: "Адмін",
+  memberBadge: "Удзельнік",
+  membersCount: "удзельнікаў",
+  kgCO2: "кг CO₂",
+  completed: "выканана",
+  teamCreatedSuccess: "Каманда паспяхова створана!",
+  teamJoinedSuccess: "Вы паспяхова ўступілі ў каманду",
+  teamLeftSuccess: "Вы пакінулі каманду",
+  teamDeletedSuccess: "Каманда паспяхова выдалена",
   }
 }
 
@@ -3952,6 +4141,8 @@ export const saveLanguage = (language) => {
 export const saveLanguageToDatabase = async (language) => {
   try {
     const userData = localStorage.getItem('user')
+    const token = localStorage.getItem('token')
+    
     if (!userData) {
       console.warn('Пользователь не авторизован, язык не сохранен в БД')
       return false
@@ -3959,12 +4150,19 @@ export const saveLanguageToDatabase = async (language) => {
 
     const user = JSON.parse(userData)
     
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-User-Id': user.id.toString()
+    }
+    
+    // Добавляем токен если он есть
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
     const response = await fetch('/api/user-settings', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': user.id.toString() // ИСПРАВЛЕНО: используем X-User-Id
-      },
+      headers: headers,
       body: JSON.stringify({
         language: language
       })
@@ -3973,6 +4171,9 @@ export const saveLanguageToDatabase = async (language) => {
     if (response.ok) {
       console.log('Язык сохранен в базу данных:', language)
       return true
+    } else if (response.status === 401) {
+      console.warn('Не авторизован для сохранения языка в БД, используем локальное хранилище')
+      return false
     } else {
       console.warn('Не удалось сохранить язык в БД:', response.statusText)
       return false
@@ -3987,17 +4188,26 @@ export const saveLanguageToDatabase = async (language) => {
 export const loadLanguageFromDatabase = async () => {
   try {
     const userData = localStorage.getItem('user')
+    const token = localStorage.getItem('token')
+    
     if (!userData) {
       return null
     }
 
     const user = JSON.parse(userData)
     
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-User-Id': user.id.toString()
+    }
+    
+    // Добавляем токен если он есть
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+    
     const response = await fetch('/api/user-settings', {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-User-Id': user.id.toString() // ИСПРАВЛЕНО: используем X-User-Id
-      }
+      headers: headers
     })
 
     if (response.ok) {
@@ -4545,6 +4755,7 @@ export const translateWithChromeAPI = async (text, sourceLanguage, targetLanguag
           break
         }
       } catch (error) {
+        // Тихо игнорируем ошибки при проверке вариантов
         continue
       }
     }
@@ -4563,7 +4774,8 @@ export const translateWithChromeAPI = async (text, sourceLanguage, targetLanguag
     })
     
     if (availability !== 'available' && availability !== 'downloadable') {
-      throw new Error(`Языковая пара ${sourceLang}->${targetLang} недоступна`)
+      // Тихо возвращаем оригинал без логирования
+      return text
     }
     
     // Создаем переводчик
@@ -4581,7 +4793,8 @@ export const translateWithChromeAPI = async (text, sourceLanguage, targetLanguag
     return translatedText
     
   } catch (error) {
-    throw error
+    // Тихо возвращаем оригинал при ошибке перевода
+    return text
   }
 }
 
@@ -4607,8 +4820,8 @@ export const translateStoryContent = async (content, targetLanguage, sourceLangu
     const result = await translateWithChromeAPI(content, normalizedSource, normalizedTarget)
     return result
   } catch (error) {
-    console.warn(`Ошибка перевода с ${sourceLanguage} на ${targetLanguage}:`, error)
-    return content // Возвращаем оригинал при ошибке
+    // Тихо возвращаем оригинал при ошибке
+    return content
   }
 }
 

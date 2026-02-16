@@ -45,6 +45,16 @@ const SettingsPage = () => {
     loadUserData()
     loadUserSettings()
   }, [])
+  
+  // Синхронизируем язык в settings с currentLanguage из контекста
+  useEffect(() => {
+    console.log('SettingsPage: currentLanguage изменился на:', currentLanguage)
+    console.log('SettingsPage: текущий settings.language:', settings.language)
+    setSettings(prev => ({
+      ...prev,
+      language: currentLanguage
+    }))
+  }, [currentLanguage])
 
   const loadUserData = () => {
     const userData = localStorage.getItem('user')
@@ -687,7 +697,7 @@ const SettingsPage = () => {
                   {languages.map(lang => (
                     <button
                       key={lang.code}
-                      className={`language-btn ${settings.language === lang.code ? 'active' : ''}`}
+                      className={`language-btn ${currentLanguage?.toUpperCase() === lang.code ? 'active' : ''}`}
                       onClick={() => handleLanguageChange(lang.code)}
                     >
                       <span>{lang.name}</span>

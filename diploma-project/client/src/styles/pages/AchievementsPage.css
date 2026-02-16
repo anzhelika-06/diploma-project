@@ -24,21 +24,29 @@
 /* Заголовок без кубка */
 .achievements-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 30px;
   padding-bottom: 20px;
   border-bottom: 2px solid #e0e0e0;
+  position: relative;
 }
 
 .achievements-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.achievements-title h1 {
   font-size: 32px;
   font-weight: 700;
   color: #1a1a1a;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0;
 }
 
 .achievements-title .material-icons {
@@ -46,8 +54,26 @@
   color: #4caf50;
 }
 
+.achievements-description {
+  font-size: 16px;
+  color: #666666;
+  margin: 0;
+  text-align: center;
+}
+
+[data-theme="dark"] .achievements-description {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .achievements-title h1 {
+  color: #ffffff;
+}
+
 /* Баланс эко-коинов */
 .eco-coins-balance {
+  position: absolute;
+  right: 0;
+  top: 0;
   display: flex;
   align-items: center;
   gap: 12px;

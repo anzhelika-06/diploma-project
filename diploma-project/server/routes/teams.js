@@ -136,12 +136,12 @@ router.get('/:id', async (req, res) => {
 // Создать команду
 router.post('/', async (req, res) => {
   try {
-    const { name, description, avatar_emoji, goal_description, goal_target, userId } = req.body;
+    const { name, description, avatar_emoji, goal_description, goal_target, creator_id } = req.body;
 
-    if (!name || !userId) {
+    if (!name || !creator_id) {
       return res.status(400).json({
         success: false,
-        error: 'MISSING_FIELDS'
+        message: 'Не указано название команды или создатель'
       });
     }
 
@@ -154,7 +154,7 @@ router.post('/', async (req, res) => {
     if (existingTeam.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        error: 'TEAM_EXISTS'
+        message: 'Команда с таким названием уже существует'
       });
     }
 
@@ -177,7 +177,7 @@ router.post('/', async (req, res) => {
     await pool.query(`
       INSERT INTO team_members (team_id, user_id, role)
       VALUES ($1, $2, 'admin')
-    `, [team.id, userId]);
+    `, [team.id, creator_id]);
 
     res.json({
       success: true,
@@ -187,7 +187,7 @@ router.post('/', async (req, res) => {
     console.error('Ошибка создания команды:', error);
     res.status(500).json({
       success: false,
-      error: 'SERVER_ERROR'
+      message: 'Ошибка сервера'
     });
   }
 });
@@ -196,12 +196,12 @@ router.post('/', async (req, res) => {
 router.post('/:id/join', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
+    const { user_id } = req.body;
 
-    if (!userId) {
+    if (!user_id) {
       return res.status(400).json({
         success: false,
-        error: 'MISSING_USER_ID'
+        message: 'Не указан ID пользователя'
       });
     }
 
@@ -214,20 +214,20 @@ router.post('/:id/join', async (req, res) => {
     if (teamResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'TEAM_NOT_FOUND'
+        message: 'Команда не найдена'
       });
     }
 
     // Проверяем, не состоит ли уже пользователь в команде
     const memberCheck = await pool.query(
       'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
-      [id, userId]
+      [id, user_id]
     );
 
     if (memberCheck.rows.length > 0) {
       return res.status(400).json({
         success: false,
-        error: 'ALREADY_MEMBER'
+        message: 'Вы уже состоите в этой команде'
       });
     }
 
@@ -235,7 +235,13 @@ router.post('/:id/join', async (req, res) => {
     await pool.query(`
       INSERT INTO team_members (team_id, user_id, role)
       VALUES ($1, $2, 'member')
-    `, [id, userId]);
+    `, [id, user_id]);
+
+    // Обновляем счетчик участников
+    await pool.query(
+      'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
+      [id]
+    );
 
     res.json({
       success: true,
@@ -245,7 +251,7 @@ router.post('/:id/join', async (req, res) => {
     console.error('Ошибка присоединения к команде:', error);
     res.status(500).json({
       success: false,
-      error: 'SERVER_ERROR'
+      message: 'Ошибка сервера'
     });
   }
 });
@@ -254,27 +260,33 @@ router.post('/:id/join', async (req, res) => {
 router.post('/:id/leave', async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
+    const { user_id } = req.body;
 
-    if (!userId) {
+    if (!user_id) {
       return res.status(400).json({
         success: false,
-        error: 'MISSING_USER_ID'
+        message: 'Не указан ID пользователя'
       });
     }
 
     // Удаляем пользователя из команды
     const result = await pool.query(
       'DELETE FROM team_members WHERE team_id = $1 AND user_id = $2 RETURNING id',
-      [id, userId]
+      [id, user_id]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'NOT_A_MEMBER'
+        message: 'Вы не состоите в этой команде'
       });
     }
+
+    // Обновляем счетчик участников
+    await pool.query(
+      'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
+      [id]
+    );
 
     res.json({
       success: true,
@@ -284,7 +296,7 @@ router.post('/:id/leave', async (req, res) => {
     console.error('Ошибка выхода из команды:', error);
     res.status(500).json({
       success: false,
-      error: 'SERVER_ERROR'
+      message: 'Ошибка сервера'
     });
   }
 });
@@ -377,6 +389,76 @@ router.delete('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Ошибка удаления команды:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+// Получить участников команды
+router.get('/:id/members', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(`
+      SELECT 
+        u.id as user_id,
+        u.nickname,
+        u.avatar_emoji,
+        u.carbon_saved,
+        u.eco_level,
+        tm.role,
+        tm.joined_at
+      FROM team_members tm
+      JOIN users u ON tm.user_id = u.id
+      WHERE tm.team_id = $1
+      ORDER BY tm.role DESC, tm.joined_at ASC
+    `, [id]);
+
+    res.json({
+      success: true,
+      members: result.rows
+    });
+  } catch (error) {
+    console.error('Ошибка получения участников:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR'
+    });
+  }
+});
+
+// Удалить участника из команды (только для админов) - новый эндпоинт
+router.delete('/:id/members/:memberId', async (req, res) => {
+  try {
+    const { id, memberId } = req.params;
+
+    // Удаляем участника
+    const result = await pool.query(
+      'DELETE FROM team_members WHERE team_id = $1 AND user_id = $2 AND role != \'admin\' RETURNING id',
+      [id, memberId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'MEMBER_NOT_FOUND'
+      });
+    }
+
+    // Обновляем счетчик участников
+    await pool.query(
+      'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: 'Участник удален'
+    });
+  } catch (error) {
+    console.error('Ошибка удаления участника:', error);
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR'

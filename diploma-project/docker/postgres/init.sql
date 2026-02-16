@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
     ban_count INTEGER DEFAULT 0,
     is_admin BOOLEAN DEFAULT FALSE,
     eco_coins INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,и
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
     deleted_at TIMESTAMP
@@ -1252,6 +1252,50 @@ CREATE TRIGGER trigger_log_support_ticket
     AFTER INSERT ON support_tickets
     FOR EACH ROW
     EXECUTE FUNCTION log_support_ticket();
+
+-- Функция для обновления carbon_saved команды при добавлении действия пользователем
+CREATE OR REPLACE FUNCTION update_team_carbon_saved()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Обновляем carbon_saved и goal_current для всех команд, в которых состоит пользователь
+    UPDATE teams t
+    SET 
+        carbon_saved = (
+            SELECT COALESCE(SUM(u.carbon_saved), 0)
+            FROM team_members tm
+            JOIN users u ON tm.user_id = u.id
+            WHERE tm.team_id = t.id
+        ),
+        goal_current = (
+            SELECT COALESCE(SUM(u.carbon_saved), 0)
+            FROM team_members tm
+            JOIN users u ON tm.user_id = u.id
+            WHERE tm.team_id = t.id
+        )
+    WHERE t.id IN (
+        SELECT team_id 
+        FROM team_members 
+        WHERE user_id = NEW.user_id
+    );
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Триггер для обновления carbon_saved команды при добавлении действия
+DROP TRIGGER IF EXISTS trigger_update_team_carbon_on_action ON user_actions;
+CREATE TRIGGER trigger_update_team_carbon_on_action
+    AFTER INSERT ON user_actions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_team_carbon_saved();
+
+-- Триггер для обновления carbon_saved команды при обновлении пользователя
+DROP TRIGGER IF EXISTS trigger_update_team_carbon_on_user_update ON users;
+CREATE TRIGGER trigger_update_team_carbon_on_user_update
+    AFTER UPDATE OF carbon_saved ON users
+    FOR EACH ROW
+    WHEN (OLD.carbon_saved IS DISTINCT FROM NEW.carbon_saved)
+    EXECUTE FUNCTION update_team_carbon_saved();
 
 -- Триггер для автоматического обновления аналитики
 CREATE OR REPLACE FUNCTION trigger_update_analytics()
