@@ -150,6 +150,11 @@
   gap: 20px;
 }
 
+/* Пустое состояние занимает всю ширину грида */
+.teams-grid .teams-empty-state {
+  grid-column: 1 / -1;
+}
+
 /* Карточка команды */
 .team-card {
   background: var(--bg-secondary);

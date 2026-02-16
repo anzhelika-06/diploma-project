@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS users (
     ban_count INTEGER DEFAULT 0,
     is_admin BOOLEAN DEFAULT FALSE,
     eco_coins INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,и
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
     deleted_at TIMESTAMP
@@ -1283,9 +1283,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Триггер для обновления carbon_saved команды при добавлении действия
-DROP TRIGGER IF EXISTS trigger_update_team_carbon_on_action ON user_actions;
+DROP TRIGGER IF EXISTS trigger_update_team_carbon_on_action ON user_activities;
 CREATE TRIGGER trigger_update_team_carbon_on_action
-    AFTER INSERT ON user_actions
+    AFTER INSERT ON user_activities
     FOR EACH ROW
     EXECUTE FUNCTION update_team_carbon_saved();
 
