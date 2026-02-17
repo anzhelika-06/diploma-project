@@ -3,19 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { translateEcoLevel } from '../utils/translations';
-import io from 'socket.io-client';
+import { useSocket } from '../contexts/SocketContext'; // Импортируем хук из контекста
 import '../styles/pages/FriendsPage.css';
 
 const FriendsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
+  const { socket, isConnected } = useSocket(); // Используем глобальный socket из контекста
   
   const [friends, setFriends] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [incomingRequests, setIncomingRequests] = useState([]); // Входящие запросы
-  const [outgoingRequests, setOutgoingRequests] = useState([]); // Исходящие запросы
+  const [incomingRequests, setIncomingRequests] = useState([]);
+  const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -25,108 +26,115 @@ const FriendsPage = () => {
   const [userToAccept, setUserToAccept] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [userToReject, setUserToReject] = useState(null);
-  const [pendingRequests, setPendingRequests] = useState(new Set()); // Отслеживаем отправленные запросы
+  const [pendingRequests, setPendingRequests] = useState(new Set());
 
-  // Загрузка друзей и рекомендаций
-  useEffect(() => {
+  // Функция загрузки всех данных
+  const loadData = async () => {
     if (!currentUser) return;
     
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        // Загружаем друзей
-        const friendsResponse = await fetch(`/api/users/${currentUser.id}/friends`);
-        const friendsData = await friendsResponse.json();
-        if (friendsData.success) {
-          setFriends(friendsData.friends);
-        }
-
-        // Загружаем рекомендации
-        const recsResponse = await fetch(`/api/users/${currentUser.id}/friends/recommendations`);
-        const recsData = await recsResponse.json();
-        if (recsData.success) {
-          setRecommendations(recsData.recommendations);
-        }
-
-        // Загружаем входящие запросы
-        const incomingResponse = await fetch(`/api/users/${currentUser.id}/friends/requests/incoming`);
-        const incomingData = await incomingResponse.json();
-        if (incomingData.success) {
-          setIncomingRequests(incomingData.requests || []);
-        }
-
-        // Загружаем исходящие запросы
-        const outgoingResponse = await fetch(`/api/users/${currentUser.id}/friends/requests/outgoing`);
-        const outgoingData = await outgoingResponse.json();
-        if (outgoingData.success) {
-          setOutgoingRequests(outgoingData.requests || []);
-          // Добавляем их в pendingRequests
-          const outgoingIds = outgoingData.requests.map(r => r.id);
-          setPendingRequests(new Set(outgoingIds));
-        }
-      } catch (error) {
-        console.error('Ошибка загрузки данных:', error);
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    try {
+      // Загружаем друзей
+      const friendsResponse = await fetch(`/api/users/${currentUser.id}/friends`);
+      const friendsData = await friendsResponse.json();
+      if (friendsData.success) {
+        setFriends(friendsData.friends);
       }
-    };
 
+      // Загружаем рекомендации
+      const recsResponse = await fetch(`/api/users/${currentUser.id}/friends/recommendations`);
+      const recsData = await recsResponse.json();
+      if (recsData.success) {
+        setRecommendations(recsData.recommendations);
+      }
+
+      // Загружаем входящие запросы
+      const incomingResponse = await fetch(`/api/users/${currentUser.id}/friends/requests/incoming`);
+      const incomingData = await incomingResponse.json();
+      if (incomingData.success) {
+        setIncomingRequests(incomingData.requests || []);
+      }
+
+      // Загружаем исходящие запросы
+      const outgoingResponse = await fetch(`/api/users/${currentUser.id}/friends/requests/outgoing`);
+      const outgoingData = await outgoingResponse.json();
+      if (outgoingData.success) {
+        setOutgoingRequests(outgoingData.requests || []);
+        const outgoingIds = outgoingData.requests.map(r => r.id);
+        setPendingRequests(new Set(outgoingIds));
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки данных:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Загрузка данных при монтировании
+  useEffect(() => {
+    if (!currentUser) return;
     loadData();
+  }, [currentUser?.id]);
 
-    // Подключаем WebSocket
-    const socket = io('http://localhost:5000', {
-      transports: ['websocket', 'polling']
-    });
+  // WebSocket обработчики - используем глобальный socket
+  useEffect(() => {
+    if (!socket || !currentUser) return;
 
-    socket.on('connect', () => {
-      console.log('WebSocket подключен на FriendsPage');
-      socket.emit('join', `user:${currentUser.id}`);
-    });
+    console.log('📡 FriendsPage: Подключение обработчиков к глобальному socket');
+    
+    // Присоединяемся к комнате пользователя
+    socket.emit('join', `user:${currentUser.id}`);
 
     // Обработчик принятия запроса в друзья
-    socket.on('friendRequestAccepted', (data) => {
-      console.log('Запрос в друзья принят:', data);
-      // Убираем из pending
-      setPendingRequests(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(data.friendId);
-        return newSet;
-      });
-      // Перезагружаем данные
+    socket.on('friendship:accepted', (data) => {
+      console.log('✅ Запрос в друзья принят:', data);
+      
+      // Обновляем данные
       loadData();
     });
 
     // Обработчик отклонения запроса
-    socket.on('friendRequestRejected', (data) => {
-      console.log('Запрос в друзья отклонен:', data);
-      // Убираем из pending
-      setPendingRequests(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(data.friendId);
-        return newSet;
-      });
-      // Перезагружаем данные
+    socket.on('friendship:rejected', (data) => {
+      console.log('❌ Запрос в друзья отклонен:', data);
+      
+      // Обновляем данные
       loadData();
     });
 
     // Обработчик нового входящего запроса
-    socket.on('friendRequestReceived', (data) => {
-      console.log('Получен новый запрос в друзья:', data);
-      // Перезагружаем данные
+    socket.on('friendship:request', (data) => {
+      console.log('📨 Получен новый запрос в друзья:', data);
+      
+      if (data.toUserId === currentUser.id) {
+        // Обновляем данные
+        loadData();
+      }
+    });
+
+    // Обработчик удаления из друзей
+    socket.on('friendship:removed', (data) => {
+      console.log('👋 Дружба удалена:', data);
+      
+      // Обновляем данные
       loadData();
     });
 
     return () => {
+      console.log('🔌 FriendsPage: отключение обработчиков');
+      socket.off('friendship:accepted');
+      socket.off('friendship:rejected');
+      socket.off('friendship:request');
+      socket.off('friendship:removed');
+      
+      // Покидаем комнату при размонтировании
       socket.emit('leave', `user:${currentUser.id}`);
-      socket.disconnect();
     };
-  }, [currentUser?.id]);
+  }, [socket, currentUser?.id]); // Зависимости: socket и id пользователя
 
   // Поиск пользователей
   useEffect(() => {
     if (!currentUser) return;
     
-    // Сохраняем userId в константу, чтобы избежать проблем с замыканием
     const userId = currentUser.id;
     
     const searchUsers = async () => {
@@ -150,9 +158,9 @@ const FriendsPage = () => {
       }
     };
 
-    const timeoutId = setTimeout(searchUsers, 300); // Debounce
+    const timeoutId = setTimeout(searchUsers, 300);
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentUser?.id]); // Зависимость только от searchQuery и id пользователя
+  }, [searchQuery, currentUser?.id]);
 
   const loadRecommendations = async () => {
     if (!currentUser) return;
@@ -172,7 +180,6 @@ const FriendsPage = () => {
   };
 
   const handleSendMessage = (userId, nickname) => {
-    // Заглушка для будущего функционала
     alert(`Функция отправки сообщений пользователю ${nickname} будет доступна в следующей версии!`);
   };
 
@@ -185,18 +192,14 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Добавляем в список отправленных запросов
         setPendingRequests(prev => new Set([...prev, userId]));
-        // Обновляем статус в результатах поиска
         setSearchResults(prev => prev.map(u => 
           u.id === userId ? { ...u, friendship_status: 'pending_sent' } : u
         ));
-        // Обновляем статус в рекомендациях (НЕ удаляем, а меняем статус)
         setRecommendations(prev => prev.map(u => 
           u.id === userId ? { ...u, friendship_status: 'pending_sent' } : u
         ));
         
-        // Добавляем пользователя в список исходящих запросов
         const userToAdd = searchResults.find(u => u.id === userId) || 
                           recommendations.find(u => u.id === userId);
         if (userToAdd) {
@@ -222,9 +225,7 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Обновляем список друзей
         setFriends(prev => prev.filter(u => u.id !== userToDelete.id));
-        // Перезагружаем рекомендации
         loadRecommendations();
       }
     } catch (error) {
@@ -244,17 +245,13 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Убираем из входящих запросов
         setIncomingRequests(prev => prev.filter(u => u.id !== userId));
-        // Добавляем в друзья (или перезагружаем)
         const friendsResponse = await fetch(`/api/users/${currentUser.id}/friends`);
         const friendsData = await friendsResponse.json();
         if (friendsData.success) {
           setFriends(friendsData.friends);
         }
-        // Обновляем рекомендации после принятия запроса
         loadRecommendations();
-        // Закрываем модальное окно
         setShowAcceptModal(false);
         setUserToAccept(null);
       }
@@ -272,11 +269,8 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Убираем из входящих запросов
         setIncomingRequests(prev => prev.filter(u => u.id !== userId));
-        // Обновляем рекомендации после отклонения запроса
         loadRecommendations();
-        // Закрываем модальное окно
         setShowRejectModal(false);
         setUserToReject(null);
       }
@@ -294,15 +288,12 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        // Убираем из исходящих запросов
         setOutgoingRequests(prev => prev.filter(u => u.id !== userId));
-        // Убираем из pending
         setPendingRequests(prev => {
           const newSet = new Set(prev);
           newSet.delete(userId);
           return newSet;
         });
-        // Обновляем рекомендации после отмены запроса
         loadRecommendations();
       }
     } catch (error) {
@@ -311,10 +302,8 @@ const FriendsPage = () => {
   };
 
   const renderUserCard = (user, isFriend = false) => {
-    // Проверяем статус дружбы
     const friendshipStatus = user.friendshipStatus || user.friendship_status;
     const isPending = pendingRequests.has(user.id) || friendshipStatus === 'pending_sent' || friendshipStatus === 'pending';
-    // Проверяем, является ли пользователь другом (либо передан флаг, либо статус accepted, либо есть в списке друзей)
     const isActualFriend = isFriend || friendshipStatus === 'accepted' || friends.some(f => f.id === user.id);
     
     return (
@@ -379,7 +368,6 @@ const FriendsPage = () => {
     );
   };
 
-  // Фильтрация друзей по поисковому запросу
   const displayedFriends = searchQuery ? friends.filter(friend => 
     friend.nickname.toLowerCase().includes(searchQuery.toLowerCase())
   ) : friends;
@@ -407,7 +395,6 @@ const FriendsPage = () => {
         <p>{t('friendsSubtitle') || 'Ваши эко-друзья и новые знакомства'}</p>
       </div>
 
-      {/* Поиск */}
       <div className="search-section">
         <div className="search-form">
           <input
@@ -429,7 +416,6 @@ const FriendsPage = () => {
           </div>
         ) : (
           <>
-            {/* Результаты поиска */}
             {searchQuery && searchResults.length > 0 && (
               <div className="search-results-section">
                 <h2 className="section-title">
@@ -442,7 +428,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Если поиск идет */}
             {searching && (
               <div className="loading-state small">
                 <span className="material-icons spinning">refresh</span>
@@ -450,7 +435,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Если поиск не дал результатов */}
             {searchQuery && !searching && searchResults.length === 0 && (
               <div className="empty-state small">
                 <span className="material-icons">search_off</span>
@@ -458,7 +442,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Мои друзья (показываем только если нет поиска) */}
             {!searchQuery && displayedFriends.length > 0 && (
               <div className="friends-section">
                 <h2 className="section-title">
@@ -471,7 +454,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Если нет друзей и нет поиска */}
             {!searchQuery && friends.length === 0 && (
               <div className="empty-state">
                 <span className="material-icons">people_outline</span>
@@ -480,7 +462,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Запросы в друзья (показываем только если нет поиска) */}
             {!searchQuery && (incomingRequests.length > 0 || outgoingRequests.length > 0) && (
               <div className="requests-section">
                 <h2 className="section-title">
@@ -488,7 +469,6 @@ const FriendsPage = () => {
                   {t('friendRequests') || 'Запросы в друзья'}
                 </h2>
 
-                {/* Входящие запросы */}
                 {incomingRequests.length > 0 && (
                   <div className="incoming-requests">
                     <h3 className="subsection-title">{t('incomingRequests') || 'Входящие запросы'} ({incomingRequests.length})</h3>
@@ -539,7 +519,6 @@ const FriendsPage = () => {
                   </div>
                 )}
 
-                {/* Исходящие запросы */}
                 {outgoingRequests.length > 0 && (
                   <div className="outgoing-requests">
                     <h3 className="subsection-title">{t('outgoingRequests') || 'Исходящие запросы'} ({outgoingRequests.length})</h3>
@@ -579,7 +558,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Рекомендации (показываем только если нет поиска) */}
             {!searchQuery && displayedRecommendations.length > 0 && (
               <div className="recommendations-section">
                 <h2 className="section-title">
@@ -593,7 +571,6 @@ const FriendsPage = () => {
               </div>
             )}
 
-            {/* Если нет рекомендаций */}
             {!searchQuery && recommendations.length === 0 && friends.length > 0 && (
               <div className="empty-state small">
                 <span className="material-icons">recommend</span>
@@ -605,7 +582,7 @@ const FriendsPage = () => {
         )}
       </div>
 
-      {/* Модальное окно удаления */}
+      {/* Модальные окна */}
       {showDeleteModal && (
         <>
           <div className="friends-page-modal-overlay" onClick={() => setShowDeleteModal(false)}></div>
@@ -631,7 +608,6 @@ const FriendsPage = () => {
         </>
       )}
 
-      {/* Модальное окно принятия запроса */}
       {showAcceptModal && (
         <>
           <div className="friends-page-modal-overlay" onClick={() => setShowAcceptModal(false)}></div>
@@ -657,7 +633,6 @@ const FriendsPage = () => {
         </>
       )}
 
-      {/* Модальное окно отклонения запроса */}
       {showRejectModal && (
         <>
           <div className="friends-page-modal-overlay" onClick={() => setShowRejectModal(false)}></div>

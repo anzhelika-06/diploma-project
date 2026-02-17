@@ -150,7 +150,6 @@ const NotificationSystem = ({ isVisible, onClose }) => {
     if (Notification.permission === 'granted') {
       new Notification('Новый эко-совет!', {
         body: tip.title,
-        icon: '/favicon.ico',
         tag: 'eco-tip'
       })
     }

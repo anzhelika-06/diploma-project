@@ -163,7 +163,6 @@ const NotificationBell = () => {
         console.log('   Показываем браузерное уведомление');
         new Notification(notification.title, {
           body: notification.message,
-          icon: '/favicon.ico'
         });
       }
     });
