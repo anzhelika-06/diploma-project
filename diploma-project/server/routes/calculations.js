@@ -188,6 +188,16 @@ router.post('/calculate', async (req, res) => {
   try {
     const { userId, transport, housing, food, waste, calculationDate } = req.body;
     
+    console.log('📊 Получен запрос на расчет:', {
+      userId,
+      transport,
+      housing,
+      food,
+      waste,
+      calculationDate,
+      fullBody: req.body
+    });
+    
     if (!userId) {
       return res.status(400).json({
         success: false,
@@ -253,6 +263,11 @@ router.post('/calculate', async (req, res) => {
       totalFootprint += categories.waste;
     }
     
+    console.log('📊 Результат расчета:', {
+      totalFootprint,
+      categories
+    });
+    
     // Расчет экономии CO2
     // Средний углеродный след в мире: ~10 тонн CO2/год = ~27 кг/день
     // Если наш след МЕНЬШЕ среднего - мы сэкономили эту разницу
@@ -286,6 +301,8 @@ router.post('/calculate', async (req, res) => {
       [userId, calcDate, totalFootprint, co2Saved, JSON.stringify(categories)]
     );
     
+    console.log('✅ Расчет сохранен:', result.rows[0]);
+    
     // Обновляем общую экономию пользователя
     if (co2Saved > 0) {
       await db.query(
@@ -293,14 +310,25 @@ router.post('/calculate', async (req, res) => {
         [Math.round(co2Saved), userId]
       );
       
+      // Получаем обновленное значение carbon_saved
+      const userResult = await db.query('SELECT carbon_saved FROM users WHERE id = $1', [userId]);
+      const totalCarbonSaved = userResult.rows[0]?.carbon_saved || 0;
+      
+      // Отправляем WebSocket событие об обновлении углеродного следа
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('carbon:updated', {
+          userId: userId,
+          carbonSaved: totalCarbonSaved,
+          addedAmount: Math.round(co2Saved),
+          timestamp: new Date().toISOString()
+        });
+        console.log('📡 WebSocket: Отправлено событие carbon:updated для пользователя', userId);
+      }
+      
       // Трекинг достижения carbon_saved
       try {
         const { processAchievementEvent } = require('./achievements');
-        const io = req.app.get('io');
-        
-        // Получаем текущее значение carbon_saved
-        const userResult = await db.query('SELECT carbon_saved FROM users WHERE id = $1', [userId]);
-        const totalCarbonSaved = userResult.rows[0]?.carbon_saved || 0;
         
         await processAchievementEvent(userId, 'carbon_saved', { 
           value: totalCarbonSaved,
@@ -337,10 +365,12 @@ router.post('/calculate', async (req, res) => {
       isFirstToday: true
     });
   } catch (error) {
-    console.error('Error calculating carbon footprint:', error);
+    console.error('❌ Error calculating carbon footprint:', error);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Ошибка при расчете углеродного следа'
+      error: 'Ошибка при расчете углеродного следа',
+      details: error.message
     });
   }
 });
@@ -412,6 +442,22 @@ router.post('/calculate-extended', async (req, res) => {
         'UPDATE users SET carbon_saved = carbon_saved + $1 WHERE id = $2',
         [Math.round(co2Saved), userId]
       );
+      
+      // Получаем обновленное значение carbon_saved
+      const userResult = await db.query('SELECT carbon_saved FROM users WHERE id = $1', [userId]);
+      const totalCarbonSaved = userResult.rows[0]?.carbon_saved || 0;
+      
+      // Отправляем WebSocket событие об обновлении углеродного следа
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('carbon:updated', {
+          userId: userId,
+          carbonSaved: totalCarbonSaved,
+          addedAmount: Math.round(co2Saved),
+          timestamp: new Date().toISOString()
+        });
+        console.log('📡 WebSocket: Отправлено событие carbon:updated для пользователя', userId);
+      }
     }
     
     // Генерируем рекомендации

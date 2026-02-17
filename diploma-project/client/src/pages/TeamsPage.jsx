@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSocket } from '../contexts/SocketContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { translateStoryContent, detectTextLanguage } from '../utils/translations';
 import { getAvailableTeamAvatars } from '../utils/emojiMapper';
@@ -10,6 +11,7 @@ const TeamsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
+  const { socket, isConnected } = useSocket(); // Используем глобальный socket
   
   const [activeTab, setActiveTab] = useState('my'); // 'my' или 'all'
   const [myTeams, setMyTeams] = useState([]);
@@ -45,6 +47,12 @@ const TeamsPage = () => {
     goal_target: 1000
   });
   const [createError, setCreateError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({
+    name: false,
+    description: false,
+    goal_description: false,
+    goal_target: false
+  });
 
   useEffect(() => {
     if (currentUser) {
@@ -52,6 +60,81 @@ const TeamsPage = () => {
     }
     loadAllTeams();
   }, []); // Убираем currentUser из зависимостей, проверяем его внутри
+
+  // WebSocket обработчики для real-time обновлений команд
+  useEffect(() => {
+    if (!socket || !currentUser) return;
+    
+    console.log('📡 TeamsPage: Подключение обработчиков к глобальному socket');
+    
+    // Обработчик создания команды
+    socket.on('team:created', (data) => {
+      console.log('🎉 TeamsPage: Новая команда создана:', data);
+      // Перезагружаем списки команд
+      loadAllTeams();
+      if (currentUser && data.creatorId === currentUser.id) {
+        loadMyTeams();
+      }
+    });
+    
+    // Обработчик вступления в команду
+    socket.on('team:member:joined', (data) => {
+      console.log('👥 TeamsPage: Участник присоединился к команде:', data);
+      // Обновляем счетчик участников в обоих списках
+      setMyTeams(prev => prev.map(team => 
+        team.id === data.teamId 
+          ? { ...team, member_count: (team.member_count || 0) + 1 }
+          : team
+      ));
+      setAllTeams(prev => prev.map(team => 
+        team.id === data.teamId 
+          ? { ...team, member_count: (team.member_count || 0) + 1 }
+          : team
+      ));
+      
+      // Если это текущий пользователь присоединился, перезагружаем его команды
+      if (data.userId === currentUser.id) {
+        loadMyTeams();
+      }
+    });
+    
+    // Обработчик выхода из команды
+    socket.on('team:member:left', (data) => {
+      console.log('👋 TeamsPage: Участник покинул команду:', data);
+      // Обновляем счетчик участников
+      setMyTeams(prev => prev.map(team => 
+        team.id === data.teamId 
+          ? { ...team, member_count: Math.max(0, (team.member_count || 0) - 1) }
+          : team
+      ));
+      setAllTeams(prev => prev.map(team => 
+        team.id === data.teamId 
+          ? { ...team, member_count: Math.max(0, (team.member_count || 0) - 1) }
+          : team
+      ));
+      
+      // Если это текущий пользователь вышел, перезагружаем его команды
+      if (data.userId === currentUser.id) {
+        loadMyTeams();
+      }
+    });
+    
+    // Обработчик удаления команды
+    socket.on('team:deleted', (data) => {
+      console.log('🗑️ TeamsPage: Команда удалена:', data);
+      // Удаляем команду из обоих списков
+      setMyTeams(prev => prev.filter(team => team.id !== data.teamId));
+      setAllTeams(prev => prev.filter(team => team.id !== data.teamId));
+    });
+    
+    return () => {
+      console.log('🔌 TeamsPage: Отключение обработчиков');
+      socket.off('team:created');
+      socket.off('team:member:joined');
+      socket.off('team:member:left');
+      socket.off('team:deleted');
+    };
+  }, [socket, currentUser]); // Зависим от socket и currentUser
 
   // Перевод команд при изменении языка
   useEffect(() => {
@@ -149,16 +232,67 @@ const TeamsPage = () => {
     }
   };
 
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setCreateError('');
+    setFieldErrors({
+      name: false,
+      description: false,
+      goal_description: false,
+      goal_target: false
+    });
+    setCreateForm({ 
+      name: '', 
+      description: '', 
+      avatar_emoji: teamAvatars[0].emoji,
+      goal_description: '',
+      goal_target: 1000
+    });
+  };
+
   const handleCreateTeam = async (e) => {
     e.preventDefault();
     setCreateError('');
+    
+    // Сброс ошибок полей
+    const errors = {
+      name: false,
+      description: false,
+      goal_description: false,
+      goal_target: false
+    };
 
+    // Валидация обязательных полей
+    let hasError = false;
+    
     if (!createForm.name.trim()) {
-      setCreateError('Введите название команды');
+      errors.name = true;
+      hasError = true;
+    }
+
+    if (!createForm.description.trim()) {
+      errors.description = true;
+      hasError = true;
+    }
+
+    if (!createForm.goal_description.trim()) {
+      errors.goal_description = true;
+      hasError = true;
+    }
+
+    if (!createForm.goal_target || createForm.goal_target <= 0) {
+      errors.goal_target = true;
+      hasError = true;
+    }
+
+    setFieldErrors(errors);
+    
+    if (hasError) {
       return;
     }
 
     try {
+      console.log('📤 Отправка запроса на создание команды:', createForm);
       const response = await fetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -168,26 +302,22 @@ const TeamsPage = () => {
         })
       });
 
+      console.log('📥 Ответ сервера:', response.status, response.statusText);
       const data = await response.json();
+      console.log('📥 Данные ответа:', data);
+      
       if (data.success) {
-        setShowCreateModal(false);
-        setCreateForm({ 
-          name: '', 
-          description: '', 
-          avatar_emoji: teamAvatars[0].emoji,
-          goal_description: '',
-          goal_target: 1000
-        });
+        handleCloseCreateModal();
         loadMyTeams();
         loadAllTeams();
         setSuccessMessage(t('teamCreatedSuccess'));
         setShowSuccessModal(true);
       } else {
-        setCreateError(data.message || 'Ошибка создания команды');
+        setCreateError(data.message || data.error || 'Ошибка создания команды');
       }
     } catch (error) {
-      console.error('Ошибка создания команды:', error);
-      setCreateError('Ошибка сервера');
+      console.error('❌ Ошибка создания команды:', error);
+      setCreateError('Ошибка сервера: ' + error.message);
     }
   };
 
@@ -206,6 +336,36 @@ const TeamsPage = () => {
       console.error('Ошибка загрузки участников:', error);
     }
   };
+
+  // WebSocket обработчик для обновления списка участников в модальном окне
+  useEffect(() => {
+    if (!socket || !selectedTeam || !showMembersModal) return;
+    
+    console.log('📡 TeamsPage: Подключение обработчиков участников для команды', selectedTeam.id);
+    
+    const handleMemberUpdate = (data) => {
+      if (data.teamId === selectedTeam.id) {
+        console.log('👥 TeamsPage: Обновление участников в модальном окне');
+        // Перезагружаем список участников
+        fetch(`/api/teams/${selectedTeam.id}/members`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              setTeamMembers(data.members);
+            }
+          })
+          .catch(err => console.error('Ошибка обновления участников:', err));
+      }
+    };
+    
+    socket.on('team:member:joined', handleMemberUpdate);
+    socket.on('team:member:left', handleMemberUpdate);
+    
+    return () => {
+      socket.off('team:member:joined', handleMemberUpdate);
+      socket.off('team:member:left', handleMemberUpdate);
+    };
+  }, [socket, selectedTeam, showMembersModal]);
 
   const handleJoinTeam = async () => {
     try {
@@ -681,50 +841,53 @@ const TeamsPage = () => {
 
       {/* Модальное окно создания команды */}
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+        <div className="modal-overlay" onClick={handleCloseCreateModal}>
           <div className="modal-content create-team-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{t('createTeamTitle')}</h2>
-              <button className="modal-close" onClick={() => setShowCreateModal(false)}>
+              <button className="modal-close" onClick={handleCloseCreateModal}>
                 <span className="material-icons">close</span>
               </button>
             </div>
             <form onSubmit={handleCreateTeam} className="modal-body">
               <div className="teams-form-group">
-                <label>{t('teamNameLabel')}</label>
+                <label>{t('teamNameLabel')} <span style={{color: 'var(--error-color)'}} title={t('requiredFieldTooltip')}>*</span></label>
                 <input
                   type="text"
                   value={createForm.name}
                   onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
                   placeholder={t('teamNamePlaceholder')}
                   maxLength={50}
+                  className={fieldErrors.name ? 'error' : ''}
                 />
               </div>
               
               <div className="teams-form-group">
-                <label>{t('teamDescriptionLabel')}</label>
+                <label>{t('teamDescriptionLabel')} <span style={{color: 'var(--error-color)'}} title={t('requiredFieldTooltip')}>*</span></label>
                 <textarea
                   value={createForm.description}
                   onChange={(e) => setCreateForm({...createForm, description: e.target.value})}
                   placeholder={t('teamDescriptionPlaceholder')}
                   rows={4}
                   maxLength={500}
+                  className={fieldErrors.description ? 'error' : ''}
                 />
               </div>
               
               <div className="teams-form-group">
-                <label>{t('teamGoalLabel')}</label>
+                <label>{t('teamGoalLabel')} <span style={{color: 'var(--error-color)'}} title={t('requiredFieldTooltip')}>*</span></label>
                 <input
                   type="text"
                   value={createForm.goal_description}
                   onChange={(e) => setCreateForm({...createForm, goal_description: e.target.value})}
                   placeholder={t('teamGoalPlaceholder')}
                   maxLength={100}
+                  className={fieldErrors.goal_description ? 'error' : ''}
                 />
               </div>
               
               <div className="teams-form-group">
-                <label>{t('teamTargetLabel')}</label>
+                <label>{t('teamTargetLabel')} <span style={{color: 'var(--error-color)'}} title={t('requiredFieldTooltip')}>*</span></label>
                 <input
                   type="number"
                   value={createForm.goal_target}
@@ -732,11 +895,12 @@ const TeamsPage = () => {
                   placeholder={t('teamTargetPlaceholder')}
                   min="1"
                   max="1000000"
+                  className={fieldErrors.goal_target ? 'error' : ''}
                 />
               </div>
               
               <div className="teams-form-group">
-                <label>{t('teamIconLabel')}</label>
+                <label>{t('teamIconLabel')} <span style={{color: 'var(--error-color)'}} title={t('requiredFieldTooltip')}>*</span></label>
                 <div className="teams-emoji-picker">
                   {teamAvatars.map(({ emoji, name }) => (
                     <button
@@ -755,7 +919,7 @@ const TeamsPage = () => {
               {createError && <div className="teams-error-message">{createError}</div>}
               
               <div className="modal-footer">
-                <button type="button" className="teams-btn-secondary" onClick={() => setShowCreateModal(false)}>
+                <button type="button" className="teams-btn-secondary" onClick={handleCloseCreateModal}>
                   {t('cancel')}
                 </button>
                 <button type="submit" className="teams-btn-primary">
@@ -1077,7 +1241,7 @@ const TeamCard = ({ team, isMember, isAdmin, onViewMembers, onJoin, onLeave, onD
         )}
       </div>
       
-      <p className="team-description">{team.description || t('noTeamsExistDesc')}</p>
+      <p className="team-description">{team.description || t('noDescription')}</p>
       
       {team.goal_description && (
         <div className="team-goal">

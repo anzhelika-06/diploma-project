@@ -1290,10 +1290,10 @@ const SettingsPage = () => {
       }}
     >
       <div className="modal-header">
-        <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-          <span className="material-icons" style={{ color: '#10b981', marginRight: '8px' }}>check_circle</span>
-          {tempNotification.title}
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span className="material-icons" style={{ color: '#10b981', fontSize: '24px' }}>check_circle</span>
+          <h3 style={{ margin: 0 }}>{tempNotification.title}</h3>
+        </div>
         <button 
           className="modal-close"
           onClick={() => setTempNotification({ show: false, title: '', body: '' })}
@@ -1302,14 +1302,14 @@ const SettingsPage = () => {
         </button>
       </div>
       <div className="modal-body">
-        <p style={{ textAlign: 'center', fontSize: '16px', marginBottom: '20px' }}>
-          {tempNotification.body}
-        </p>
         <div style={{ textAlign: 'center', margin: '20px 0' }}>
           <span className="material-icons" style={{ fontSize: '64px', color: '#10b981' }}>
             cleaning_services
           </span>
         </div>
+        <p style={{ textAlign: 'center', fontSize: '16px', marginBottom: '20px' }}>
+          {tempNotification.body}
+        </p>
       </div>
       <div className="modal-footer">
         <button 

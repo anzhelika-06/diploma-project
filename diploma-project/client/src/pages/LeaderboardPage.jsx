@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSocket } from '../contexts/SocketContext';
 import { getEmojiByCarbon } from '../utils/emojiMapper';
 import '../styles/pages/LeaderboardPage.css';
 
 const LeaderboardPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
+  const { socket, isConnected } = useSocket(); // Используем глобальный socket
   const [activeTab, setActiveTab] = useState('users');
   const [currentUser, setCurrentUser] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -150,6 +152,77 @@ const LeaderboardPage = () => {
       setTeamsLoading(false);
     }
   }, [currentUser, teamsPagination.limit]);
+
+  // WebSocket обработчики для real-time обновления рейтинга
+  useEffect(() => {
+    if (!socket || !currentUser) return;
+    
+    console.log('📡 LeaderboardPage: Подключение обработчиков к глобальному socket');
+    
+    // Обработчик обновления углеродного следа пользователя
+    const handleCarbonUpdate = (data) => {
+      console.log('🌱 LeaderboardPage: Обновление углеродного следа:', data);
+      
+      // Обновляем список пользователей если на вкладке пользователей
+      if (activeTab === 'users') {
+        setUsers(prev => prev.map(user => 
+          user.id === data.userId 
+            ? { ...user, carbon_saved: data.carbonSaved }
+            : user
+        ));
+        
+        // Перезагружаем рейтинг чтобы обновить позиции
+        setTimeout(() => {
+          loadUsersLeaderboard(usersPagination.page);
+        }, 500);
+      }
+    };
+    
+    // Обработчик создания команды
+    const handleTeamCreated = (data) => {
+      console.log('🎉 LeaderboardPage: Новая команда создана:', data);
+      // Перезагружаем рейтинг команд
+      if (activeTab === 'teams') {
+        loadTeamsLeaderboard(teamsPagination.page);
+      }
+    };
+    
+    // Обработчик вступления/выхода из команды
+    const handleTeamMemberChange = (data) => {
+      console.log('👥 LeaderboardPage: Изменение состава команды:', data);
+      // Перезагружаем рейтинг команд
+      if (activeTab === 'teams') {
+        loadTeamsLeaderboard(teamsPagination.page);
+      }
+    };
+    
+    // Обработчик удаления команды
+    const handleTeamDeleted = (data) => {
+      console.log('🗑️ LeaderboardPage: Команда удалена:', data);
+      // Удаляем команду из списка
+      setTeams(prev => prev.filter(team => team.id !== data.teamId));
+      // Перезагружаем рейтинг команд
+      setTimeout(() => {
+        loadTeamsLeaderboard(teamsPagination.page);
+      }, 500);
+    };
+    
+    // Подписываемся на события
+    socket.on('carbon:updated', handleCarbonUpdate);
+    socket.on('team:created', handleTeamCreated);
+    socket.on('team:member:joined', handleTeamMemberChange);
+    socket.on('team:member:left', handleTeamMemberChange);
+    socket.on('team:deleted', handleTeamDeleted);
+    
+    return () => {
+      console.log('🔌 LeaderboardPage: Отключение обработчиков');
+      socket.off('carbon:updated', handleCarbonUpdate);
+      socket.off('team:created', handleTeamCreated);
+      socket.off('team:member:joined', handleTeamMemberChange);
+      socket.off('team:member:left', handleTeamMemberChange);
+      socket.off('team:deleted', handleTeamDeleted);
+    };
+  }, [socket, currentUser, activeTab, usersPagination.page, teamsPagination.page, loadUsersLeaderboard, loadTeamsLeaderboard]);
 
   // Обработчики пагинации
   const handleUsersPageChange = (newPage) => {

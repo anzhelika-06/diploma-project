@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Pool } = require('pg');
+const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
 
 const pool = new Pool({
   user: process.env.DB_USER || 'ecosteps',
@@ -140,10 +141,39 @@ router.post('/', async (req, res) => {
   try {
     const { name, description, avatar_emoji, goal_description, goal_target, creator_id } = req.body;
 
+    // Валидация обязательных полей
     if (!name || !creator_id) {
       return res.status(400).json({
         success: false,
         message: 'Не указано название команды или создатель'
+      });
+    }
+
+    if (!description || description.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Описание команды обязательно'
+      });
+    }
+
+    if (!goal_description || goal_description.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Описание цели команды обязательно'
+      });
+    }
+
+    if (!goal_target || goal_target <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Укажите цель сэкономленного CO2'
+      });
+    }
+
+    if (!avatar_emoji || avatar_emoji.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Выберите иконку команды'
       });
     }
 
@@ -170,10 +200,10 @@ router.post('/', async (req, res) => {
       RETURNING id, name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count, created_at
     `, [
       name, 
-      description || null, 
-      avatar_emoji || '🌱',
-      goal_description || null,
-      goal_target || 1000
+      description, 
+      avatar_emoji,
+      goal_description,
+      goal_target
     ]);
 
     const team = teamResult.rows[0];
@@ -185,42 +215,41 @@ router.post('/', async (req, res) => {
     `, [team.id, creator_id]);
 
     // Проверяем и начисляем достижение "Основатель"
-    const achievementCheck = await client.query(
-      'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
-      [creator_id, 'team_creator']
+    // Сначала получаем ID достижения
+    const achievementInfo = await client.query(
+      'SELECT id, points FROM achievements WHERE code = $1',
+      ['team_creator']
     );
 
-    if (achievementCheck.rows.length === 0) {
-      const achievementInfo = await client.query(
-        'SELECT points FROM achievements WHERE code = $1',
-        ['team_creator']
+    if (achievementInfo.rows.length > 0) {
+      const achievementId = achievementInfo.rows[0].id;
+      const points = achievementInfo.rows[0].points;
+
+      // Проверяем, есть ли уже это достижение
+      const achievementCheck = await client.query(
+        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_id = $2',
+        [creator_id, achievementId]
       );
 
-      if (achievementInfo.rows.length > 0) {
-        const points = achievementInfo.rows[0].points;
-
+      if (achievementCheck.rows.length === 0) {
         // Начисляем достижение
         await client.query(`
-          INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+          INSERT INTO user_achievements (user_id, achievement_id, progress, completed)
           VALUES ($1, $2, 1, true)
-        `, [creator_id, 'team_creator']);
+        `, [creator_id, achievementId]);
 
-        // Начисляем очки
-        await client.query(
-          'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
-          [points, creator_id]
+        // Получаем информацию о достижении для уведомления
+        const achievementDetails = await client.query(
+          'SELECT name, icon FROM achievements WHERE id = $1',
+          [achievementId]
         );
-
-        // Отправляем уведомление о достижении
-        await client.query(`
-          INSERT INTO notifications (user_id, type, title, message)
-          VALUES ($1, $2, $3, $4)
-        `, [
-          creator_id,
-          'achievement_unlocked',
-          'Новое достижение!',
-          `Вы получили достижение "Основатель" (+${points} очков)`
-        ]);
+        
+        const achievementName = achievementDetails.rows[0]?.name || 'Основатель';
+        const achievementIcon = achievementDetails.rows[0]?.icon || '🏗️';
+        
+        // Отправляем уведомление о достижении через helper
+        const io = req.app.get('io');
+        await notifyUserAboutAchievement(creator_id, achievementName, achievementIcon, achievementId, io);
       }
     }
 
@@ -232,44 +261,67 @@ router.post('/', async (req, res) => {
     const teamCount = parseInt(teamCountResult.rows[0].count);
 
     if (teamCount === 1) {
-      const firstTeamCheck = await client.query(
-        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
-        [creator_id, 'first_team']
+      // Получаем ID достижения
+      const achievementInfo = await client.query(
+        'SELECT id, points FROM achievements WHERE code = $1',
+        ['first_team']
       );
 
-      if (firstTeamCheck.rows.length === 0) {
-        const achievementInfo = await client.query(
-          'SELECT points FROM achievements WHERE code = $1',
-          ['first_team']
+      if (achievementInfo.rows.length > 0) {
+        const achievementId = achievementInfo.rows[0].id;
+        const points = achievementInfo.rows[0].points;
+
+        // Проверяем, есть ли уже это достижение
+        const firstTeamCheck = await client.query(
+          'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_id = $2',
+          [creator_id, achievementId]
         );
 
-        if (achievementInfo.rows.length > 0) {
-          const points = achievementInfo.rows[0].points;
-
+        if (firstTeamCheck.rows.length === 0) {
           await client.query(`
-            INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+            INSERT INTO user_achievements (user_id, achievement_id, progress, completed)
             VALUES ($1, $2, 1, true)
-          `, [creator_id, 'first_team']);
+          `, [creator_id, achievementId]);
 
-          await client.query(
-            'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
-            [points, creator_id]
+          // Получаем информацию о достижении для уведомления
+          const achievementDetails = await client.query(
+            'SELECT name, icon FROM achievements WHERE id = $1',
+            [achievementId]
           );
-
-          await client.query(`
-            INSERT INTO notifications (user_id, type, title, message)
-            VALUES ($1, $2, $3, $4)
-          `, [
-            creator_id,
-            'achievement_unlocked',
-            'Новое достижение!',
-            `Вы получили достижение "Командный игрок" (+${points} очков)`
-          ]);
+          
+          const achievementName = achievementDetails.rows[0]?.name || 'Командный игрок';
+          const achievementIcon = achievementDetails.rows[0]?.icon || '👥';
+          
+          // Отправляем уведомление о достижении через helper
+          const io = req.app.get('io');
+          await notifyUserAboutAchievement(creator_id, achievementName, achievementIcon, achievementId, io);
         }
       }
     }
 
     await client.query('COMMIT');
+    
+    console.log('✅ Команда создана успешно:', team.id, team.name);
+
+    // Отправляем WebSocket событие о создании команды
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        console.log('📡 Отправка WebSocket события team:created');
+        io.emit('team:created', {
+          teamId: team.id,
+          teamName: team.name,
+          creatorId: creator_id,
+          timestamp: new Date().toISOString()
+        });
+        console.log('✅ WebSocket событие отправлено');
+      } else {
+        console.warn('⚠️ WebSocket (io) не найден в req.app');
+      }
+    } catch (wsError) {
+      console.error('❌ Ошибка отправки WebSocket события:', wsError);
+      // Не прерываем выполнение, команда уже создана
+    }
 
     res.json({
       success: true,
@@ -277,10 +329,12 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Ошибка создания команды:', error);
+    console.error('❌ Ошибка создания команды:', error);
+    console.error('   Стек ошибки:', error.stack);
     res.status(500).json({
       success: false,
-      message: 'Ошибка сервера'
+      message: 'Ошибка сервера',
+      error: error.message
     });
   } finally {
     client.release();
@@ -384,88 +438,109 @@ router.post('/:id/join', async (req, res) => {
     const teamCount = parseInt(teamCountResult.rows[0].count);
 
     if (teamCount === 1) {
-      // Проверяем, есть ли уже это достижение
-      const achievementCheck = await client.query(
-        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
-        [user_id, 'first_team']
+      // Получаем ID достижения
+      const achievementInfo = await client.query(
+        'SELECT id, points FROM achievements WHERE code = $1',
+        ['first_team']
       );
 
-      if (achievementCheck.rows.length === 0) {
-        // Получаем информацию о достижении
-        const achievementInfo = await client.query(
-          'SELECT points FROM achievements WHERE code = $1',
-          ['first_team']
+      if (achievementInfo.rows.length > 0) {
+        const achievementId = achievementInfo.rows[0].id;
+        const points = achievementInfo.rows[0].points;
+
+        // Проверяем, есть ли уже это достижение
+        const achievementCheck = await client.query(
+          'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_id = $2',
+          [user_id, achievementId]
         );
 
-        if (achievementInfo.rows.length > 0) {
-          const points = achievementInfo.rows[0].points;
-
+        if (achievementCheck.rows.length === 0) {
           // Начисляем достижение
           await client.query(`
-            INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+            INSERT INTO user_achievements (user_id, achievement_id, progress, completed)
             VALUES ($1, $2, 1, true)
-          `, [user_id, 'first_team']);
+          `, [user_id, achievementId]);
 
-          // Начисляем очки
-          await client.query(
-            'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
-            [points, user_id]
+          // Получаем информацию о достижении для уведомления
+          const achievementDetails = await client.query(
+            'SELECT name, icon FROM achievements WHERE id = $1',
+            [achievementId]
           );
-
-          // Отправляем уведомление о достижении
-          await client.query(`
-            INSERT INTO notifications (user_id, type, title, message)
-            VALUES ($1, $2, $3, $4)
-          `, [
-            user_id,
-            'achievement_unlocked',
-            'Новое достижение!',
-            `Вы получили достижение "Командный игрок" (+${points} очков)`
-          ]);
+          
+          const achievementName = achievementDetails.rows[0]?.name || 'Командный игрок';
+          const achievementIcon = achievementDetails.rows[0]?.icon || '👥';
+          
+          // Отправляем уведомление о достижении через helper
+          const io = req.app.get('io');
+          await notifyUserAboutAchievement(user_id, achievementName, achievementIcon, achievementId, io);
         }
       }
     }
 
     // 2. Достижение "Коллективист" - 5 команд
     if (teamCount === 5) {
-      const achievementCheck = await client.query(
-        'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_code = $2',
-        [user_id, 'team_5']
+      // Получаем ID достижения
+      const achievementInfo = await client.query(
+        'SELECT id, points FROM achievements WHERE code = $1',
+        ['team_5']
       );
 
-      if (achievementCheck.rows.length === 0) {
-        const achievementInfo = await client.query(
-          'SELECT points FROM achievements WHERE code = $1',
-          ['team_5']
+      if (achievementInfo.rows.length > 0) {
+        const achievementId = achievementInfo.rows[0].id;
+        const points = achievementInfo.rows[0].points;
+
+        // Проверяем, есть ли уже это достижение
+        const achievementCheck = await client.query(
+          'SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_id = $2',
+          [user_id, achievementId]
         );
 
-        if (achievementInfo.rows.length > 0) {
-          const points = achievementInfo.rows[0].points;
-
+        if (achievementCheck.rows.length === 0) {
           await client.query(`
-            INSERT INTO user_achievements (user_id, achievement_code, progress, completed)
+            INSERT INTO user_achievements (user_id, achievement_id, progress, completed)
             VALUES ($1, $2, 5, true)
-          `, [user_id, 'team_5']);
+          `, [user_id, achievementId]);
 
-          await client.query(
-            'UPDATE users SET achievement_points = achievement_points + $1 WHERE id = $2',
-            [points, user_id]
+          // Получаем информацию о достижении для уведомления
+          const achievementDetails = await client.query(
+            'SELECT name, icon FROM achievements WHERE id = $1',
+            [achievementId]
           );
-
-          await client.query(`
-            INSERT INTO notifications (user_id, type, title, message)
-            VALUES ($1, $2, $3, $4)
-          `, [
-            user_id,
-            'achievement_unlocked',
-            'Новое достижение!',
-            `Вы получили достижение "Коллективист" (+${points} очков)`
-          ]);
+          
+          const achievementName = achievementDetails.rows[0]?.name || 'Коллективист';
+          const achievementIcon = achievementDetails.rows[0]?.icon || '🤝';
+          
+          // Отправляем уведомление о достижении через helper
+          const io = req.app.get('io');
+          await notifyUserAboutAchievement(user_id, achievementName, achievementIcon, achievementId, io);
         }
       }
     }
 
     await client.query('COMMIT');
+
+    // Отправляем WebSocket событие о вступлении в команду
+    const io = req.app.get('io');
+    if (io) {
+      // Уведомляем всех участников команды
+      io.emit('team:member:joined', {
+        teamId: id,
+        teamName: team.name,
+        userId: user_id,
+        userNickname: userNickname,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Уведомляем конкретного админа
+      if (adminResult.rows.length > 0) {
+        io.to(`user:${adminResult.rows[0].user_id}`).emit('team:new:member', {
+          teamId: id,
+          teamName: team.name,
+          userId: user_id,
+          userNickname: userNickname
+        });
+      }
+    }
 
     res.json({
       success: true,
@@ -496,6 +571,13 @@ router.post('/:id/leave', async (req, res) => {
       });
     }
 
+    // Получаем информацию о команде и пользователе
+    const teamResult = await pool.query('SELECT name FROM teams WHERE id = $1', [id]);
+    const userResult = await pool.query('SELECT nickname FROM users WHERE id = $1', [user_id]);
+    
+    const teamName = teamResult.rows[0]?.name || 'Команда';
+    const userNickname = userResult.rows[0]?.nickname || 'Пользователь';
+
     // Удаляем пользователя из команды
     const result = await pool.query(
       'DELETE FROM team_members WHERE team_id = $1 AND user_id = $2 RETURNING id',
@@ -514,6 +596,18 @@ router.post('/:id/leave', async (req, res) => {
       'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
       [id]
     );
+
+    // Отправляем WebSocket событие о выходе из команды
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('team:member:left', {
+        teamId: id,
+        teamName: teamName,
+        userId: user_id,
+        userNickname: userNickname,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     res.json({
       success: true,
@@ -607,8 +701,23 @@ router.delete('/:id', async (req, res) => {
       });
     }
 
+    // Получаем информацию о команде перед удалением
+    const teamResult = await pool.query('SELECT name FROM teams WHERE id = $1', [id]);
+    const teamName = teamResult.rows[0]?.name || 'Команда';
+
     // Удаляем команду (участники удалятся автоматически через ON DELETE CASCADE)
     await pool.query('DELETE FROM teams WHERE id = $1', [id]);
+
+    // Отправляем WebSocket событие об удалении команды
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('team:deleted', {
+        teamId: id,
+        teamName: teamName,
+        deletedBy: userId,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     res.json({
       success: true,

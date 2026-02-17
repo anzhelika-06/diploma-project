@@ -412,7 +412,9 @@
   width: 90%;
   max-width: 600px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   z-index: 10001;
   margin: auto;
 }
@@ -453,6 +455,13 @@
 
 .modal-body {
   padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  background: transparent;
+}
+
+form.modal-body {
+  background: transparent;
 }
 
 .modal-footer {
@@ -461,6 +470,8 @@
   justify-content: flex-end;
   padding: 20px;
   border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: 0 0 12px 12px;
 }
 
 .teams-success-header-content {
@@ -557,6 +568,17 @@
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 8px;
+}
+
+.teams-form-group label span[title] {
+  cursor: help;
+  position: relative;
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.teams-form-group label span[title]:hover {
+  opacity: 0.8;
 }
 
 .teams-form-group input,
@@ -798,6 +820,20 @@
   color: #f44336;
   font-size: 14px;
   margin-top: 10px;
+  font-weight: 500;
+}
+
+/* Поле с ошибкой */
+.teams-form-group input.error,
+.teams-form-group textarea.error {
+  border-color: #f44336 !important;
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.teams-form-group input.error:focus,
+.teams-form-group textarea.error:focus {
+  border-color: #f44336 !important;
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
 }
 
 /* Анимации */

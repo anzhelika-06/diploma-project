@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS user_reports (
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system')),
+    type VARCHAR(50) NOT NULL CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked')),
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     link VARCHAR(255), -- Ссылка для перехода при клике
@@ -712,165 +712,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Функция для логирования активности пользователя
-CREATE OR REPLACE FUNCTION log_user_activity(
-    p_user_id INTEGER,
-    p_activity_type VARCHAR(50),
-    p_description TEXT,
-    p_related_id INTEGER DEFAULT NULL,
-    p_carbon_saved INTEGER DEFAULT 0
-) RETURNS VOID AS $$
-BEGIN
-    INSERT INTO user_activities (user_id, activity_type, description, related_id, carbon_saved)
-    VALUES (p_user_id, p_activity_type, p_description, p_related_id, p_carbon_saved);
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для получения статистики пользователя
-CREATE OR REPLACE FUNCTION get_user_stats(p_user_id INTEGER)
-RETURNS TABLE(
-    carbon_saved INTEGER,
-    eco_level VARCHAR,
-    achievements_count INTEGER,
-    achievements_completed INTEGER,
-    team_count INTEGER,
-    stories_count INTEGER,
-    total_likes INTEGER,
-    support_tickets_count INTEGER,
-    ban_count INTEGER
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        COALESCE(u.carbon_saved, 0)::INTEGER,
-        COALESCE(u.eco_level, 'Эко-новичок'),
-        COUNT(DISTINCT ua.id)::INTEGER,
-        COUNT(DISTINCT CASE WHEN ua.completed = true THEN ua.id END)::INTEGER,
-        COUNT(DISTINCT tm.team_id)::INTEGER,
-        COUNT(DISTINCT ss.id)::INTEGER,
-        COALESCE(SUM(ss.likes_count), 0)::INTEGER,
-        COUNT(DISTINCT st.id)::INTEGER,
-        COALESCE(u.ban_count, 0)::INTEGER
-    FROM users u
-    LEFT JOIN user_achievements ua ON u.id = ua.user_id
-    LEFT JOIN team_members tm ON u.id = tm.user_id
-    LEFT JOIN success_stories ss ON u.id = ss.user_id
-    LEFT JOIN support_tickets st ON u.id = st.user_id
-    WHERE u.id = p_user_id
-    GROUP BY u.id, u.carbon_saved, u.eco_level, u.ban_count;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для получения активности пользователя
-CREATE OR REPLACE FUNCTION get_user_activity(
-    p_user_id INTEGER,
-    p_limit INTEGER DEFAULT 50,
-    p_offset INTEGER DEFAULT 0
-) RETURNS TABLE(
-    id INTEGER,
-    activity_type VARCHAR,
-    description TEXT,
-    created_at TIMESTAMP,
-    carbon_saved INTEGER
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        ua.id,
-        ua.activity_type,
-        ua.description,
-        ua.created_at,
-        ua.carbon_saved
-    FROM user_activities ua
-    WHERE ua.user_id = p_user_id
-    ORDER BY ua.created_at DESC
-    LIMIT p_limit
-    OFFSET p_offset;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для получения деталей бана пользователя
-CREATE OR REPLACE FUNCTION get_user_ban_details(p_user_id INTEGER)
-RETURNS TABLE(
-    ban_id INTEGER,
-    reason TEXT,
-    duration_hours INTEGER,
-    is_permanent BOOLEAN,
-    created_at TIMESTAMP,
-    created_by INTEGER,
-    admin_email VARCHAR,
-    admin_nickname VARCHAR,
-    expires_at TIMESTAMP,
-    unbanned_at TIMESTAMP,
-    unban_reason TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        bh.id as ban_id,
-        COALESCE(bh.reason, u.ban_reason) as reason,
-        bh.duration_hours,
-        COALESCE(bh.is_permanent, FALSE) as is_permanent,
-        COALESCE(bh.created_at, u.created_at) as created_at,
-        bh.created_by,
-        admin_user.email as admin_email,
-        admin_user.nickname as admin_nickname,
-        CASE 
-            WHEN bh.is_permanent THEN NULL
-            WHEN bh.duration_hours IS NOT NULL THEN 
-                bh.created_at + (bh.duration_hours || ' hours')::INTERVAL
-            ELSE u.ban_expires_at
-        END as expires_at,
-        bh.unbanned_at,
-        bh.unban_reason
-    FROM users u
-    LEFT JOIN ban_history bh ON u.id = bh.user_id AND bh.unbanned_at IS NULL
-    LEFT JOIN users admin_user ON bh.created_by = admin_user.id
-    WHERE u.id = p_user_id AND u.is_banned = TRUE
-    ORDER BY bh.created_at DESC
-    LIMIT 1;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для логирования создания истории успеха
-CREATE OR REPLACE FUNCTION log_story_creation()
-RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM log_user_activity(
-        NEW.user_id,
-        'story_created',
-        'Создана новая история: ' || NEW.title,
-        NEW.id,
-        NEW.carbon_saved::INTEGER
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для логирования получения достижения
-CREATE OR REPLACE FUNCTION log_achievement_completion()
-RETURNS TRIGGER AS $$
-DECLARE
-    achievement_name VARCHAR;
-BEGIN
-    IF NEW.completed = TRUE AND (OLD.completed IS NULL OR OLD.completed = FALSE) THEN
-        SELECT name INTO achievement_name 
-        FROM achievements 
-        WHERE id = NEW.achievement_id;
-        
-        PERFORM log_user_activity(
-            NEW.user_id,
-            'achievement_completed',
-            'Получено достижение: ' || achievement_name,
-            NEW.achievement_id,
-            0
-        );
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Вспомогательная функция для генерации рекомендаций (упрощенная)
+-- Вспомогательная функция для генерации рекомендаций
 CREATE OR REPLACE FUNCTION generate_period_recommendations(
     p_category_analysis JSONB,
     p_avg_footprint DECIMAL
@@ -892,12 +734,12 @@ BEGIN
             'priority', 'low'
         );
     END IF;
-    
+
     RETURN v_recommendations;
 END;
 $$ LANGUAGE plpgsql;
 
--- Функция обновления аналитики пользователя (упрощенная)
+-- Процедура для обновления аналитики пользователя (упрощенная)
 CREATE OR REPLACE PROCEDURE update_user_analytics(
     p_user_id INTEGER,
     p_period_type VARCHAR DEFAULT 'month'
@@ -994,43 +836,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Функция для логирования вступления в команду
-CREATE OR REPLACE FUNCTION log_team_join()
-RETURNS TRIGGER AS $$
-DECLARE
-    team_name VARCHAR;
-BEGIN
-    SELECT name INTO team_name 
-    FROM teams 
-    WHERE id = NEW.team_id;
-    
-    PERFORM log_user_activity(
-        NEW.user_id,
-        'team_joined',
-        'Вступил в команду: ' || team_name,
-        NEW.team_id,
-        0
-    );
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для логирования отправки вопроса в поддержку
-CREATE OR REPLACE FUNCTION log_support_ticket()
-RETURNS TRIGGER AS $$
-BEGIN
-    PERFORM log_user_activity(
-        NEW.user_id,
-        'support_ticket',
-        'Отправлен вопрос в поддержку: ' || NEW.subject,
-        NEW.id,
-        0
-    );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 -- Процедура для бана пользователя
 CREATE OR REPLACE PROCEDURE ban_user(
     p_user_id INTEGER,
@@ -1064,15 +869,6 @@ BEGIN
     -- Добавляем запись в историю банов
     INSERT INTO ban_history (user_id, reason, duration_hours, is_permanent, created_by)
     VALUES (p_user_id, p_reason, p_duration_hours, p_is_permanent, p_admin_id);
-    
-    -- Логируем активность
-    PERFORM log_user_activity(
-        p_user_id,
-        'user_banned',
-        'Пользователь забанен: ' || p_reason,
-        p_user_id,
-        0
-    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1099,15 +895,6 @@ BEGIN
         unban_reason = p_reason,
         unbanned_by = p_admin_id
     WHERE user_id = p_user_id AND unbanned_at IS NULL;
-    
-    -- Логируем активность
-    PERFORM log_user_activity(
-        p_user_id,
-        'user_unbanned',
-        'Пользователь разбанен: ' || COALESCE(p_reason, 'Без указания причины'),
-        p_user_id,
-        0
-    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1126,15 +913,6 @@ BEGIN
     -- Добавляем пользователя в команду
     INSERT INTO team_members (user_id, team_id, role)
     VALUES (p_user_id, p_team_id, p_role);
-    
-    -- Логируем активность
-    PERFORM log_user_activity(
-        p_user_id,
-        'team_joined',
-        'Присоединился к команде с ролью: ' || p_role,
-        p_team_id,
-        0
-    );
 END;
 $$ LANGUAGE plpgsql;
 
@@ -1225,35 +1003,7 @@ CREATE TRIGGER trigger_set_ticket_number
     FOR EACH ROW
     EXECUTE FUNCTION set_ticket_number();
 
--- Триггер для логирования создания истории
-DROP TRIGGER IF EXISTS trigger_log_story_creation ON success_stories;
-CREATE TRIGGER trigger_log_story_creation
-    AFTER INSERT ON success_stories
-    FOR EACH ROW
-    EXECUTE FUNCTION log_story_creation();
-
--- Триггер для логирования получения достижения
-DROP TRIGGER IF EXISTS trigger_log_achievement_completion ON user_achievements;
-CREATE TRIGGER trigger_log_achievement_completion
-    AFTER UPDATE ON user_achievements
-    FOR EACH ROW
-    EXECUTE FUNCTION log_achievement_completion();
-
--- Триггер для логирования вступления в команду
-DROP TRIGGER IF EXISTS trigger_log_team_join ON team_members;
-CREATE TRIGGER trigger_log_team_join
-    AFTER INSERT ON team_members
-    FOR EACH ROW
-    EXECUTE FUNCTION log_team_join();
-
--- Триггер для логирования отправки вопроса в поддержку
-DROP TRIGGER IF EXISTS trigger_log_support_ticket ON support_tickets;
-CREATE TRIGGER trigger_log_support_ticket
-    AFTER INSERT ON support_tickets
-    FOR EACH ROW
-    EXECUTE FUNCTION log_support_ticket();
-
--- Функция для обновления carbon_saved команды при добавлении действия пользователем
+-- Функция для обновления carbon_saved команды при обновлении пользователя
 CREATE OR REPLACE FUNCTION update_team_carbon_saved()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -1275,19 +1025,12 @@ BEGIN
     WHERE t.id IN (
         SELECT team_id 
         FROM team_members 
-        WHERE user_id = NEW.user_id
+        WHERE user_id = NEW.id
     );
     
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
--- Триггер для обновления carbon_saved команды при добавлении действия
-DROP TRIGGER IF EXISTS trigger_update_team_carbon_on_action ON user_activities;
-CREATE TRIGGER trigger_update_team_carbon_on_action
-    AFTER INSERT ON user_activities
-    FOR EACH ROW
-    EXECUTE FUNCTION update_team_carbon_saved();
 
 -- Триггер для обновления carbon_saved команды при обновлении пользователя
 DROP TRIGGER IF EXISTS trigger_update_team_carbon_on_user_update ON users;
@@ -1347,60 +1090,6 @@ CREATE TRIGGER update_avatar_emoji_on_carbon_change
     BEFORE INSERT OR UPDATE OF carbon_saved ON users
     FOR EACH ROW
     EXECUTE FUNCTION update_avatar_emoji();
-
--- Функция для автоматического разбана пользователей
-CREATE OR REPLACE FUNCTION auto_unban_users()
-RETURNS TRIGGER AS $$
-BEGIN
-    UPDATE users u
-    SET 
-        is_banned = FALSE,
-        ban_reason = NULL,
-        ban_expires_at = NULL,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE u.is_banned = TRUE 
-        AND u.ban_expires_at IS NOT NULL 
-        AND u.ban_expires_at <= CURRENT_TIMESTAMP
-        AND NOT EXISTS (
-            SELECT 1 FROM ban_history bh 
-            WHERE bh.user_id = u.id 
-            AND bh.unbanned_at IS NULL 
-            AND bh.is_permanent = TRUE
-        );
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Функция для проверки и разбана истекших банов
-CREATE OR REPLACE FUNCTION check_and_unban_expired()
-RETURNS INTEGER AS $$
-DECLARE
-    v_unbanned_count INTEGER;
-BEGIN
-    WITH unbanned AS (
-        UPDATE users u
-        SET 
-            is_banned = FALSE,
-            ban_reason = NULL,
-            ban_expires_at = NULL,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE u.is_banned = TRUE 
-            AND u.ban_expires_at IS NOT NULL 
-            AND u.ban_expires_at <= CURRENT_TIMESTAMP
-            AND NOT EXISTS (
-                SELECT 1 FROM ban_history bh 
-                WHERE bh.user_id = u.id 
-                AND bh.unbanned_at IS NULL 
-                AND bh.is_permanent = TRUE
-            )
-        RETURNING id
-    )
-    SELECT COUNT(*) INTO v_unbanned_count FROM unbanned;
-    
-    RETURN v_unbanned_count;
-END;
-$$ LANGUAGE plpgsql;
 
 -- ============ ЗАПОЛНЕНИЕ ДАННЫМИ ============
 
@@ -1977,3 +1666,22 @@ BEGIN
     SELECT COUNT(*) INTO v_count FROM users;
     RAISE NOTICE '✅ Обновлены avatar_emoji и eco_level для % пользователей', v_count;
 END $$;
+
+
+-- ============ МИГРАЦИИ ============
+-- Обновление ограничения типов уведомлений
+DO $$ 
+BEGIN
+    -- Удаляем старое ограничение
+    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+    
+    -- Добавляем новое ограничение с дополнительными типами
+    ALTER TABLE notifications ADD CONSTRAINT notifications_type_check 
+        CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked'));
+    
+    RAISE NOTICE 'Ограничение notifications_type_check обновлено';
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Ошибка обновления ограничения: %', SQLERRM;
+END $$;
+
