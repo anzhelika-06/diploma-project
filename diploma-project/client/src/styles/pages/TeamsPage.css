@@ -811,6 +811,11 @@ form.modal-body {
   animation: spin 1s linear infinite;
 }
 
+.teams-loading-state p {
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
 /* Ошибка */
 .teams-error-message {
   padding: 12px;

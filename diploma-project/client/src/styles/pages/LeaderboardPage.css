@@ -154,7 +154,7 @@
 }
 
 .leaderboard-loading p {
-  color: #666666;
+  color: var(--text-primary);
   font-size: 16px;
   margin: 0;
 }
