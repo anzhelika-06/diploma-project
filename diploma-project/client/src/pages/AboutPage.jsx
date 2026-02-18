@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
+import { getCurrentUser } from '../utils/authUtils'
 import '../styles/pages/AboutPage.css'
 import homeIcon from '../assets/images/home.png'
 import homeIconWhite from '../assets/images/home-white.png'
@@ -16,6 +17,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 
 const AboutPage = () => {
   const { currentLanguage, t } = useLanguage()
+  const currentUser = getCurrentUser()
   const [activeTab, setActiveTab] = useState('about') // about, stories, ratings
   const [storiesFilter, setStoriesFilter] = useState('all') // all, best, recent
   const [selectedCategory, setSelectedCategory] = useState('all') // all, или конкретная категория
@@ -586,7 +588,7 @@ const AboutPage = () => {
       <div className="about-white-block">
         {/* Ссылка "Главная" */}
         <div className="home-link">
-          <Link to="/" className="home-link-content">
+          <Link to={currentUser ? "/feed" : "/"} className="home-link-content">
             <img src={getHomeIcon()} alt={t('homeAlt')} className="home-icon" />
             <span className="home-text">{t('homeText')}</span>
           </Link>

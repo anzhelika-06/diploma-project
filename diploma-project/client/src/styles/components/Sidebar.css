@@ -244,24 +244,20 @@
 /* Бейдж ADMIN для сайдбара */
 .admin-badge {
   padding: 4px 8px;
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: white;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1.5px solid #FFD700;
+  color: #FFD700;
   border-radius: 12px;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
   white-space: nowrap;
 }
 
-.sidebar-item.active .admin-badge {
-  background: rgba(76, 175, 80, 0.1);
-  border: 1.5px solid #4caf50;
-  color: #4caf50;
-  text-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.2);
-}
+/* Убрано изменение цвета при активной вкладке */
+/* .sidebar-item.active .admin-badge остается золотым */
 
 [data-theme="dark"] .admin-badge {
   background: rgba(255, 215, 0, 0.15);
@@ -270,9 +266,5 @@
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
 
-[data-theme="dark"] .sidebar-item.active .admin-badge {
-  background: rgba(76, 175, 80, 0.15);
-  border: 1.5px solid #4caf50;
-  color: #4caf50;
-  text-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
-}
+/* Убрано изменение цвета при активной вкладке в темной теме */
+/* [data-theme="dark"] .sidebar-item.active .admin-badge остается золотым */

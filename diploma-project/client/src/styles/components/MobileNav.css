@@ -318,13 +318,8 @@
   }
 }
 
-/* Активный админский пункт - бейдж становится зеленым */
-.mobile-menu-item.active .mobile-admin-badge {
-  background: linear-gradient(135deg, #2e7d32, #4caf50);
-  color: white;
-  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.4);
-  border: 1px solid rgba(46, 125, 50, 0.3);
-}
+/* Убрано изменение цвета при активной вкладке */
+/* .mobile-menu-item.active .mobile-admin-badge остается золотым */
 
 /* Футер меню с информацией о пользователе */
 .mobile-menu-footer {

@@ -155,9 +155,23 @@ const StatisticsPage = () => {
   };
 
   const updateCalculatorData = (category, field, value) => {
+    // Определяем максимальные значения для каждого поля
+    const maxValues = {
+      transport: { carKm: 200, busKm: 100, planeKm: 5000, trainKm: 150 },
+      housing: { electricity: 500, heating: 1000, water: 50, gas: 100 },
+      food: { meatKg: 50, vegetablesKg: 100, processedFood: 50, localFood: 100, dairy: 50 },
+      waste: { recycling: 100, compost: 100, plastic: 20 }
+    };
+
+    const numValue = parseFloat(value) || 0;
+    const maxValue = maxValues[category]?.[field];
+    
+    // Ограничиваем значение максимумом, если оно задано
+    const validatedValue = maxValue !== undefined ? Math.min(Math.max(0, numValue), maxValue) : Math.max(0, numValue);
+    
     setCalculatorData(prev => ({
       ...prev,
-      [category]: { ...prev[category], [field]: parseFloat(value) || 0 }
+      [category]: { ...prev[category], [field]: validatedValue }
     }));
   };
 
@@ -560,7 +574,15 @@ const StatisticsPage = () => {
                     value={calculatorData.transport.carKm}
                     onChange={(e) => updateCalculatorData('transport', 'carKm', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.transport.carKm} {t('statsKm')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="200"
+                    value={calculatorData.transport.carKm}
+                    onChange={(e) => updateCalculatorData('transport', 'carKm', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKm')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -574,7 +596,15 @@ const StatisticsPage = () => {
                     value={calculatorData.transport.busKm}
                     onChange={(e) => updateCalculatorData('transport', 'busKm', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.transport.busKm} {t('statsKm')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="100"
+                    value={calculatorData.transport.busKm}
+                    onChange={(e) => updateCalculatorData('transport', 'busKm', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKm')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -588,7 +618,16 @@ const StatisticsPage = () => {
                     value={calculatorData.transport.planeKm}
                     onChange={(e) => updateCalculatorData('transport', 'planeKm', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.transport.planeKm} {t('statsKm')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="5000"
+                    step="100"
+                    value={calculatorData.transport.planeKm}
+                    onChange={(e) => updateCalculatorData('transport', 'planeKm', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKm')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -602,7 +641,15 @@ const StatisticsPage = () => {
                     value={calculatorData.transport.trainKm}
                     onChange={(e) => updateCalculatorData('transport', 'trainKm', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.transport.trainKm} {t('statsKm')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="150"
+                    value={calculatorData.transport.trainKm}
+                    onChange={(e) => updateCalculatorData('transport', 'trainKm', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKm')}</span>
                 </div>
               </div>
             </div>
@@ -621,7 +668,16 @@ const StatisticsPage = () => {
                     value={calculatorData.housing.electricity}
                     onChange={(e) => updateCalculatorData('housing', 'electricity', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.housing.electricity} {t('statsKWh')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="500"
+                    step="10"
+                    value={calculatorData.housing.electricity}
+                    onChange={(e) => updateCalculatorData('housing', 'electricity', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKWh')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -635,7 +691,16 @@ const StatisticsPage = () => {
                     value={calculatorData.housing.heating}
                     onChange={(e) => updateCalculatorData('housing', 'heating', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.housing.heating} {t('statsKWh')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="1000"
+                    step="10"
+                    value={calculatorData.housing.heating}
+                    onChange={(e) => updateCalculatorData('housing', 'heating', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKWh')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -649,7 +714,15 @@ const StatisticsPage = () => {
                     value={calculatorData.housing.water}
                     onChange={(e) => updateCalculatorData('housing', 'water', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.housing.water} {t('statsM3')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="50"
+                    value={calculatorData.housing.water}
+                    onChange={(e) => updateCalculatorData('housing', 'water', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsM3')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -663,7 +736,15 @@ const StatisticsPage = () => {
                     value={calculatorData.housing.gas}
                     onChange={(e) => updateCalculatorData('housing', 'gas', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.housing.gas} {t('statsM3')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="100"
+                    value={calculatorData.housing.gas}
+                    onChange={(e) => updateCalculatorData('housing', 'gas', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsM3')}</span>
                 </div>
               </div>
             </div>
@@ -682,7 +763,16 @@ const StatisticsPage = () => {
                     value={calculatorData.food.meatKg}
                     onChange={(e) => updateCalculatorData('food', 'meatKg', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.food.meatKg} {t('statsKg')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="50"
+                    step="0.5"
+                    value={calculatorData.food.meatKg}
+                    onChange={(e) => updateCalculatorData('food', 'meatKg', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKg')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -696,7 +786,15 @@ const StatisticsPage = () => {
                     value={calculatorData.food.vegetablesKg}
                     onChange={(e) => updateCalculatorData('food', 'vegetablesKg', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.food.vegetablesKg} {t('statsKg')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="100"
+                    value={calculatorData.food.vegetablesKg}
+                    onChange={(e) => updateCalculatorData('food', 'vegetablesKg', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKg')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -710,7 +808,16 @@ const StatisticsPage = () => {
                     value={calculatorData.food.dairy}
                     onChange={(e) => updateCalculatorData('food', 'dairy', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.food.dairy} {t('statsL')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="50"
+                    step="0.5"
+                    value={calculatorData.food.dairy}
+                    onChange={(e) => updateCalculatorData('food', 'dairy', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsL')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -724,7 +831,15 @@ const StatisticsPage = () => {
                     value={calculatorData.food.processedFood}
                     onChange={(e) => updateCalculatorData('food', 'processedFood', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.food.processedFood} {t('statsServings')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="50"
+                    value={calculatorData.food.processedFood}
+                    onChange={(e) => updateCalculatorData('food', 'processedFood', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsServings')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -737,7 +852,15 @@ const StatisticsPage = () => {
                     value={calculatorData.food.localFood}
                     onChange={(e) => updateCalculatorData('food', 'localFood', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.food.localFood}%</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="100"
+                    value={calculatorData.food.localFood}
+                    onChange={(e) => updateCalculatorData('food', 'localFood', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">%</span>
                 </div>
               </div>
             </div>
@@ -756,7 +879,16 @@ const StatisticsPage = () => {
                     value={calculatorData.waste.plastic}
                     onChange={(e) => updateCalculatorData('waste', 'plastic', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.waste.plastic} {t('statsKg')}</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="20"
+                    step="0.5"
+                    value={calculatorData.waste.plastic}
+                    onChange={(e) => updateCalculatorData('waste', 'plastic', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">{t('statsKg')}</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -769,7 +901,15 @@ const StatisticsPage = () => {
                     value={calculatorData.waste.recycling}
                     onChange={(e) => updateCalculatorData('waste', 'recycling', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.waste.recycling}%</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="100"
+                    value={calculatorData.waste.recycling}
+                    onChange={(e) => updateCalculatorData('waste', 'recycling', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">%</span>
                 </div>
               </div>
               <div className="stats-calc-input-group">
@@ -782,7 +922,15 @@ const StatisticsPage = () => {
                     value={calculatorData.waste.compost}
                     onChange={(e) => updateCalculatorData('waste', 'compost', e.target.value)}
                   />
-                  <span className="stats-slider-value">{calculatorData.waste.compost}%</span>
+                  <input
+                    type="number"
+                    className="stats-slider-input"
+                    min="0"
+                    max="100"
+                    value={calculatorData.waste.compost}
+                    onChange={(e) => updateCalculatorData('waste', 'compost', e.target.value)}
+                  />
+                  <span className="stats-slider-unit">%</span>
                 </div>
               </div>
             </div>

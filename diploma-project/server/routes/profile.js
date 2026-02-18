@@ -157,8 +157,8 @@ router.get('/:userId/posts', async (req, res) => {
         p.updated_at,
         u.nickname,
         u.avatar_emoji,
-        (SELECT COUNT(*) FROM post_likes WHERE post_id = p.id) as likes_count,
-        (SELECT COUNT(*) FROM post_comments WHERE post_id = p.id AND deleted_at IS NULL) as comments_count,
+        (SELECT COUNT(*)::INTEGER FROM post_likes WHERE post_id = p.id) as likes_count,
+        (SELECT COUNT(*)::INTEGER FROM post_comments WHERE post_id = p.id AND deleted_at IS NULL) as comments_count,
         EXISTS(SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = $1) as is_liked
       FROM user_posts p
       JOIN users u ON p.user_id = u.id

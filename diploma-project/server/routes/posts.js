@@ -16,8 +16,8 @@ router.get('/feed', authenticateToken, async (req, res) => {
         SELECT DISTINCT up.*, 
           u.nickname, u.avatar_emoji, u.carbon_saved,
           EXISTS(SELECT 1 FROM post_likes WHERE post_id = up.id AND user_id = $1) as user_liked,
-          (SELECT COUNT(*) FROM post_likes WHERE post_id = up.id) as likes_count,
-          (SELECT COUNT(*) FROM post_comments WHERE post_id = up.id AND deleted_at IS NULL) as comments_count
+          (SELECT COUNT(*)::INTEGER FROM post_likes WHERE post_id = up.id) as likes_count,
+          (SELECT COUNT(*)::INTEGER FROM post_comments WHERE post_id = up.id AND deleted_at IS NULL) as comments_count
         FROM user_posts up
         JOIN users u ON up.user_id = u.id
         WHERE up.deleted_at IS NULL 
@@ -28,8 +28,8 @@ router.get('/feed', authenticateToken, async (req, res) => {
         SELECT DISTINCT up.*, 
           u.nickname, u.avatar_emoji, u.carbon_saved,
           EXISTS(SELECT 1 FROM post_likes WHERE post_id = up.id AND user_id = $1) as user_liked,
-          (SELECT COUNT(*) FROM post_likes WHERE post_id = up.id) as likes_count,
-          (SELECT COUNT(*) FROM post_comments WHERE post_id = up.id AND deleted_at IS NULL) as comments_count
+          (SELECT COUNT(*)::INTEGER FROM post_likes WHERE post_id = up.id) as likes_count,
+          (SELECT COUNT(*)::INTEGER FROM post_comments WHERE post_id = up.id AND deleted_at IS NULL) as comments_count
         FROM user_posts up
         JOIN users u ON up.user_id = u.id
         JOIN friendships f ON (
@@ -44,8 +44,8 @@ router.get('/feed', authenticateToken, async (req, res) => {
         SELECT DISTINCT up.*, 
           u.nickname, u.avatar_emoji, u.carbon_saved,
           EXISTS(SELECT 1 FROM post_likes WHERE post_id = up.id AND user_id = $1) as user_liked,
-          (SELECT COUNT(*) FROM post_likes WHERE post_id = up.id) as likes_count,
-          (SELECT COUNT(*) FROM post_comments WHERE post_id = up.id AND deleted_at IS NULL) as comments_count
+          (SELECT COUNT(*)::INTEGER FROM post_likes WHERE post_id = up.id) as likes_count,
+          (SELECT COUNT(*)::INTEGER FROM post_comments WHERE post_id = up.id AND deleted_at IS NULL) as comments_count
         FROM user_posts up
         JOIN users u ON up.user_id = u.id
         WHERE up.deleted_at IS NULL 

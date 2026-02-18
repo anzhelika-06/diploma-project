@@ -549,6 +549,40 @@
   text-align: right;
 }
 
+.stats-slider-input {
+  width: 70px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  text-align: center;
+  transition: all 0.3s ease;
+  -moz-appearance: textfield; /* Firefox */
+}
+
+.stats-slider-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+/* Скрываем стрелочки в Chrome, Safari, Edge, Opera */
+.stats-slider-input::-webkit-inner-spin-button,
+.stats-slider-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stats-slider-unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 30px;
+}
+
 .stats-calculate-btn {
   width: 100%;
   padding: 14px 24px;
