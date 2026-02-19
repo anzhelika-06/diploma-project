@@ -1260,22 +1260,25 @@
   }
   
   .achievements-tabs-container {
-    justify-content: flex-start;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
   }
   
   .achievements-tabs {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
   }
   
   .tab-btn {
-    min-width: 180px;
+    flex: 1;
+    min-width: 140px;
   }
 }
 
 @media (max-width: 768px) {
   .achievements-page {
     padding: 16px 8px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
   
   .achievements-container {
@@ -1295,6 +1298,8 @@
   .eco-coins-balance {
     width: 100%;
     justify-content: center;
+    position: relative;
+    z-index: 1;
   }
   
   .achievements-stats {

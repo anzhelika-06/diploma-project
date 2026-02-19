@@ -936,18 +936,18 @@ const ReviewsPage = () => {
       startPage = Math.max(1, endPage - maxVisiblePages + 1)
     }
     
-    if (currentPage > 1) {
-      pages.push(
-        <button
-          key="prev"
-          className="reviews-pagination-button"
-          onClick={() => handlePageChange(currentPage - 1)}
-          aria-label="Предыдущая страница"
-        >
-          ←
-        </button>
-      )
-    }
+    // Кнопка "Предыдущая" - всегда видна
+    pages.push(
+      <button
+        key="prev"
+        className="reviews-pagination-button"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label="Предыдущая страница"
+      >
+        <span className="material-icons">chevron_left</span>
+      </button>
+    )
     
     if (startPage > 1) {
       pages.push(
@@ -991,18 +991,18 @@ const ReviewsPage = () => {
       )
     }
     
-    if (currentPage < totalPages) {
-      pages.push(
-        <button
-          key="next"
-          className="reviews-pagination-button"
-          onClick={() => handlePageChange(currentPage + 1)}
-          aria-label="Следующая страница"
-        >
-          →
-        </button>
-      )
-    }
+    // Кнопка "Следующая" - всегда видна
+    pages.push(
+      <button
+        key="next"
+        className="reviews-pagination-button"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label="Следующая страница"
+      >
+        <span className="material-icons">chevron_right</span>
+      </button>
+    )
     
     return (
       <div className="reviews-pagination-container">

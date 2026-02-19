@@ -596,19 +596,18 @@ const TeamsPage = () => {
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
     
-    // Кнопка "Предыдущая"
-    if (currentPage > 1) {
-      pages.push(
-        <button
-          key="prev"
-          className="teams-pagination-button"
-          onClick={() => handlePageChange(currentPage - 1)}
-          aria-label={t('previousPage') || 'Предыдущая страница'}
-        >
-          <span className="material-icons">chevron_left</span>
-        </button>
-      );
-    }
+    // Кнопка "Предыдущая" - всегда видна
+    pages.push(
+      <button
+        key="prev"
+        className="teams-pagination-button"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        aria-label={t('previousPage') || 'Предыдущая страница'}
+      >
+        <span className="material-icons">chevron_left</span>
+      </button>
+    );
 
     // Первая страница
     if (startPage > 1) {
@@ -655,19 +654,18 @@ const TeamsPage = () => {
       );
     }
     
-    // Кнопка "Следующая"
-    if (currentPage < totalPages) {
-      pages.push(
-        <button
-          key="next"
-          className="teams-pagination-button"
-          onClick={() => handlePageChange(currentPage + 1)}
-          aria-label={t('nextPage') || 'Следующая страница'}
-        >
-          <span className="material-icons">chevron_right</span>
-        </button>
-      );
-    }
+    // Кнопка "Следующая" - всегда видна
+    pages.push(
+      <button
+        key="next"
+        className="teams-pagination-button"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        aria-label={t('nextPage') || 'Следующая страница'}
+      >
+        <span className="material-icons">chevron_right</span>
+      </button>
+    );
     
     const filteredTeams = getDisplayTeams();
     const startIndex = (currentPage - 1) * TEAMS_PER_PAGE + 1;

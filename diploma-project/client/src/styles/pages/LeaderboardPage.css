@@ -662,16 +662,19 @@
   }
   
   .leaderboard-tabs-container {
-    justify-content: flex-start;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
   }
   
   .leaderboard-tabs {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    gap: 8px;
   }
   
   .leaderboard-tab {
-    min-width: 120px;
+    flex: 1;
+    min-width: 110px;
   }
   
   .leaderboard-table {
@@ -682,6 +685,7 @@
 @media (max-width: 768px) {
   .leaderboard-page {
     padding: 16px 8px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
   
   .leaderboard-container {

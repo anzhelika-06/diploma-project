@@ -58,8 +58,8 @@ const MobileNav = () => {
 
     window.addEventListener('storage', handleStorageChange)
     
-    // Проверяем изменения каждые 5 секунд (вместо каждой секунды)
-    const interval = setInterval(handleStorageChange, 5000)
+    // Проверяем изменения каждые 100ms для быстрой реакции
+    const interval = setInterval(handleStorageChange, 100)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)

@@ -1460,6 +1460,7 @@ input:checked + .toggle-slider:before {
 @media (max-width: 768px) {
   .settings-page {
     padding: 16px 8px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
 
   .settings-container {
@@ -1468,6 +1469,7 @@ input:checked + .toggle-slider:before {
 
   .settings-title {
     font-size: 24px;
+    text-align: center;
   }
 
   .settings-tabs {

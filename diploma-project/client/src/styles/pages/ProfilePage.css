@@ -377,6 +377,7 @@
 @media (max-width: 768px) {
   .profile-page {
     padding: 16px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
 
   .profile-container {

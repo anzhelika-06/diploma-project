@@ -407,6 +407,7 @@
   .notification-bell-container {
     top: 12px;
     right: 12px;
+    z-index: 999; /* Ниже чем модальные окна, но выше контента */
   }
 
   .notification-bell-button {
@@ -423,18 +424,58 @@
   .notification-list {
     max-height: 400px;
   }
+  
+  .notification-header h3 {
+    font-size: 16px;
+  }
+  
+  .notification-item {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  
+  .notification-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .notification-icon .material-icons {
+    font-size: 20px;
+  }
+  
+  .notification-content h4 {
+    font-size: 14px;
+  }
+  
+  .notification-content p {
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 480px) {
   .notification-bell-container {
     top: 10px;
     right: 10px;
+    z-index: 999;
   }
 
   .notification-bell-button {
     width: 40px;
     height: 40px;
     padding: 8px;
+  }
+  
+  .notification-bell-button .material-icons {
+    font-size: 22px;
+  }
+  
+  .notification-badge {
+    top: 0;
+    right: 0;
+    font-size: 9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 2px 4px;
   }
 
   .notification-dropdown {
@@ -443,6 +484,62 @@
     left: 10px;
     right: 10px;
     width: auto;
+    max-height: calc(100vh - 150px);
+  }
+  
+  .notification-list {
+    max-height: calc(100vh - 250px);
+  }
+  
+  .notification-header {
+    padding: 16px 20px;
+  }
+  
+  .notification-header h3 {
+    font-size: 15px;
+  }
+  
+  .mark-all-read-btn {
+    right: 20px;
+  }
+  
+  .mark-all-read-btn .material-icons {
+    font-size: 18px;
+  }
+  
+  .notification-item {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  
+  .notification-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .notification-icon .material-icons {
+    font-size: 18px;
+  }
+  
+  .notification-content h4 {
+    font-size: 13px;
+  }
+  
+  .notification-content p {
+    font-size: 12px;
+  }
+  
+  .notification-time {
+    font-size: 11px;
+  }
+  
+  .notification-footer {
+    padding: 14px 16px;
+  }
+  
+  .view-all-btn {
+    padding: 10px 14px;
+    font-size: 13px;
   }
 }
 

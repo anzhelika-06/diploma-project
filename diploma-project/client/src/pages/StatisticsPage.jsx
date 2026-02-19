@@ -12,9 +12,117 @@ const StatisticsPage = () => {
   const [loading, setLoading] = useState(true);
   const [calculations, setCalculations] = useState([]);
   const [chartPeriod, setChartPeriod] = useState('month');
+  const [selectedWeekOffset, setSelectedWeekOffset] = useState(0); // 0 = текущая неделя, -1 = прошлая и т.д.
   const [calculationResult, setCalculationResult] = useState(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isCalculatingToday, setIsCalculatingToday] = useState(false); // Локальная блокировка
+  const [historyPage, setHistoryPage] = useState(1); // Пагинация истории
+  const historyItemsPerPage = 10; // Количество элементов на странице
+  
+  // Функция рендера пагинации
+  const renderHistoryPagination = () => {
+    const totalPages = Math.ceil(calculations.length / historyItemsPerPage);
+    
+    if (totalPages <= 1) {
+      return null;
+    }
+
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    let startPage = Math.max(1, historyPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage < maxVisiblePages - 1) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // Кнопка "Предыдущая" - всегда видна
+    pages.push(
+      <button
+        key="prev"
+        className="stats-pagination-button"
+        onClick={() => setHistoryPage(historyPage - 1)}
+        disabled={historyPage === 1}
+        aria-label={t('previousPage') || 'Предыдущая страница'}
+      >
+        <span className="material-icons">chevron_left</span>
+      </button>
+    );
+
+    // Первая страница
+    if (startPage > 1) {
+      pages.push(
+        <button
+          key={1}
+          className="stats-pagination-button"
+          onClick={() => setHistoryPage(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        pages.push(<span key="dots1" className="stats-pagination-ellipsis">...</span>);
+      }
+    }
+
+    // Страницы
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(
+        <button
+          key={i}
+          className={`stats-pagination-button ${historyPage === i ? 'active' : ''}`}
+          onClick={() => setHistoryPage(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Последняя страница
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<span key="dots2" className="stats-pagination-ellipsis">...</span>);
+      }
+      pages.push(
+        <button
+          key={totalPages}
+          className="stats-pagination-button"
+          onClick={() => setHistoryPage(totalPages)}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+    
+    // Кнопка "Следующая" - всегда видна
+    pages.push(
+      <button
+        key="next"
+        className="stats-pagination-button"
+        onClick={() => setHistoryPage(historyPage + 1)}
+        disabled={historyPage === totalPages}
+        aria-label={t('nextPage') || 'Следующая страница'}
+      >
+        <span className="material-icons">chevron_right</span>
+      </button>
+    );
+    
+    const startIndex = (historyPage - 1) * historyItemsPerPage + 1;
+    const endIndex = Math.min(historyPage * historyItemsPerPage, calculations.length);
+    
+    return (
+      <div className="stats-pagination-container">
+        <div className="stats-pagination-info">
+          {t('showingTeams') || 'Показано'} <strong>{startIndex}-{endIndex}</strong> {t('ofTotal') || 'из'} <strong>{calculations.length}</strong>
+        </div>
+        <div className="stats-pagination-buttons">
+          {pages}
+        </div>
+      </div>
+    );
+  };
   
   const [calculatorData, setCalculatorData] = useState({
     transport: { carKm: 0, busKm: 0, planeKm: 0, trainKm: 0 },
@@ -75,19 +183,50 @@ const StatisticsPage = () => {
         const data = await response.json();
         const calcs = data.data?.calculations || data.calculations || [];
         setCalculations(calcs);
+        
+        // Проверяем, был ли расчет сегодня
+        const hasCalculationToday = isCalculatedTodayFromData(calcs);
+        if (hasCalculationToday) {
+          setIsCalculatingToday(true);
+        }
       }
     } catch (error) {
       console.error('Ошибка загрузки расчетов:', error);
     }
   };
+  
+  // Вспомогательная функция для проверки расчета из данных
+  const isCalculatedTodayFromData = (calcs) => {
+    if (!calcs || calcs.length === 0) return false;
+    
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    return calcs.some(calc => {
+      // Проверяем разные возможные поля для даты
+      const calcDate = calc.calculation_date || calc.date || calc.created_at;
+      if (typeof calcDate === 'string' && calcDate.startsWith(today)) {
+        return true;
+      }
+      return false;
+    });
+  };
 
-  const calculateFootprint = async () => {
+  const calculateFootprint = async (e) => {
+    // Проверяем disabled состояние кнопки
+    if (e?.target?.disabled || loading || isCalculatingToday || isCalculatedToday()) {
+      return; // Блокируем выполнение если кнопка заблокирована
+    }
+    
     const currentUser = getCurrentUser();
     if (!currentUser?.id) {
       setErrorMessage(t('error') || 'Пользователь не авторизован');
       setShowErrorModal(true);
       return;
     }
+    
+    // СРАЗУ блокируем кнопку
+    setIsCalculatingToday(true);
 
     setLoading(true);
     try {
@@ -135,23 +274,44 @@ const StatisticsPage = () => {
           });
         }
         
+        // Сразу обновляем данные чтобы кнопка заблокировалась
         await Promise.all([loadUserData(), loadCalculations()]);
       } else {
-        // Показываем ошибку в модальном окне
+        // Если ошибка "уже был расчет сегодня", обновляем список расчетов
         if (result.errorCode === 'CALCULATION_ALREADY_EXISTS_TODAY') {
-          setErrorMessage(t('statsCalculationAlreadyToday') || result.error || 'Вы уже сделали расчет сегодня. Попробуйте завтра!');
+          await loadCalculations();
         } else {
-          setErrorMessage(result.error || t('error') || 'Ошибка при выполнении расчета');
+          // Если другая ошибка, разблокируем кнопку
+          setIsCalculatingToday(false);
         }
-        setShowErrorModal(true);
+        // Не показываем модальное окно, просто логируем
+        console.log('Calculation error:', result.error);
       }
     } catch (error) {
       console.error('Ошибка расчета:', error);
+      setIsCalculatingToday(false); // Разблокируем при ошибке
       setErrorMessage(t('error') || 'Произошла ошибка при выполнении расчета');
       setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Проверяем, был ли расчет сегодня
+  const isCalculatedToday = () => {
+    if (!calculations || calculations.length === 0) return false;
+    
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    
+    return calculations.some(calc => {
+      // Проверяем разные возможные поля для даты
+      const calcDate = calc.calculation_date || calc.date || calc.created_at;
+      if (typeof calcDate === 'string' && calcDate.startsWith(today)) {
+        return true;
+      }
+      return false;
+    });
   };
 
   const updateCalculatorData = (category, field, value) => {
@@ -243,8 +403,19 @@ const StatisticsPage = () => {
     let filteredCalcs = [...calculations];
     
     if (chartPeriod === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      filteredCalcs = calculations.filter(calc => new Date(calc.date || calc.calculation_date) >= weekAgo);
+      // Вычисляем начало и конец выбранной недели
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay() + (selectedWeekOffset * 7)); // Начало недели (воскресенье)
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6); // Конец недели (суббота)
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      filteredCalcs = calculations.filter(calc => {
+        const calcDate = new Date(calc.date || calc.calculation_date);
+        return calcDate >= weekStart && calcDate <= weekEnd;
+      });
     } else if (chartPeriod === 'month') {
       const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       filteredCalcs = calculations.filter(calc => new Date(calc.date || calc.calculation_date) >= monthAgo);
@@ -253,7 +424,12 @@ const StatisticsPage = () => {
       filteredCalcs = calculations.filter(calc => new Date(calc.date || calc.calculation_date) >= yearAgo);
     }
     
-    return filteredCalcs;
+    // Сортируем по дате: старые слева, новые справа
+    return filteredCalcs.sort((a, b) => {
+      const dateA = new Date(a.date || a.calculation_date);
+      const dateB = new Date(b.date || b.calculation_date);
+      return dateA - dateB;
+    });
   };
   
   const chartData = getFilteredData().map(calc => ({
@@ -373,14 +549,42 @@ const StatisticsPage = () => {
         <div className="stats-charts">
           <div className="stats-charts-header">
             <h2 className="stats-section-title">{t('statsChartTitle')}</h2>
-            <div className="stats-period-buttons">
-              {['week', 'month', 'year'].map(period => (
-                <button
-                  key={period}
-                  className={`stats-period-btn ${chartPeriod === period ? 'active' : ''}`}
-                  onClick={() => {
-                    setChartPeriod(period);
-                    // Отслеживаем смену периода
+            <div className="stats-period-controls">
+              {/* Селектор недели - показывается слева от кнопок периода когда выбран период "неделя" */}
+              {chartPeriod === 'week' && (
+                <div className="stats-week-selector">
+                  <button 
+                    className="stats-week-nav-btn"
+                    onClick={() => setSelectedWeekOffset(selectedWeekOffset - 1)}
+                    title={t('statsPreviousWeek') || 'Предыдущая неделя'}
+                  >
+                    <span className="material-icons">chevron_left</span>
+                  </button>
+                  <span className="stats-week-label">
+                    {selectedWeekOffset === 0 ? (t('statsCurrentWeek') || 'Текущая неделя') : 
+                     selectedWeekOffset === -1 ? (t('statsLastWeek') || 'Прошлая неделя') :
+                     `${Math.abs(selectedWeekOffset)} ${t('statsWeeksAgo') || 'недель назад'}`}
+                  </span>
+                  <button 
+                    className="stats-week-nav-btn"
+                    onClick={() => setSelectedWeekOffset(selectedWeekOffset + 1)}
+                    disabled={selectedWeekOffset >= 0}
+                    title={t('statsNextWeek') || 'Следующая неделя'}
+                  >
+                    <span className="material-icons">chevron_right</span>
+                  </button>
+                </div>
+              )}
+              
+              <div className="stats-period-buttons">
+                {['week', 'month', 'year'].map(period => (
+                  <button
+                    key={period}
+                    className={`stats-period-btn ${chartPeriod === period ? 'active' : ''}`}
+                    onClick={() => {
+                      setChartPeriod(period);
+                      setSelectedWeekOffset(0); // Сбрасываем выбор недели при смене периода
+                      // Отслеживаем смену периода
                     const currentUser = getCurrentUser();
                     if (currentUser?.id) {
                       trackEvent('statistics_period_changed', {
@@ -396,7 +600,8 @@ const StatisticsPage = () => {
               ))}
             </div>
           </div>
-
+          </div>
+          
           <div className="stats-charts-grid">
             {/* Столбчатая диаграмма */}
             <div className="stats-chart-card">
@@ -936,13 +1141,20 @@ const StatisticsPage = () => {
             </div>
           </div>
 
-          <button 
-            className="stats-calculate-btn"
-            onClick={calculateFootprint}
-            disabled={loading}
-          >
-            {loading ? t('statsCalculating') : t('statsCalculateButton')}
-          </button>
+          <div className="stats-calculate-btn-wrapper">
+            <button 
+              className="stats-calculate-btn"
+              onClick={calculateFootprint}
+              disabled={loading || isCalculatingToday || isCalculatedToday()}
+            >
+              {loading ? t('statsCalculating') : t('statsCalculateButton')}
+            </button>
+            {(isCalculatingToday || isCalculatedToday()) && (
+              <div className="stats-calculate-tooltip">
+                {t('statsCalculationAlreadyToday') || 'Вы уже сделали расчет сегодня. Попробуйте завтра!'}
+              </div>
+            )}
+          </div>
 
           {calculationResult && (
             <div className="stats-results">
@@ -971,22 +1183,33 @@ const StatisticsPage = () => {
         <div className="stats-history">
           <h2 className="stats-section-title">{t('statsHistory')}</h2>
           {calculations.length > 0 ? (
-            <div className="stats-timeline">
-              {calculations.map((calc, index) => (
-                <div key={index} className="stats-timeline-item">
-                  <div className="stats-timeline-dot"></div>
-                  <div className="stats-timeline-date">
-                    {formatDate(calc.date || calc.calculation_date)}
-                  </div>
-                  <div className="stats-timeline-content">
-                    <div className="stats-timeline-value">
-                      <span className="material-icons">eco</span>
-                      <strong>{t('statsSaved')}: {(calc.co2_saved || calc.saved || 0).toFixed(1)} {t('statsKg')} CO₂</strong>
+            <>
+              <div className="stats-timeline">
+                {(() => {
+                  const startIndex = (historyPage - 1) * historyItemsPerPage;
+                  const endIndex = startIndex + historyItemsPerPage;
+                  const paginatedCalcs = calculations.slice(startIndex, endIndex);
+                  
+                  return paginatedCalcs.map((calc, index) => (
+                    <div key={startIndex + index} className="stats-timeline-item">
+                      <div className="stats-timeline-dot"></div>
+                      <div className="stats-timeline-date">
+                        {formatDate(calc.date || calc.calculation_date)}
+                      </div>
+                      <div className="stats-timeline-content">
+                        <div className="stats-timeline-value">
+                          <span className="material-icons">eco</span>
+                          <strong>{t('statsSaved')}: {(calc.co2_saved || calc.saved || 0).toFixed(1)} {t('statsKg')} CO₂</strong>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  ));
+                })()}
+              </div>
+              
+              {/* Пагинация */}
+              {renderHistoryPagination()}
+            </>
           ) : (
             <div className="stats-empty-history">
               <span className="material-icons">history</span>

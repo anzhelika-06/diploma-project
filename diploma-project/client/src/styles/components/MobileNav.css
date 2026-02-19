@@ -11,6 +11,7 @@
   z-index: 1000;
   justify-content: space-around;
   align-items: center;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 /* Theme Support */
@@ -47,7 +48,7 @@
   padding: 12px;
   text-decoration: none;
   color: var(--mobile-nav-text, #666);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border-radius: 12px;
   min-width: 48px;
   background: transparent;
@@ -93,7 +94,7 @@
 .mobile-nav-icon-svg {
   width: 24px;
   height: 24px;
-  transition: filter 0.2s ease;
+  transition: filter 0.3s ease;
   filter: var(--mobile-nav-icon-filter, none);
 }
 
@@ -148,6 +149,7 @@
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
+  transition: background 0.3s ease;
 }
 
 /* Theme for mobile menu */
@@ -192,6 +194,7 @@
   top: 0;
   background: var(--mobile-menu-bg, #fff);
   z-index: 1;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .mobile-menu-header h3 {
@@ -199,6 +202,7 @@
   font-weight: 600;
   color: var(--mobile-menu-text, #333);
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .mobile-menu-close {
@@ -214,7 +218,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .mobile-menu-close:hover {
@@ -239,7 +243,7 @@
   text-decoration: none;
   color: var(--mobile-menu-text, #333);
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
 }
@@ -260,11 +264,18 @@
   font-weight: 600;
 }
 
+/* Темная тема - белый текст для активного пункта */
+[data-theme="dark"] .mobile-menu-item.active {
+  background: var(--mobile-menu-active-bg, #2d4a2e);
+  color: #ffffff;
+  font-weight: 600;
+}
+
 /* Иконки для меню */
 .mobile-menu-icon-svg {
   width: 24px;
   height: 24px;
-  transition: filter 0.2s ease;
+  transition: filter 0.3s ease, transform 0.2s ease;
   filter: var(--mobile-menu-icon-filter, none);
 }
 
@@ -282,7 +293,7 @@
 .mobile-menu-label {
   font-size: 16px;
   font-weight: 500;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease;
   flex: 1;
 }
 
@@ -291,35 +302,35 @@
   font-weight: 600;
 }
 
+/* Темная тема - белый текст для активного лейбла */
+[data-theme="dark"] .mobile-menu-item.active .mobile-menu-label {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 /* Бейдж для админского пункта - ЖЕЛТЫЙ/ЗОЛОТОЙ */
 .mobile-admin-badge {
-  background: var(--admin-color, linear-gradient(135deg, #FFD700, #FFA500));
-  color: #000;
-  font-size: 10px;
+  background: rgba(255, 215, 0, 0.15);
+  border: 1.5px solid #FFD700;
+  color: #FFD700;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
   text-transform: uppercase;
-  animation: badgePulse 2s infinite ease-in-out;
-  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.3);
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+  white-space: nowrap;
 }
 
-@keyframes badgePulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.05);
-    box-shadow: 0 3px 12px rgba(255, 215, 0, 0.6);
-  }
+/* Бейдж остается золотым при активной вкладке */
+.mobile-menu-item.active .mobile-admin-badge {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1.5px solid #FFD700;
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
-
-/* Убрано изменение цвета при активной вкладке */
-/* .mobile-menu-item.active .mobile-admin-badge остается золотым */
 
 /* Футер меню с информацией о пользователе */
 .mobile-menu-footer {
@@ -328,6 +339,7 @@
   margin-top: auto;
   background: var(--mobile-menu-bg);
   border-radius: 0 0 20px 20px;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .mobile-user-info {
@@ -354,11 +366,13 @@
   font-weight: 600;
   color: var(--mobile-menu-text, #333);
   font-size: 14px;
+  transition: color 0.3s ease;
 }
 
 .mobile-user-role {
   font-size: 12px;
   color: var(--mobile-menu-text-secondary, #666);
+  transition: color 0.3s ease;
 }
 
 /* Показываем только на мобильных */
@@ -423,10 +437,20 @@
   animation: rotate 0.2s ease;
 }
 
-/* Для темной темы - темный текст на желтом бейдже */
+/* Для темной темы - золотой текст на темном фоне */
 [data-theme="dark"] .mobile-admin-badge {
-  color: #000;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+  background: rgba(255, 215, 0, 0.15);
+  border: 1.5px solid #FFD700;
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+/* Бейдж остается золотым при активной вкладке в темной теме */
+[data-theme="dark"] .mobile-menu-item.active .mobile-admin-badge {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1.5px solid #FFD700;
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
 }
 
 /* Гарантируем, что фильтры работают для всех иконок */

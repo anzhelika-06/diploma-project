@@ -916,31 +916,119 @@ form.modal-body {
 
 /* Адаптивность */
 @media (max-width: 768px) {
-  .teams-grid {
-    grid-template-columns: 1fr;
+  .teams-page {
+    padding: 20px 16px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
   
   .teams-page-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+    gap: 16px;
+    position: static;
+  }
+  
+  .teams-page-header h1 {
+    font-size: 28px;
+  }
+  
+  .teams-page-header p {
+    font-size: 14px;
+  }
+  
+  .teams-btn-create-team {
+    position: static;
+    transform: none;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .teams-grid {
+    grid-template-columns: 1fr;
   }
   
   .teams-tabs {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
   }
   
   .teams-tabs .tab {
-    white-space: nowrap;
+    flex: 1;
+    min-width: 140px;
   }
   
-  .teams-modal-content {
+  .modal-content {
     width: 95%;
     max-height: 95vh;
   }
   
   .teams-emoji-picker {
     grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
+  }
+  
+  /* Карточка команды в мобильной версии */
+  .team-header {
+    flex-wrap: wrap;
+  }
+  
+  .team-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .team-info h3 {
+    font-size: 18px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .team-actions {
+    flex-direction: column;
+  }
+  
+  .team-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .teams-page {
+    padding: 16px 12px;
+    padding-bottom: 80px;
+  }
+  
+  .teams-page-header h1 {
+    font-size: 24px;
+  }
+  
+  .teams-page-header p {
+    font-size: 13px;
+  }
+  
+  .teams-btn-create-team {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  .teams-btn-create-team .material-icons {
+    font-size: 18px;
+  }
+  
+  .team-info h3 {
+    font-size: 16px;
+  }
+  
+  .team-description {
+    font-size: 13px;
+  }
+  
+  .team-stats {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 

@@ -1455,20 +1455,6 @@ INSERT INTO success_stories (user_id, title, content, category, carbon_saved, li
     (20, 'lucas_food и растительное питание', 'Перешел на растительное питание и начал выращивать микрозелень дома. Здоровье улучшилось, планета благодарна!', 'Питание', 1900, 46, 'published')
 ON CONFLICT DO NOTHING;
 
--- Создаем лайки историй
-INSERT INTO story_likes (story_id, user_id) VALUES
-(1, 2), (1, 3), (1, 4), (1, 5), (1, 6),
-(2, 1), (2, 3), (2, 4), (2, 7),
-(3, 1), (3, 2), (3, 5), (3, 8),
-(4, 1), (4, 2), (4, 6),
-(5, 1), (5, 3), (5, 4), (5, 7),
-(6, 2), (6, 4), (6, 8),
-(7, 1), (7, 3), (7, 5),
-(8, 2), (8, 4), (8, 6),
-(9, 1), (9, 3), (9, 7),
-(10, 2), (10, 4), (10, 8)
-ON CONFLICT (story_id, user_id) DO NOTHING;
-
 -- Создаем обращения в поддержку
 INSERT INTO support_tickets (user_id, ticket_number, subject, message, status, admin_response, responded_at) VALUES
 (2, 'TICKET-20240115-0001', 'Проблема с регистрацией', 'Не могу подтвердить email, не приходит письмо', 'answered', 'Проблема решена, проверьте почту', CURRENT_TIMESTAMP - INTERVAL '5 days'),

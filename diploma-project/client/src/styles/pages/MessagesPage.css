@@ -354,6 +354,7 @@
 @media (max-width: 768px) {
   .messages-page {
     padding: 0;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
     height: calc(100vh - 70px);
   }
 

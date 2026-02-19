@@ -1441,10 +1441,15 @@
 @media (max-width: 768px) {
   .reviews-page-container {
     padding: 16px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
 
   .reviews-page-wrapper {
     padding: 20px 16px;
+  }
+  
+  .reviews-page-header {
+    text-align: center;
   }
 
   .reviews-page-title {
@@ -1453,6 +1458,10 @@
 
   .reviews-page-subtitle {
     font-size: 14px;
+  }
+  
+  .reviews-create-section {
+    text-align: center;
   }
 
   .reviews-tabs-container {

@@ -526,12 +526,13 @@
 @media (max-width: 768px) {
   .about-white-block {
     padding: 25px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
     margin-top: 10px;
   }
   
   .about-tabs {
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 10px;
   }
   
@@ -560,8 +561,8 @@
   }
   
   .ratings-tabs {
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 10px;
   }
   

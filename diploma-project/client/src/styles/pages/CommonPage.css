@@ -269,6 +269,7 @@
 @media (max-width: 768px) {
   .common-page {
     padding: 12px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
   }
 
   .common-container {

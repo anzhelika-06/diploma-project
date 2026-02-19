@@ -32,6 +32,11 @@
 @media (max-width: 768px) {
   .contribution-page {
     padding: 15px;
+    padding-bottom: 80px; /* Отступ для мобильной навигации */
+  }
+  
+  .page-header {
+    text-align: center;
   }
   
   .page-header h1 {

@@ -6,6 +6,44 @@
   box-sizing: border-box;
 }
 
+/* Кастомные скроллбары для всех элементов */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.5) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.7);
+}
+
+/* Темная тема для скроллбаров */
+[data-theme="dark"] * {
+  scrollbar-color: rgba(160, 160, 160, 0.5) transparent;
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: rgba(160, 160, 160, 0.5);
+}
+
+[data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: rgba(160, 160, 160, 0.7);
+}
+
 html {
   background: transparent;
   border: none;
