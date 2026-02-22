@@ -2,7 +2,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import '../styles/components/MobileNav.css'
 import homeIcon from '../assets/icons/home.svg'
-import createIcon from '../assets/icons/create.svg'
 import notificationIcon from '../assets/icons/notification.svg'
 import profileIcon from '../assets/icons/profile.svg'
 import petIcon from '../assets/icons/pet.svg'
@@ -15,8 +14,8 @@ import leaderboardIcon from '../assets/icons/leaderboard.svg'
 import contributionIcon from '../assets/icons/contribution.svg'
 import reviewsIcon from '../assets/icons/reviews.svg'
 import settingsIcon from '../assets/icons/settings.svg'
-import { getUserInfo } from '../utils/authUtils'; // Добавьте эту строку
-import adminIcon from '../assets/icons/admin.svg'; // Добавьте эту строку
+import { getUserInfo } from '../utils/authUtils';
+import adminIcon from '../assets/icons/admin.svg';
 
 const MobileNav = () => {
   const location = useLocation()
@@ -69,7 +68,7 @@ const MobileNav = () => {
 
   const mainNavItems = [
     { id: 'home', path: '/feed', icon: homeIcon },
-    { id: 'create', path: '/create', icon: createIcon },
+    { id: 'messages', path: '/messages', icon: messageIcon }, // Заменили statistics на messages
     { id: 'notifications', path: '/notifications', icon: notificationIcon },
     { id: 'profile', path: '/profile', icon: profileIcon },
   ]
@@ -78,7 +77,6 @@ const MobileNav = () => {
   const menuItems = [
     { id: 'pet', label: 'Питомец', path: '/pet', icon: petIcon },
     { id: 'teams', label: 'Команды', path: '/teams', icon: teamIcon },
-    { id: 'messages', label: 'Сообщения', path: '/messages', icon: messageIcon },
     { id: 'friends', label: 'Друзья', path: '/friends', icon: friendsIcon },
     { id: 'achievements', label: 'Достижения', path: '/achievements', icon: achievementsIcon },
     { id: 'statistics', label: 'Статистика', path: '/statistics', icon: statisticIcon },
@@ -118,10 +116,10 @@ const MobileNav = () => {
           <img src={notificationIcon} alt="notifications" className="mobile-nav-icon-svg" />
         </Link>
         <Link
-          to="/create"
-          className={`mobile-nav-item ${location.pathname === '/create' ? 'active' : ''}`}
+          to="/messages"
+          className={`mobile-nav-item ${location.pathname === '/messages' ? 'active' : ''}`}
         >
-          <img src={createIcon} alt="create" className="mobile-nav-icon-svg" />
+          <img src={messageIcon} alt="messages" className="mobile-nav-icon-svg" />
         </Link>
         <Link
           to="/profile"

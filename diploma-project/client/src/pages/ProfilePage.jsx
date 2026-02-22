@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import '../styles/pages/ProfilePage.css';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -14,7 +14,12 @@ const ProfilePage = () => {
   const location = useLocation();
   const currentUser = getCurrentUser();
   const currentUserId = currentUser?.id;
-  const { socket, isConnected } = useSocket(); // Используем глобальный socket
+  const { socket } = useSocket(); // Используем глобальный socket
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   console.log('🔄 ProfilePage рендер');
   console.log('   urlUserId из URL:', urlUserId, 'type:', typeof urlUserId);
@@ -26,8 +31,9 @@ const ProfilePage = () => {
   
   // ID профиля, который сейчас просматриваем (всегда число)
   const [viewingUserId, setViewingUserId] = useState(() => {
-    // Приоритет: state из навигации > URL параметр > текущий пользователь
-    const id = location.state?.viewUserId || urlUserId || currentUserId;
+    // Приоритет: state из навигации > query параметр > URL параметр > текущий пользователь
+    const queryUserId = searchParams.get('userId');
+    const id = location.state?.viewUserId || queryUserId || urlUserId || currentUserId;
     console.log('   Инициализация viewingUserId:', id ? Number(id) : null);
     return id ? Number(id) : null;
   });
@@ -45,7 +51,12 @@ const ProfilePage = () => {
   const [comments, setComments] = useState({});
   const [translatedComments, setTranslatedComments] = useState({});
   const [newComment, setNewComment] = useState({});
-  const [postsPage, setPostsPage] = useState(1);
+  const [postsPage, setPostsPage] = useState(() => {
+    const pageParam = searchParams.get('postsPage');
+    const page = parseInt(pageParam);
+    console.log('🔍 ProfilePage: Initial postsPage from URL:', pageParam, '→', page);
+    return !isNaN(page) && page > 0 ? page : 1;
+  });
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   
@@ -342,8 +353,38 @@ const ProfilePage = () => {
     } else {
       console.log('   ⚠️ viewingUserId пустой, пропускаем загрузку');
     }
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true;
+      console.log('✅ ProfilePage: Initialization complete');
+    }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewingUserId]); // Убрали loadProfileData из зависимостей
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('⏭️ ProfilePage: First render, skipping URL sync');
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      console.log('⏳ ProfilePage: Still initializing, skipping URL sync');
+      return;
+    }
+    
+    const params = {};
+    // Сохраняем userId если смотрим не свой профиль
+    if (viewingUserId && viewingUserId !== currentUserId) {
+      params.userId = viewingUserId.toString();
+    }
+    if (postsPage > 1) params.postsPage = postsPage.toString();
+    
+    console.log('📝 ProfilePage: Updating URL params:', params);
+    setSearchParams(params, { replace: true });
+  }, [viewingUserId, postsPage, currentUserId, setSearchParams]);
   
   // Обновляем viewingUserId при изменении URL или state
   useEffect(() => {
@@ -354,10 +395,12 @@ const ProfilePage = () => {
       return;
     }
     
-    // Приоритет: state из навигации > URL параметр > текущий пользователь
-    const newUserId = Number(location.state?.viewUserId || urlUserId || currentUserId);
-    console.log('🔄 useEffect [location.state, urlUserId, currentUserId] сработал');
+    // Приоритет: state из навигации > query параметр > URL параметр > текущий пользователь
+    const queryUserId = searchParams.get('userId');
+    const newUserId = Number(location.state?.viewUserId || queryUserId || urlUserId || currentUserId);
+    console.log('🔄 useEffect [location.state, searchParams, urlUserId, currentUserId] сработал');
     console.log('   location.state?.viewUserId:', location.state?.viewUserId);
+    console.log('   queryUserId:', queryUserId);
     console.log('   urlUserId:', urlUserId);
     console.log('   currentUserId:', currentUserId);
     console.log('   newUserId:', newUserId);
@@ -368,9 +411,9 @@ const ProfilePage = () => {
       console.log('✅ Меняем viewingUserId на:', newUserId);
       setViewingUserId(newUserId);
     }
-  }, [location.state, urlUserId, currentUserId, viewingUserId]);
+  }, [location.state, searchParams, urlUserId, currentUserId, viewingUserId]);
 
-  // Перевод постов при изменении языка или постов
+  // Перевод постов при изменении языка или постов с кэшированием
   useEffect(() => {
     const translatePosts = async () => {
       if (posts.length === 0) {
@@ -382,6 +425,26 @@ const ProfilePage = () => {
         const translated = await Promise.all(
           posts.map(async (post) => {
             try {
+              // Создаем ключ для кэша
+              const cacheKey = `profile_post_translation_${post.id}_${currentLanguage}`;
+              
+              // Проверяем кэш
+              const cached = sessionStorage.getItem(cacheKey);
+              if (cached) {
+                try {
+                  const cachedData = JSON.parse(cached);
+                  // Проверяем, что кэш актуален (контент не изменился)
+                  if (cachedData.originalContent === post.content) {
+                    return {
+                      ...post,
+                      content: cachedData.translatedContent
+                    };
+                  }
+                } catch (e) {
+                  console.warn('Ошибка чтения кэша поста:', e);
+                }
+              }
+              
               const contentLanguage = detectTextLanguage(post.content);
               const targetLang = currentLanguage.toLowerCase();
               
@@ -394,6 +457,16 @@ const ProfilePage = () => {
                   console.warn('⚠️ Ошибка перевода поста:', error);
                   translatedContent = post.content;
                 }
+              }
+              
+              // Сохраняем в кэш
+              try {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                  originalContent: post.content,
+                  translatedContent: translatedContent
+                }));
+              } catch (e) {
+                console.warn('Ошибка сохранения в кэш поста:', e);
               }
               
               return {
@@ -417,7 +490,7 @@ const ProfilePage = () => {
     translatePosts();
   }, [posts, currentLanguage]);
 
-  // Перевод комментариев при изменении языка или комментариев
+  // Перевод комментариев при изменении языка или комментариев с кэшированием
   useEffect(() => {
     const translateAllComments = async () => {
       if (Object.keys(comments).length === 0) {
@@ -434,6 +507,26 @@ const ProfilePage = () => {
           const translated = await Promise.all(
             postComments.map(async (comment) => {
               try {
+                // Создаем ключ для кэша
+                const cacheKey = `profile_comment_translation_${comment.id}_${currentLanguage}`;
+                
+                // Проверяем кэш
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                  try {
+                    const cachedData = JSON.parse(cached);
+                    // Проверяем, что кэш актуален (контент не изменился)
+                    if (cachedData.originalContent === comment.content) {
+                      return {
+                        ...comment,
+                        content: cachedData.translatedContent
+                      };
+                    }
+                  } catch (e) {
+                    console.warn('Ошибка чтения кэша комментария:', e);
+                  }
+                }
+                
                 const contentLanguage = detectTextLanguage(comment.content);
                 const targetLang = currentLanguage.toLowerCase();
                 
@@ -446,6 +539,16 @@ const ProfilePage = () => {
                     console.warn('⚠️ Ошибка перевода комментария:', error);
                     translatedContent = comment.content;
                   }
+                }
+                
+                // Сохраняем в кэш
+                try {
+                  sessionStorage.setItem(cacheKey, JSON.stringify({
+                    originalContent: comment.content,
+                    translatedContent: translatedContent
+                  }));
+                } catch (e) {
+                  console.warn('Ошибка сохранения в кэш комментария:', e);
                 }
                 
                 return {

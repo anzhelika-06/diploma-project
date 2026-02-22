@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSocket } from '../contexts/SocketContext';
 import { getCurrentUser } from '../utils/authUtils';
@@ -12,14 +12,33 @@ const TeamsPage = () => {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const { socket, isConnected } = useSocket(); // Используем глобальный socket
+  const [searchParams, setSearchParams] = useSearchParams();
   
-  const [activeTab, setActiveTab] = useState('my'); // 'my' или 'all'
+  // Инициализация состояния из URL
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    console.log('🔍 Initial tab from URL:', tab);
+    return tab || 'my';
+  });
   const [myTeams, setMyTeams] = useState([]);
   const [allTeams, setAllTeams] = useState([]);
   const [translatedTeams, setTranslatedTeams] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const search = searchParams.get('search');
+    console.log('🔍 Initial search from URL:', search);
+    return search || ''; // null преобразуется в ''
+  });
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    const page = parseInt(pageParam);
+    console.log('🔍 Initial page from URL:', pageParam, '→', page);
+    return !isNaN(page) && page > 0 ? page : 1;
+  });
   const [loading, setLoading] = useState(false);
+  
+  // Ref для отслеживания первого рендера и инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   const TEAMS_PER_PAGE = 9;
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,7 +78,13 @@ const TeamsPage = () => {
       loadMyTeams();
     }
     loadAllTeams();
-  }, []); // Убираем currentUser из зависимостей, проверяем его внутри
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true;
+      console.log('✅ Initialization complete');
+    }, 100);
+  }, []); // Загружаем только при монтировании
 
   // WebSocket обработчики для real-time обновлений команд
   useEffect(() => {
@@ -136,7 +161,18 @@ const TeamsPage = () => {
     };
   }, [socket, currentUser]); // Зависим от socket и currentUser
 
-  // Перевод команд при изменении языка
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    const params = {};
+    if (activeTab !== 'my') params.tab = activeTab;
+    if (searchQuery) params.search = searchQuery;
+    if (currentPage > 1) params.page = currentPage.toString();
+    
+    console.log('📝 Updating URL params:', params, 'Current page:', currentPage);
+    setSearchParams(params, { replace: true });
+  }, [activeTab, searchQuery, currentPage, setSearchParams]);
+
+  // Перевод команд при изменении языка с кэшированием
   useEffect(() => {
     const translateTeams = async () => {
       const teamsToTranslate = activeTab === 'my' ? myTeams : allTeams;
@@ -150,6 +186,28 @@ const TeamsPage = () => {
         const translated = await Promise.all(
           teamsToTranslate.map(async (team) => {
             try {
+              // Создаем ключ для кэша
+              const cacheKey = `team_translation_${team.id}_${currentLanguage}`;
+              
+              // Проверяем кэш
+              const cached = sessionStorage.getItem(cacheKey);
+              if (cached) {
+                try {
+                  const cachedData = JSON.parse(cached);
+                  // Проверяем, что кэш актуален (описание и цель не изменились)
+                  if (cachedData.originalDesc === team.description && 
+                      cachedData.originalGoal === team.goal_description) {
+                    return {
+                      ...team,
+                      description: cachedData.translatedDesc,
+                      goal_description: cachedData.translatedGoal
+                    };
+                  }
+                } catch (e) {
+                  console.warn('Ошибка чтения кэша:', e);
+                }
+              }
+              
               // Определяем язык описания
               const descLanguage = team.description ? detectTextLanguage(team.description) : 'ru';
               const goalLanguage = team.goal_description ? detectTextLanguage(team.goal_description) : 'ru';
@@ -176,6 +234,18 @@ const TeamsPage = () => {
                   console.warn('⚠️ Ошибка перевода цели команды:', error);
                   translatedGoal = team.goal_description;
                 }
+              }
+              
+              // Сохраняем в кэш
+              try {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                  originalDesc: team.description,
+                  originalGoal: team.goal_description,
+                  translatedDesc: translatedDescription,
+                  translatedGoal: translatedGoal
+                }));
+              } catch (e) {
+                console.warn('Ошибка сохранения в кэш:', e);
               }
               
               return {
@@ -683,8 +753,21 @@ const TeamsPage = () => {
     );
   };
 
-  // Сброс страницы при изменении фильтров
+  // Сброс страницы при изменении фильтров (но не при первой загрузке)
   useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('⏭️ First render, skipping page reset');
+      isFirstRender.current = false;
+      return;
+    }
+    
+    // Не сбрасываем страницу если еще не завершена инициализация
+    if (!isInitialized.current) {
+      console.log('⏳ Still initializing, skipping page reset');
+      return;
+    }
+    
+    console.log('🔄 Tab or search changed, resetting to page 1');
     setCurrentPage(1);
   }, [activeTab, searchQuery]);
 
@@ -958,6 +1041,7 @@ const TeamsPage = () => {
                       <button 
                         className="teams-btn-remove-member"
                         onClick={() => handleRemoveMember(selectedTeam.id, member.user_id)}
+                        title={t('removeMember') || 'Удалить участника'}
                       >
                         <span className="material-icons">person_remove</span>
                       </button>
@@ -966,7 +1050,7 @@ const TeamsPage = () => {
                       <button 
                         className="teams-btn-report-member"
                         onClick={() => handleReportMember(member)}
-                        title={t('reportMember')}
+                        title={t('reportMember') || 'Пожаловаться'}
                       >
                         <span className="material-icons">flag</span>
                       </button>

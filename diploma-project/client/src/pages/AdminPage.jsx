@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAdminCheck } from '../hooks/useAdminCheck';
 import { getEmojiByCarbon } from '../utils/emojiMapper';
@@ -11,11 +11,10 @@ const AdminPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading, user: currentUser } = useAdminCheck();
+  const [searchParams, setSearchParams] = useSearchParams();
   
-
-  
-  // Состояния для пользователей
-  const [activeTab, setActiveTab] = useState('users');
+  // Инициализация состояния из URL
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'users');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,24 +24,29 @@ const AdminPage = () => {
   
   // Состояния для поддержки
   const [supportTickets, setSupportTickets] = useState([]);
+  const [translatedSupportTickets, setTranslatedSupportTickets] = useState([]);
+  const [translationCache, setTranslationCache] = useState({}); // Кэш переводов для модальных окон
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportError, setSupportError] = useState(null);
   
-  // Фильтры для обращений
-  const [supportFilters, setSupportFilters] = useState({
-    search: '',
-    status: 'all'
-  });
+  // Фильтры для обращений из URL
+  const [supportFilters, setSupportFilters] = useState(() => ({
+    search: searchParams.get('supportSearch') || '',
+    status: searchParams.get('supportStatus') || 'all'
+  }));
   
   // Добавляем новые состояния для dropdown галочек обращений
   const [supportStatusDropdownOpen, setSupportStatusDropdownOpen] = useState(false);
   
-  // Пагинация для обращений
-  const [supportPagination, setSupportPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 1
+  // Пагинация для обращений из URL
+  const [supportPagination, setSupportPagination] = useState(() => {
+    const page = parseInt(searchParams.get('supportPage'));
+    return {
+      page: !isNaN(page) && page > 0 ? page : 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1
+    };
   });
 
   // Модалка ответа на обращение
@@ -59,11 +63,15 @@ const AdminPage = () => {
     error: ''
   });
 
-  // Фильтры для пользователей
-  const [filters, setFilters] = useState({
-    search: '',
-    is_admin: null,
-    is_banned: null
+  // Фильтры для пользователей из URL
+  const [filters, setFilters] = useState(() => {
+    const isAdminParam = searchParams.get('isAdmin');
+    const isBannedParam = searchParams.get('isBanned');
+    return {
+      search: searchParams.get('search') || '',
+      is_admin: isAdminParam === 'true' ? true : isAdminParam === 'false' ? false : null,
+      is_banned: isBannedParam === 'true' ? true : isBannedParam === 'false' ? false : null
+    };
   });
   
   // Сортировка для пользователей
@@ -72,12 +80,15 @@ const AdminPage = () => {
     direction: 'asc'
   });
   
-  // Пагинация для пользователей
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 1
+  // Пагинация для пользователей из URL
+  const [pagination, setPagination] = useState(() => {
+    const page = parseInt(searchParams.get('page'));
+    return {
+      page: !isNaN(page) && page > 0 ? page : 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1
+    };
   });
   
   // Модалки
@@ -125,15 +136,18 @@ const AdminPage = () => {
   const [reports, setReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [reportsError, setReportsError] = useState(null);
-  const [reportsFilters, setReportsFilters] = useState({
-    search: '',
-    status: 'all'
-  });
-  const [reportsPagination, setReportsPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 1
+  const [reportsFilters, setReportsFilters] = useState(() => ({
+    search: searchParams.get('reportsSearch') || '',
+    status: searchParams.get('reportsStatus') || 'all'
+  }));
+  const [reportsPagination, setReportsPagination] = useState(() => {
+    const page = parseInt(searchParams.get('reportsPage'));
+    return {
+      page: !isNaN(page) && page > 0 ? page : 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1
+    };
   });
   const [reportsSortConfig, setReportsSortConfig] = useState({
     key: 'id',
@@ -158,16 +172,19 @@ const AdminPage = () => {
     draft: 0,
   });
   const [categoryStats, setCategoryStats] = useState([]);
-  const [storyFilters, setStoryFilters] = useState({
-    status: 'all',
-    category: 'all',
-    search: ''
-  });
-  const [storiesPagination, setStoriesPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 1
+  const [storyFilters, setStoryFilters] = useState(() => ({
+    status: searchParams.get('storyStatus') || 'all',
+    category: searchParams.get('storyCategory') || 'all',
+    search: searchParams.get('storySearch') || ''
+  }));
+  const [storiesPagination, setStoriesPagination] = useState(() => {
+    const page = parseInt(searchParams.get('storyPage'));
+    return {
+      page: !isNaN(page) && page > 0 ? page : 1,
+      limit: 10,
+      total: 0,
+      totalPages: 1
+    };
   });
   const [storyStatusDropdownOpen, setStoryStatusDropdownOpen] = useState(false);
   const [storyCategoryDropdownOpen, setStoryCategoryDropdownOpen] = useState(false);
@@ -183,6 +200,10 @@ const AdminPage = () => {
   const isInitialMount = useRef(true);
   const searchDebounceTimer = useRef(null);
   const supportSearchDebounceTimer = useRef(null);
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
 
   // ==================== КОНСТАНТЫ ====================
 
@@ -569,6 +590,71 @@ const AdminPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, isAdmin, adminLoading]);
 
+  // Перевод тикетов поддержки
+  useEffect(() => {
+    const translateTickets = async () => {
+      if (supportTickets.length === 0) {
+        setTranslatedSupportTickets([]);
+        return;
+      }
+
+      if (!('Translator' in self)) {
+        setTranslatedSupportTickets(supportTickets);
+        return;
+      }
+
+      try {
+        const translated = await Promise.all(
+          supportTickets.map(async (ticket) => {
+            try {
+              const targetLang = currentLanguage.toLowerCase();
+              
+              // Переводим тему
+              const subjectLang = detectTextLanguage(ticket.subject);
+              let translatedSubject = ticket.subject;
+              if (subjectLang !== targetLang) {
+                translatedSubject = await translateStoryContent(ticket.subject, currentLanguage, subjectLang);
+              }
+              
+              // Переводим сообщение пользователя
+              const messageLang = detectTextLanguage(ticket.message);
+              let translatedMessage = ticket.message;
+              if (messageLang !== targetLang) {
+                translatedMessage = await translateStoryContent(ticket.message, currentLanguage, messageLang);
+              }
+              
+              // Переводим ответ администратора, если есть
+              let translatedAdminResponse = ticket.admin_response;
+              if (ticket.admin_response) {
+                const responseLang = detectTextLanguage(ticket.admin_response);
+                if (responseLang !== targetLang) {
+                  translatedAdminResponse = await translateStoryContent(ticket.admin_response, currentLanguage, responseLang);
+                }
+              }
+              
+              return {
+                ...ticket,
+                subject: translatedSubject,
+                message: translatedMessage,
+                admin_response: translatedAdminResponse
+              };
+            } catch (error) {
+              console.warn('Ошибка перевода тикета:', error);
+              return ticket;
+            }
+          })
+        );
+        
+        setTranslatedSupportTickets(translated);
+      } catch (error) {
+        console.error('Ошибка перевода тикетов:', error);
+        setTranslatedSupportTickets(supportTickets);
+      }
+    };
+
+    translateTickets();
+  }, [supportTickets, currentLanguage]);
+
   // Загрузка начальных данных пользователей
   useEffect(() => {
     if (activeTab === 'users' && isAdmin && !adminLoading) {
@@ -585,9 +671,74 @@ const AdminPage = () => {
     if (isAdmin && !adminLoading) {
       loadStatsFromDB();
       loadSupportStatsFromDB();
+      
+      // Помечаем что инициализация завершена
+      setTimeout(() => {
+        isInitialized.current = true;
+      }, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, adminLoading]);
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      return;
+    }
+    
+    const params = {};
+    
+    // Активная вкладка
+    if (activeTab !== 'users') params.tab = activeTab;
+    
+    // Параметры для вкладки пользователей
+    if (activeTab === 'users') {
+      if (filters.search) params.search = filters.search;
+      if (filters.is_admin !== null) params.isAdmin = filters.is_admin.toString();
+      if (filters.is_banned !== null) params.isBanned = filters.is_banned.toString();
+      if (pagination.page > 1) params.page = pagination.page.toString();
+    }
+    
+    // Параметры для вкладки поддержки
+    if (activeTab === 'support') {
+      if (supportFilters.search) params.supportSearch = supportFilters.search;
+      if (supportFilters.status !== 'all') params.supportStatus = supportFilters.status;
+      if (supportPagination.page > 1) params.supportPage = supportPagination.page.toString();
+    }
+    
+    // Параметры для вкладки отзывов
+    if (activeTab === 'reviews') {
+      if (storyFilters.search) params.storySearch = storyFilters.search;
+      if (storyFilters.status !== 'all') params.storyStatus = storyFilters.status;
+      if (storyFilters.category !== 'all') params.storyCategory = storyFilters.category;
+      if (storiesPagination.page > 1) params.storyPage = storiesPagination.page.toString();
+    }
+    
+    // Параметры для вкладки жалоб
+    if (activeTab === 'reports') {
+      if (reportsFilters.search) params.reportsSearch = reportsFilters.search;
+      if (reportsFilters.status !== 'all') params.reportsStatus = reportsFilters.status;
+      if (reportsPagination.page > 1) params.reportsPage = reportsPagination.page.toString();
+    }
+    
+    setSearchParams(params, { replace: true });
+  }, [
+    activeTab, 
+    filters, 
+    pagination.page, 
+    supportFilters, 
+    supportPagination.page,
+    storyFilters,
+    storiesPagination.page,
+    reportsFilters,
+    reportsPagination.page,
+    setSearchParams
+  ]);
 
   // Загрузка деталей банов при изменении списка пользователей
   useEffect(() => {
@@ -1027,6 +1178,29 @@ const AdminPage = () => {
       setTranslatedContent(prev => ({ ...prev, isTranslating: true }));
       
       try {
+        // Создаем ключ для кэша
+        const cacheKey = `admin_story_preview_${story.id}_${currentLanguage}`;
+        
+        // Проверяем кэш
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            const cachedData = JSON.parse(cached);
+            // Проверяем, что кэш актуален
+            if (cachedData.originalTitle === story.title && 
+                cachedData.originalContent === story.content) {
+              setTranslatedContent({
+                title: cachedData.translatedTitle,
+                content: cachedData.translatedContent,
+                isTranslating: false
+              });
+              return;
+            }
+          } catch (e) {
+            console.warn('Ошибка чтения кэша:', e);
+          }
+        }
+        
         // Определяем язык заголовка и контента
         const titleLanguage = await detectTextLanguage(story.title);
         const contentLanguage = await detectTextLanguage(story.content);
@@ -1053,6 +1227,18 @@ const AdminPage = () => {
             console.warn('⚠️ Ошибка перевода контента:', error);
             translatedContent = story.content;
           }
+        }
+
+        // Сохраняем в кэш
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            originalTitle: story.title,
+            originalContent: story.content,
+            translatedTitle: translatedTitle,
+            translatedContent: translatedContent
+          }));
+        } catch (e) {
+          console.warn('Ошибка сохранения в кэш:', e);
         }
 
         setTranslatedContent({
@@ -1443,7 +1629,10 @@ const AdminPage = () => {
   const loadUsers = useCallback(async (filtersToUse = filters, sortToUse = sortConfig, page = pagination.page) => {
     if (!isAdmin || adminLoading || loading) return;
     
-    setLoading(true);
+    // Показываем прелоадер только если нет пользователей (первая загрузка)
+    if (users.length === 0) {
+      setLoading(true);
+    }
     setError(null);
     
     try {
@@ -2479,7 +2668,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        {loading ? (
+        {loading && users.length === 0 ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>{t('loadingUsers') || 'Загрузка пользователей...'}</p>
@@ -2795,7 +2984,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        {supportLoading ? (
+        {supportLoading && supportTickets.length === 0 ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>{t('loadingTickets') || 'Загрузка обращений...'}</p>
@@ -2846,7 +3035,7 @@ const AdminPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {supportTickets.map(ticket => (
+                  {(translatedSupportTickets.length > 0 ? translatedSupportTickets : supportTickets).map(ticket => (
                     <tr key={ticket.id} className={`ticket-row ${ticket.status}`}>
                       <td className="ticket-number">
                         <strong>{ticket.ticket_number}</strong>
@@ -2876,7 +3065,58 @@ const AdminPage = () => {
                       <td className="ticket-actions">
                         <div className="action-buttons">
                           <button
-                            onClick={() => {
+                            onClick={async () => {
+                              // Проверяем кэш переводов
+                              const cacheKey = `${ticket.id}_${currentLanguage}`;
+                              let translatedSubject = ticket.subject;
+                              let translatedMessage = ticket.message;
+                              let translatedAdminResponse = ticket.admin_response;
+                              
+                              if (translationCache[cacheKey]) {
+                                // Используем кэшированный перевод
+                                console.log('📦 Используем кэшированный перевод для тикета', ticket.id);
+                                translatedSubject = translationCache[cacheKey].subject;
+                                translatedMessage = translationCache[cacheKey].message;
+                                translatedAdminResponse = translationCache[cacheKey].adminResponse;
+                              } else if ('Translator' in self) {
+                                // Переводим и сохраняем в кэш
+                                try {
+                                  console.log('🔄 Переводим тикет', ticket.id);
+                                  const subjectLang = detectTextLanguage(ticket.subject);
+                                  const messageLang = detectTextLanguage(ticket.message);
+                                  const targetLang = currentLanguage.toLowerCase();
+                                  
+                                  if (subjectLang !== targetLang) {
+                                    translatedSubject = await translateStoryContent(ticket.subject, currentLanguage, subjectLang);
+                                  }
+                                  
+                                  if (messageLang !== targetLang) {
+                                    translatedMessage = await translateStoryContent(ticket.message, currentLanguage, messageLang);
+                                  }
+                                  
+                                  // Переводим ответ администратора, если есть
+                                  if (ticket.admin_response) {
+                                    const responseLang = detectTextLanguage(ticket.admin_response);
+                                    if (responseLang !== targetLang) {
+                                      translatedAdminResponse = await translateStoryContent(ticket.admin_response, currentLanguage, responseLang);
+                                    }
+                                  }
+                                  
+                                  // Сохраняем в кэш
+                                  setTranslationCache(prev => ({
+                                    ...prev,
+                                    [cacheKey]: {
+                                      subject: translatedSubject,
+                                      message: translatedMessage,
+                                      adminResponse: translatedAdminResponse
+                                    }
+                                  }));
+                                  console.log('✅ Перевод сохранен в кэш');
+                                } catch (error) {
+                                  console.warn('Ошибка перевода тикета:', error);
+                                }
+                              }
+                              
                               setResponseModal({
                                 isOpen: true,
                                 ticketId: ticket.id,
@@ -2886,6 +3126,9 @@ const AdminPage = () => {
                                 userEmail: ticket.user_email,
                                 subject: ticket.subject,
                                 message: ticket.message,
+                                translatedSubject,
+                                translatedMessage,
+                                translatedAdminResponse,
                                 response: ticket.admin_response || '',
                                 error: ''
                               });
@@ -3114,7 +3357,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        {storiesLoading ? (
+        {storiesLoading && stories.length === 0 ? (
           <div className="loading-container">
             <div className="loading-spinner"></div>
             <p>{t('loadingStories') || 'Загрузка историй...'}</p>
@@ -3516,7 +3759,7 @@ const AdminPage = () => {
           </div>
         </div>
 
-        {reportsLoading ? (
+        {reportsLoading && reports.length === 0 ? (
           <div className="loading-state">
             <div className="loading-spinner"></div>
             <p>{t('loading') || 'Загрузка...'}</p>
@@ -3912,15 +4155,26 @@ const AdminPage = () => {
                 
                 <div className="form-group">
                   <label>{t('subject') || 'Тема'}:</label>
-                  <div className="readonly-field">{responseModal.subject}</div>
+                  <div className="readonly-field">
+                    {responseModal.translatedSubject || responseModal.subject}
+                  </div>
                 </div>
                 
                 <div className="form-group">
                   <label>{t('userMessage') || 'Сообщение пользователя'}:</label>
                   <div className="readonly-field message-field">
-                    {responseModal.message}
+                    {responseModal.translatedMessage || responseModal.message}
                   </div>
                 </div>
+                
+                {responseModal.translatedAdminResponse && (
+                  <div className="form-group">
+                    <label>{t('previousResponse') || 'Предыдущий ответ'}:</label>
+                    <div className="readonly-field message-field" style={{ backgroundColor: '#f0f9ff', borderColor: '#0ea5e9' }}>
+                      {responseModal.translatedAdminResponse}
+                    </div>
+                  </div>
+                )}
                 
                 <div className="form-group">
                   <label>

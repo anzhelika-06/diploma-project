@@ -1,5 +1,5 @@
-// StatisticsPage.jsx
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import '../styles/pages/StatisticsPage.css';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
@@ -8,17 +8,32 @@ import { useEventTracker } from '../hooks/useEventTracker';
 const StatisticsPage = () => {
   const { t } = useLanguage();
   const { trackEvent } = useEventTracker();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [calculations, setCalculations] = useState([]);
-  const [chartPeriod, setChartPeriod] = useState('month');
-  const [selectedWeekOffset, setSelectedWeekOffset] = useState(0); // 0 = текущая неделя, -1 = прошлая и т.д.
+  
+  // Инициализация состояния из URL
+  const [chartPeriod, setChartPeriod] = useState(() => searchParams.get('period') || 'month');
+  const [selectedWeekOffset, setSelectedWeekOffset] = useState(() => {
+    const offset = parseInt(searchParams.get('weekOffset'));
+    return !isNaN(offset) ? offset : 0;
+  });
+  const [historyPage, setHistoryPage] = useState(() => {
+    const page = parseInt(searchParams.get('historyPage'));
+    return !isNaN(page) && page > 0 ? page : 1;
+  });
+  
   const [calculationResult, setCalculationResult] = useState(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isCalculatingToday, setIsCalculatingToday] = useState(false); // Локальная блокировка
-  const [historyPage, setHistoryPage] = useState(1); // Пагинация истории
-  const historyItemsPerPage = 10; // Количество элементов на странице
+  const [isCalculatingToday, setIsCalculatingToday] = useState(false);
+  const historyItemsPerPage = 10;
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   // Функция рендера пагинации
   const renderHistoryPagination = () => {
@@ -138,8 +153,31 @@ const StatisticsPage = () => {
     loadUserData();
     loadCalculations();
     
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true;
+    }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Загружаем только при монтировании
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      return;
+    }
+    
+    const params = {};
+    if (chartPeriod !== 'month') params.period = chartPeriod;
+    if (selectedWeekOffset !== 0) params.weekOffset = selectedWeekOffset.toString();
+    if (historyPage > 1) params.historyPage = historyPage.toString();
+    
+    setSearchParams(params, { replace: true });
+  }, [chartPeriod, selectedWeekOffset, historyPage, setSearchParams]);
 
   const loadUserData = async () => {
     try {

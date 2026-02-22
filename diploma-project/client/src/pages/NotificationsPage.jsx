@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { translateStoryContent, detectTextLanguage } from '../utils/translations';
@@ -9,12 +9,21 @@ const NotificationsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   const [notifications, setNotifications] = useState([]);
   const [translatedNotifications, setTranslatedNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [translating, setTranslating] = useState(false);
-  const [filter, setFilter] = useState('all'); // all, unread, read
+  const [filter, setFilter] = useState(() => {
+    const filterParam = searchParams.get('filter');
+    console.log('🔍 NotificationsPage: Initial filter from URL:', filterParam);
+    return filterParam || 'all';
+  }); // all, unread, read
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
@@ -25,8 +34,34 @@ const NotificationsPage = () => {
       return;
     }
     loadNotifications();
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true;
+      console.log('✅ NotificationsPage: Initialization complete');
+    }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Загружаем только при монтировании компонента
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('⏭️ NotificationsPage: First render, skipping URL sync');
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      console.log('⏳ NotificationsPage: Still initializing, skipping URL sync');
+      return;
+    }
+    
+    const params = {};
+    if (filter !== 'all') params.filter = filter;
+    
+    console.log('📝 NotificationsPage: Updating URL params:', params);
+    setSearchParams(params, { replace: true });
+  }, [filter, setSearchParams]);
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -106,7 +141,7 @@ const NotificationsPage = () => {
     return detectTextLanguage(text);
   };
 
-  // Перевод уведомлений при изменении языка
+  // Перевод уведомлений при изменении языка с кэшированием
   useEffect(() => {
     const translateNotifications = async () => {
       if (notifications.length === 0) {
@@ -130,6 +165,28 @@ const NotificationsPage = () => {
         const translated = await Promise.all(
           notifications.map(async (notification) => {
             try {
+              // Создаем ключ для кэша
+              const cacheKey = `notification_translation_${notification.id}_${currentLanguage}`;
+              
+              // Проверяем кэш
+              const cached = sessionStorage.getItem(cacheKey);
+              if (cached) {
+                try {
+                  const cachedData = JSON.parse(cached);
+                  // Проверяем, что кэш актуален (контент не изменился)
+                  if (cachedData.originalTitle === notification.title && 
+                      cachedData.originalMessage === notification.message) {
+                    return {
+                      ...notification,
+                      title: cachedData.translatedTitle,
+                      message: cachedData.translatedMessage
+                    };
+                  }
+                } catch (e) {
+                  console.warn('Ошибка чтения кэша уведомления:', e);
+                }
+              }
+              
               const titleLang = detectLanguage(notification.title);
               const messageLang = detectLanguage(notification.message);
               
@@ -142,6 +199,18 @@ const NotificationsPage = () => {
               
               if (messageLang !== targetLang) {
                 translatedMessage = await translateStoryContent(notification.message, currentLanguage, messageLang);
+              }
+              
+              // Сохраняем в кэш
+              try {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                  originalTitle: notification.title,
+                  originalMessage: notification.message,
+                  translatedTitle: translatedTitle,
+                  translatedMessage: translatedMessage
+                }));
+              } catch (e) {
+                console.warn('Ошибка сохранения в кэш уведомления:', e);
               }
               
               return {

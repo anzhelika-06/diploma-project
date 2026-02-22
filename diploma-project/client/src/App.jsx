@@ -13,7 +13,6 @@ import TeamsPage from './pages/TeamsPage';
 import MessagesPage from './pages/MessagesPage';
 import FriendsPage from './pages/FriendsPage';
 import NotificationsPage from './pages/NotificationsPage';
-import CreatePostPage from './pages/CreatePostPage';
 import AchievementsPage from './pages/AchievementsPage';
 import StatisticsPage from './pages/StatisticsPage';
 import LeaderboardPage from './pages/LeaderboardPage';
@@ -21,7 +20,6 @@ import ContributionPage from './pages/ContributionPage';
 import ReviewsPage from './pages/ReviewsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
-import SearchPage from './pages/SearchPage';
 import AdminPage from './pages/AdminPage';
 import NotificationSystem from './components/NotificationSystem';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -167,7 +165,6 @@ function App() {
               <Route path="/messages" element={<MessagesPage />} />
               <Route path="/friends" element={<FriendsPage />} />
               <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/create" element={<CreatePostPage />} />
               <Route path="/achievements" element={<AchievementsPage />} />
               <Route path="/statistics" element={<StatisticsPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
@@ -176,7 +173,6 @@ function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:userId" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/search" element={<SearchPage />} />
               
               {/* Админ-панель - проверка внутри компонента AdminPage */}
               <Route path="/admin" element={<AdminPage />} />

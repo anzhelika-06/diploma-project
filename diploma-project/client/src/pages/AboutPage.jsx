@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
 import { getCurrentUser } from '../utils/authUtils'
 import '../styles/pages/AboutPage.css'
@@ -18,27 +18,46 @@ import { useLanguage } from '../contexts/LanguageContext'
 const AboutPage = () => {
   const { currentLanguage, t } = useLanguage()
   const currentUser = getCurrentUser()
-  const [activeTab, setActiveTab] = useState('about') // about, stories, ratings
-  const [storiesFilter, setStoriesFilter] = useState('all') // all, best, recent
-  const [selectedCategory, setSelectedCategory] = useState('all') // all, или конкретная категория
-  const [ratingsTab, setRatingsTab] = useState('users') // users, teams
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Инициализация состояния из URL
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'about')
+  const [storiesFilter, setStoriesFilter] = useState(() => searchParams.get('filter') || 'all')
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || 'all')
+  const [ratingsTab, setRatingsTab] = useState(() => searchParams.get('ratingsTab') || 'users')
+  
   const [stories, setStories] = useState([])
-  const [translatedStories, setTranslatedStories] = useState([]) // Переведенные истории
+  const [translatedStories, setTranslatedStories] = useState([])
   const [currentTheme, setCurrentTheme] = useState('light')
   const [categories, setCategories] = useState([])
   const [userRatings, setUserRatings] = useState([])
   const [teamRatings, setTeamRatings] = useState([])
   const [loading, setLoading] = useState(false)
-  const [translating, setTranslating] = useState(false) // Состояние перевода
-  const [likedStories, setLikedStories] = useState(new Set()) // Отслеживаем лайкнутые истории
-  const [showAuthModal, setShowAuthModal] = useState(false) // Модальное окно авторизации
-  const [socket, setSocket] = useState(null) // WebSocket соединение
+  const [translating, setTranslating] = useState(false)
+  const [likedStories, setLikedStories] = useState(new Set())
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [socket, setSocket] = useState(null)
   const [stats, setStats] = useState({
     activeUsers: 0,
     co2Saved: 0,
     ecoTeams: 0,
     successStories: 0
   })
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true)
+  const isInitialized = useRef(false)
+
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    const params = {}
+    if (activeTab !== 'about') params.tab = activeTab
+    if (storiesFilter !== 'all') params.filter = storiesFilter
+    if (selectedCategory !== 'all') params.category = selectedCategory
+    if (ratingsTab !== 'users') params.ratingsTab = ratingsTab
+    
+    setSearchParams(params, { replace: true })
+  }, [activeTab, storiesFilter, selectedCategory, ratingsTab, setSearchParams])
 
   // Получить правильную иконку домика в зависимости от темы
   const getHomeIcon = () => {
@@ -346,14 +365,13 @@ const AboutPage = () => {
     return detectedLang
   }
 
-  // Универсальный перевод историй с любого языка на выбранный
+  // Универсальный перевод историй с кэшированием
   const translateStories = async () => {
     if (stories.length === 0) {
       setTranslatedStories([])
       return
     }
 
-    // Если Chrome Translator API недоступен, используем оригинальные истории
     if (!('Translator' in self)) {
       console.warn('Chrome Translator API не поддерживается в этом браузере')
       setTranslatedStories(stories)
@@ -369,72 +387,66 @@ const AboutPage = () => {
     setTranslating(true)
     
     try {
-      // Переводим все истории параллельно
       const translated = await Promise.all(
         stories.map(async (story, index) => {
           try {
-            // Определяем язык заголовка и содержимого
+            // Создаем ключ для кэша
+            const cacheKey = `about_story_translation_${story.id}_${currentLanguage}`
+            
+            // Проверяем кэш
+            const cached = sessionStorage.getItem(cacheKey)
+            if (cached) {
+              try {
+                const cachedData = JSON.parse(cached)
+                // Проверяем, что кэш актуален
+                if (cachedData.originalTitle === story.title && 
+                    cachedData.originalContent === story.content) {
+                  return {
+                    ...story,
+                    title: cachedData.translatedTitle,
+                    content: cachedData.translatedContent
+                  }
+                }
+              } catch (e) {
+                console.warn('Ошибка чтения кэша:', e)
+              }
+            }
+            
             const titleLanguage = detectLanguage(story.title)
             const contentLanguage = detectLanguage(story.content)
-            
-            // Переводим только если язык отличается от выбранного
             const targetLang = currentLanguage.toLowerCase()
-            
-            console.log(`📝 История ${index + 1}: "${story.title.substring(0, 50)}..."`, {
-              titleLanguage,
-              contentLanguage,
-              targetLanguage: currentLanguage,
-              targetLangLower: targetLang,
-              needTitleTranslation: titleLanguage !== targetLang,
-              needContentTranslation: contentLanguage !== targetLang
-            })
             
             let translatedTitle = story.title
             let translatedContent = story.content
             
-            // Переводим заголовок если нужно
             if (titleLanguage !== targetLang) {
-              console.log(`🔄 ПЕРЕВОДИМ ЗАГОЛОВОК: "${story.title}" с ${titleLanguage} на ${targetLang}`)
-              
-              // Специальная отладка для "Zero Waste Challenge"
-              if (story.title.includes('Zero Waste')) {
-                console.log('🎯 СПЕЦИАЛЬНАЯ ОТЛАДКА для Zero Waste Challenge:', {
-                  originalTitle: story.title,
-                  titleLanguage,
-                  targetLang,
-                  currentLanguage,
-                  storyId: story.id
-                })
-              }
-              
               try {
                 translatedTitle = await translateStoryContent(story.title, currentLanguage, titleLanguage)
-                console.log(`✅ ЗАГОЛОВОК ПЕРЕВЕДЕН: "${story.title}" → "${translatedTitle}"`)
-                
-                // Проверяем, действительно ли заголовок изменился
-                if (translatedTitle === story.title) {
-                  console.warn(`⚠️ ЗАГОЛОВОК НЕ ИЗМЕНИЛСЯ! Возможно, перевод не сработал`)
-                }
               } catch (error) {
                 console.error(`❌ ОШИБКА ПЕРЕВОДА ЗАГОЛОВКА:`, error)
-                translatedTitle = story.title // Оставляем оригинал при ошибке
+                translatedTitle = story.title
               }
-            } else {
-              console.log(`⏭️ Заголовок НЕ НУЖДАЕТСЯ в переводе (${titleLanguage} = ${targetLang})`)
             }
             
-            // Переводим содержимое если нужно
             if (contentLanguage !== targetLang) {
-              console.log(`🔄 Переводим содержимое с ${contentLanguage} на ${targetLang}`)
               try {
                 translatedContent = await translateStoryContent(story.content, currentLanguage, contentLanguage)
-                console.log(`✅ Содержимое переведено`)
               } catch (error) {
                 console.error(`❌ Ошибка перевода содержимого:`, error)
-                translatedContent = story.content // Оставляем оригинал при ошибке
+                translatedContent = story.content
               }
-            } else {
-              console.log(`⏭️ Содержимое не нуждается в переводе (${contentLanguage} = ${targetLang})`)
+            }
+            
+            // Сохраняем в кэш
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({
+                originalTitle: story.title,
+                originalContent: story.content,
+                translatedTitle: translatedTitle,
+                translatedContent: translatedContent
+              }))
+            } catch (e) {
+              console.warn('Ошибка сохранения в кэш:', e)
             }
             
             return {
@@ -444,7 +456,7 @@ const AboutPage = () => {
             }
           } catch (error) {
             console.warn(`❌ Ошибка перевода истории ${story.id}:`, error)
-            return story // Возвращаем оригинал при ошибке
+            return story
           }
         })
       )
@@ -458,7 +470,7 @@ const AboutPage = () => {
       setTranslatedStories(translated)
     } catch (error) {
       console.error('❌ Критическая ошибка перевода:', error)
-      setTranslatedStories(stories) // Используем оригинальные истории при ошибке
+      setTranslatedStories(stories)
     } finally {
       setTranslating(false)
     }
@@ -540,8 +552,17 @@ const AboutPage = () => {
     }
   }
 
-  // Загрузка данных при смене фильтра историй или категории
+  // Загрузка данных при смене фильтра историй или категории (но не при первой загрузке)
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
+    if (!isInitialized.current) {
+      return
+    }
+    
     if (activeTab === 'stories') {
       console.log('🔄 Загружаем истории с фильтром:', { storiesFilter, selectedCategory })
       loadStories(storiesFilter, selectedCategory)
@@ -581,6 +602,11 @@ const AboutPage = () => {
     setCurrentTheme(savedTheme)
     
     loadStats()
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true
+    }, 100)
   }, [])
 
   return (
@@ -677,7 +703,7 @@ const AboutPage = () => {
                     <div className="stat-label">{t('aboutActiveUsers')}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-number">{stats.co2Saved}т</div>
+                    <div className="stat-number">{formatCarbonFootprint(stats.co2Saved, currentLanguage)}</div>
                     <div className="stat-label">{t('aboutCO2Saved')}</div>
                   </div>
                   <div className="stat-card">

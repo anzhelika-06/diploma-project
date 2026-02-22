@@ -1,14 +1,25 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { applyTheme, getSavedTheme, THEMES, getThemeDisplayName } from '../utils/themeManager'
 import { useLanguage } from '../contexts/LanguageContext'
+import { translateStoryContent, detectTextLanguage } from '../utils/translations'
 import '../styles/pages/SettingsPage.css'
 import useNotification from '../hooks/useNotification';
 
 const SettingsPage = () => {
   const { currentLanguage, changeLanguage, t } = useLanguage()
   const { showSuccess, showError } = useNotification()
-  const [activeTab, setActiveTab] = useState('appearance')
+  const [searchParams, setSearchParams] = useSearchParams()
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true)
+  const isInitialized = useRef(false)
+  
+  const [activeTab, setActiveTab] = useState(() => {
+    const tabParam = searchParams.get('tab')
+    console.log('🔍 SettingsPage: Initial tab from URL:', tabParam)
+    return tabParam || 'appearance'
+  })
   const [tempNotification, setTempNotification] = useState({ show: false, title: '', body: '' })
   const [user, setUser] = useState(null)
   const [settings, setSettings] = useState({
@@ -36,15 +47,43 @@ const SettingsPage = () => {
     message: ''
   })
   const [myQuestions, setMyQuestions] = useState([])
+  const [translatedQuestions, setTranslatedQuestions] = useState([])
   const [questionsLoading, setQuestionsLoading] = useState(false)
   const [selectedQuestion, setSelectedQuestion] = useState(null)
+  const [translatedSelectedQuestion, setTranslatedSelectedQuestion] = useState(null)
   const [showQuestionDetailsModal, setShowQuestionDetailsModal] = useState(false)
   const [supportSuccess, setSupportSuccess] = useState(false)
   
   useEffect(() => {
     loadUserData()
     loadUserSettings()
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true
+      console.log('✅ SettingsPage: Initialization complete')
+    }, 100)
   }, [])
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('⏭️ SettingsPage: First render, skipping URL sync')
+      isFirstRender.current = false
+      return
+    }
+    
+    if (!isInitialized.current) {
+      console.log('⏳ SettingsPage: Still initializing, skipping URL sync')
+      return
+    }
+    
+    const params = {}
+    if (activeTab !== 'appearance') params.tab = activeTab
+    
+    console.log('📝 SettingsPage: Updating URL params:', params)
+    setSearchParams(params, { replace: true })
+  }, [activeTab, setSearchParams])
   
   // Синхронизируем язык в settings с currentLanguage из контекста
   useEffect(() => {
@@ -55,6 +94,61 @@ const SettingsPage = () => {
       language: currentLanguage
     }))
   }, [currentLanguage])
+  
+  // Перевод обращений в списке
+  useEffect(() => {
+    const translateQuestions = async () => {
+      if (myQuestions.length === 0) {
+        setTranslatedQuestions([])
+        return
+      }
+
+      if (!('Translator' in self)) {
+        setTranslatedQuestions(myQuestions)
+        return
+      }
+
+      try {
+        const translated = await Promise.all(
+          myQuestions.map(async (question) => {
+            try {
+              const targetLang = currentLanguage.toLowerCase()
+              
+              // Переводим тему
+              const subjectLang = detectTextLanguage(question.subject)
+              let translatedSubject = question.subject
+              if (subjectLang !== targetLang) {
+                translatedSubject = await translateStoryContent(question.subject, currentLanguage, subjectLang)
+              }
+              
+              // Переводим сообщение пользователя
+              const messageLang = detectTextLanguage(question.message)
+              let translatedMessage = question.message
+              if (messageLang !== targetLang) {
+                translatedMessage = await translateStoryContent(question.message, currentLanguage, messageLang)
+              }
+              
+              return {
+                ...question,
+                subject: translatedSubject,
+                message: translatedMessage
+              }
+            } catch (error) {
+              console.warn('Ошибка перевода обращения:', error)
+              return question
+            }
+          })
+        )
+        
+        setTranslatedQuestions(translated)
+      } catch (error) {
+        console.error('Ошибка перевода обращений:', error)
+        setTranslatedQuestions(myQuestions)
+      }
+    }
+
+    translateQuestions()
+  }, [myQuestions, currentLanguage])
 
   const loadUserData = () => {
     const userData = localStorage.getItem('user')
@@ -572,9 +666,52 @@ const SettingsPage = () => {
     }
   };
   
-  const handleViewQuestionDetails = (question) => {
+  const handleViewQuestionDetails = async (question) => {
     setSelectedQuestion(question)
     setShowQuestionDetailsModal(true)
+    
+    // Переводим сообщение и ответ администратора
+    if (!('Translator' in self)) {
+      setTranslatedSelectedQuestion(question)
+      return
+    }
+    
+    try {
+      const targetLang = currentLanguage.toLowerCase()
+      
+      // Переводим сообщение пользователя
+      const messageLang = detectTextLanguage(question.message)
+      let translatedMessage = question.message
+      if (messageLang !== targetLang) {
+        translatedMessage = await translateStoryContent(question.message, currentLanguage, messageLang)
+      }
+      
+      // Переводим ответ администратора, если есть
+      let translatedAdminResponse = question.admin_response
+      if (question.admin_response) {
+        const responseLang = detectTextLanguage(question.admin_response)
+        if (responseLang !== targetLang) {
+          translatedAdminResponse = await translateStoryContent(question.admin_response, currentLanguage, responseLang)
+        }
+      }
+      
+      // Переводим тему
+      const subjectLang = detectTextLanguage(question.subject)
+      let translatedSubject = question.subject
+      if (subjectLang !== targetLang) {
+        translatedSubject = await translateStoryContent(question.subject, currentLanguage, subjectLang)
+      }
+      
+      setTranslatedSelectedQuestion({
+        ...question,
+        subject: translatedSubject,
+        message: translatedMessage,
+        admin_response: translatedAdminResponse
+      })
+    } catch (error) {
+      console.error('Ошибка перевода деталей обращения:', error)
+      setTranslatedSelectedQuestion(question)
+    }
   }
 
   const formatDate = (dateString) => {
@@ -1519,7 +1656,7 @@ const SettingsPage = () => {
                 </div>
               ) : (
                 <div className="questions-list">
-                  {myQuestions.map(question => {
+                  {translatedQuestions.map(question => {
                     const ticketNumber = question.ticket_number || question.ticketNumber || `TKT-${question.id || '???'}`;
                     const subject = question.subject || t('noSubject');
                     const message = question.message || '';
@@ -1527,18 +1664,21 @@ const SettingsPage = () => {
                     const createdAt = question.created_at || question.createdAt || new Date();
                     const hasResponse = Boolean(question.admin_response);
                     
+                    // Находим оригинальный вопрос для передачи в handleViewQuestionDetails
+                    const originalQuestion = myQuestions.find(q => q.id === question.id) || question;
+                    
                     return (
                       <div 
                         key={question.id || Math.random()} 
                         className={`question-item ${status}`}
-                        onClick={() => handleViewQuestionDetails(question)}
+                        onClick={() => handleViewQuestionDetails(originalQuestion)}
                         style={{ cursor: 'pointer' }}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            handleViewQuestionDetails(question);
+                            handleViewQuestionDetails(originalQuestion);
                           }
                         }}
                       >
@@ -1629,7 +1769,7 @@ const SettingsPage = () => {
           <div className="modal-overlay" onClick={() => setShowQuestionDetailsModal(false)} />
           <div className="modal large">
             <div className="modal-header">
-              <h3>{selectedQuestion.subject}</h3>
+              <h3>{translatedSelectedQuestion?.subject || selectedQuestion.subject}</h3>
               <button 
                 className="modal-close"
                 onClick={() => setShowQuestionDetailsModal(false)}
@@ -1664,7 +1804,7 @@ const SettingsPage = () => {
                 <div className="details-section">
                   <h4>{t('yourQuestion') || 'Ваш вопрос'}</h4>
                   <div className="details-message">
-                    {selectedQuestion.message}
+                    {translatedSelectedQuestion?.message || selectedQuestion.message}
                   </div>
                 </div>
                 
@@ -1672,7 +1812,7 @@ const SettingsPage = () => {
                   <div className="details-section">
                     <h4>{t('adminResponse') || 'Ответ поддержки'}</h4>
                     <div className="details-response">
-                      {selectedQuestion.admin_response}
+                      {translatedSelectedQuestion?.admin_response || selectedQuestion.admin_response}
                     </div>
                   </div>
                 )}

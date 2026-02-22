@@ -183,12 +183,17 @@
 
 /* Таблица рейтинга */
 .leaderboard-table-container {
-  overflow-x: auto;
+  overflow: hidden; /* Обрезаем содержимое по закругленным углам */
   border-radius: var(--radius-lg);
   border: 1px solid #e0e0e0;
   background: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   margin-bottom: 20px;
+}
+
+/* Для горизонтальной прокрутки на маленьких экранах */
+.leaderboard-table-wrapper {
+  overflow-x: auto;
 }
 
 .leaderboard-table {

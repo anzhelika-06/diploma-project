@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS user_reports (
 CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    type VARCHAR(50) NOT NULL CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked')),
+    type VARCHAR(50) NOT NULL CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked', 'support_ticket', 'support_response')),
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     link VARCHAR(255), -- Ссылка для перехода при клике
@@ -1663,7 +1663,7 @@ BEGIN
     
     -- Добавляем новое ограничение с дополнительными типами
     ALTER TABLE notifications ADD CONSTRAINT notifications_type_check 
-        CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked'));
+        CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked', 'support_ticket', 'support_response'));
     
     RAISE NOTICE 'Ограничение notifications_type_check обновлено';
 EXCEPTION

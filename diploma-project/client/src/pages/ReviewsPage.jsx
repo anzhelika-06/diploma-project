@@ -16,10 +16,14 @@ const ReviewsPage = () => {
   const { currentLanguage, t } = useLanguage()
   const { trackEvent } = useEventTracker() // Используем хук
   const navigate = useNavigate()
+  
+  // Состояние без инициализации из URL
   const [activeTab, setActiveTab] = useState('all')
   const [storiesFilter, setStoriesFilter] = useState('all')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  
   const [stories, setStories] = useState([])
   const [translatedStories, setTranslatedStories] = useState([])
   const [currentTheme, setCurrentTheme] = useState('light')
@@ -29,40 +33,37 @@ const ReviewsPage = () => {
   const [likedStories, setLikedStories] = useState(new Set())
   const [expandedStories, setExpandedStories] = useState(new Set())
   const [socket, setSocket] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
+  
+  // Модальные окна и формы
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showErrorModal, setShowErrorModal] = useState(false)
+  const [errorModalData, setErrorModalData] = useState({ title: '', message: '' })
+  const [storyToDelete, setStoryToDelete] = useState(null)
+  const [creatingStory, setCreatingStory] = useState(false)
+  const [newStory, setNewStory] = useState({
+    title: '',
+    content: '',
+    category: '',
+    carbon_saved: 0
+  })
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false)
+  const categoryDropdownRef = useRef(null)
+  
+  // Временные уведомления
+  const [tempNotification, setTempNotification] = useState({
+    show: false,
+    type: 'success',
+    title: '',
+    body: ''
+  })
   
   // Пагинация
-  const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalStories, setTotalStories] = useState(0)
   const STORIES_PER_PAGE = 9
   
-  // Состояния для формы создания истории
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newStory, setNewStory] = useState({
-    title: '',
-    content: '',
-    category: 'Общее',
-    carbon_saved: 0
-  })
-  const [creatingStory, setCreatingStory] = useState(false)
-  const [currentUser, setCurrentUser] = useState(null)
-
-  // Состояния для кастомного дропдауна
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false)
-  const categoryDropdownRef = useRef(null)
-  
-  // Состояния для модальных окон
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [storyToDelete, setStoryToDelete] = useState(null)
-  
-  // Состояния для уведомлений
-  const [tempNotification, setTempNotification] = useState({ 
-    show: false, 
-    title: '', 
-    body: '',
-    type: 'success'
-  })
-
   // Флаг для предотвращения перевода при обновлении лайков
   const skipTranslationRef = useRef(false)
 
@@ -212,7 +213,10 @@ const ReviewsPage = () => {
   // Загрузка всех историй с пагинацией
   const loadAllStories = async (filter = 'all', category = 'all', page = 1) => {
     try {
-      setLoading(true)
+      // Показываем прелоадер только если нет историй (первая загрузка)
+      if (stories.length === 0) {
+        setLoading(true)
+      }
       
       const url = `/api/stories?filter=${filter}&category=${category}&page=${page}&limit=${STORIES_PER_PAGE}`
       console.log('🔍 Запрос к API (все истории):', url)
@@ -225,6 +229,9 @@ const ReviewsPage = () => {
       if (data.success) {
         let sortedStories = [...data.stories]
         
+        console.log('📋 Истории до сортировки:', sortedStories.map(s => ({ title: s.title, likes: s.likes_count, date: s.created_at })))
+        console.log('🔍 Применяем фильтр:', filter)
+        
         if (filter === 'best') {
           sortedStories.sort((a, b) => {
             if (b.likes_count !== a.likes_count) {
@@ -232,8 +239,10 @@ const ReviewsPage = () => {
             }
             return new Date(b.created_at) - new Date(a.created_at)
           })
+          console.log('✅ После сортировки "best":', sortedStories.map(s => ({ title: s.title, likes: s.likes_count })))
         } else if (filter === 'recent') {
           sortedStories.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          console.log('✅ После сортировки "recent":', sortedStories.map(s => ({ title: s.title, date: s.created_at })))
         }
         
         const storiesWithTranslationFlag = sortedStories.map(story => ({
@@ -242,6 +251,8 @@ const ReviewsPage = () => {
         }))
         
         setStories(storiesWithTranslationFlag)
+        // Немедленно устанавливаем как переведенные чтобы избежать мерцания
+        setTranslatedStories(storiesWithTranslationFlag)
         updateLikesFromServer(sortedStories)
         
         const totalFromServer = data.pagination?.total || data.total || data.stories.length
@@ -271,7 +282,10 @@ const ReviewsPage = () => {
   // Загрузка моих историй с пагинацией
   const loadMyStories = async (status = 'all', category = 'all', page = 1) => {
     try {
-      setLoading(true)
+      // Показываем прелоадер только если нет историй (первая загрузка)
+      if (stories.length === 0) {
+        setLoading(true)
+      }
       
       if (!currentUser) {
         navigate('/auth')
@@ -296,6 +310,8 @@ const ReviewsPage = () => {
         }))
         
         setStories(storiesWithTranslationFlag)
+        // Немедленно устанавливаем как переведенные чтобы избежать мерцания
+        setTranslatedStories(storiesWithTranslationFlag)
         updateLikesFromServer(sortedStories)
         
         const totalFromServer = data.pagination?.total || data.total || data.stories.length
@@ -361,7 +377,7 @@ const ReviewsPage = () => {
     return 'ru'
   }, [])
 
-  // Перевод историй
+  // Перевод историй с кэшированием
   const translateStories = useCallback(async () => {
     if (skipTranslationRef.current) {
       console.log('⏭️ Пропуск перевода из-за флага')
@@ -397,6 +413,30 @@ const ReviewsPage = () => {
               return story
             }
             
+            // Создаем ключ для кэша
+            const cacheKey = `story_translation_${story.id}_${currentLanguage}`
+            
+            // Проверяем кэш
+            const cached = sessionStorage.getItem(cacheKey)
+            if (cached) {
+              try {
+                const cachedData = JSON.parse(cached)
+                // Проверяем, что кэш актуален
+                if (cachedData.originalTitle === story.title && 
+                    cachedData.originalContent === story.content) {
+                  return {
+                    ...story,
+                    title: cachedData.translatedTitle,
+                    content: cachedData.translatedContent,
+                    _needsTranslation: false,
+                    _targetLanguage: currentLanguage
+                  }
+                }
+              } catch (e) {
+                console.warn('Ошибка чтения кэша:', e)
+              }
+            }
+            
             const titleLanguage = detectLanguage(story.title)
             const contentLanguage = detectLanguage(story.content)
             const targetLang = currentLanguage.toLowerCase()
@@ -422,6 +462,18 @@ const ReviewsPage = () => {
               }
             }
             
+            // Сохраняем в кэш
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({
+                originalTitle: story.title,
+                originalContent: story.content,
+                translatedTitle: translatedTitle,
+                translatedContent: translatedContent
+              }))
+            } catch (e) {
+              console.warn('Ошибка сохранения в кэш:', e)
+            }
+            
             return {
               ...story,
               title: translatedTitle,
@@ -441,6 +493,7 @@ const ReviewsPage = () => {
         })
       )
       
+      console.log('🔄 После перевода, порядок сохранен:', translated.map(s => ({ title: s.title, likes: s.likes_count })))
       setTranslatedStories(translated)
     } catch (error) {
       console.error('❌ Общая ошибка перевода:', error)
@@ -743,6 +796,7 @@ const ReviewsPage = () => {
       })
     }
     
+    // Загружаем данные для новой вкладки
     if (tab === 'my') {
       setStatusFilter('all')
       loadMyStories('all', selectedCategory, 1)
@@ -752,8 +806,12 @@ const ReviewsPage = () => {
   }
 
   const handleFilterChange = (newFilter) => {
+    console.log('🔄 Изменение фильтра на:', newFilter)
     setCurrentPage(1)
     setStoriesFilter(newFilter)
+    
+    // Немедленно загружаем истории с новым фильтром
+    loadAllStories(newFilter, selectedCategory, 1)
     
     // Отслеживаем изменение фильтра
     if (currentUser) {
@@ -767,14 +825,26 @@ const ReviewsPage = () => {
 
   // Обработчик изменения статуса фильтра
   const handleStatusFilterChange = (newStatus) => {
+    console.log('🔄 Изменение статуса на:', newStatus)
     setStatusFilter(newStatus)
     setCurrentPage(1)
+    
+    // Немедленно загружаем истории с новым статусом
+    loadMyStories(newStatus, selectedCategory, 1)
   }
 
   // Обработчик изменения категории
   const handleCategoryChange = (category) => {
+    console.log('🔄 Изменение категории на:', category)
     setSelectedCategory(category)
     setCurrentPage(1)
+    
+    // Немедленно загружаем истории с новой категорией
+    if (activeTab === 'all') {
+      loadAllStories(storiesFilter, category, 1)
+    } else if (activeTab === 'my') {
+      loadMyStories(statusFilter, category, 1)
+    }
     
     // Отслеживаем изменение категории
     if (currentUser) {
@@ -834,28 +904,10 @@ const ReviewsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCreateModal, currentUser?.id]) // Используем currentUser?.id вместо currentUser
 
-  // Загрузка данных при изменении фильтров
-  useEffect(() => {
-    setCurrentPage(1)
-    if (activeTab === 'all') {
-      loadAllStories(storiesFilter, selectedCategory, 1)
-    } else if (activeTab === 'my') {
-      loadMyStories(statusFilter, selectedCategory, 1)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storiesFilter, selectedCategory, statusFilter])
-
-  // Обработка переключения вкладок
-  useEffect(() => {
-    if (activeTab === 'my') {
-      loadMyStories(statusFilter, selectedCategory, currentPage)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab])
-
-  // Загрузка категорий при монтировании
+  // Загрузка категорий и начальных данных при монтировании
   useEffect(() => {
     loadCategories()
+    loadAllStories('all', 'all', 1)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -865,7 +917,7 @@ const ReviewsPage = () => {
       translateStories()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLanguage, stories.length]) // Используем stories.length вместо stories
+  }, [currentLanguage, stories]) // Зависим от самого массива stories
 
   // Применение темы
   useEffect(() => {

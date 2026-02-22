@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import '../styles/pages/AchievementsPage.css'
 import { useLanguage } from '../contexts/LanguageContext'
 import { translateStoryContent, detectTextLanguage } from '../utils/translations'
@@ -8,8 +9,15 @@ import { useEventTracker } from '../hooks/useEventTracker'
 const AchievementsPage = () => {
   const { currentLanguage, t } = useLanguage()
   const { trackEvent } = useEventTracker()
+  const [searchParams, setSearchParams] = useSearchParams()
   
-  const [activeTab, setActiveTab] = useState('all')
+  // Инициализация состояния из URL
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'all')
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = parseInt(searchParams.get('page'))
+    return !isNaN(page) && page > 0 ? page : 1
+  })
+  
   const [ecoCoins, setEcoCoins] = useState(0)
   const [allAchievements, setAllAchievements] = useState([])
   const [visibleAchievements, setVisibleAchievements] = useState([])
@@ -25,12 +33,15 @@ const AchievementsPage = () => {
     percentage: 0
   })
   
-  const [currentPage, setCurrentPage] = useState(1)
   const achievementsPerPage = 10
   
   const [showClaimModal, setShowClaimModal] = useState(false)
   const [selectedAchievement, setSelectedAchievement] = useState(null)
   const [claiming, setClaiming] = useState(false)
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true)
+  const isInitialized = useRef(false)
 
   useEffect(() => {
     const loadData = async () => {
@@ -116,6 +127,11 @@ const AchievementsPage = () => {
     }
     
     loadData()
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true
+    }, 100)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Загружаем только при монтировании
 
@@ -217,12 +233,31 @@ const AchievementsPage = () => {
         const translated = await Promise.all(
           allAchievements.map(async (achievement) => {
             try {
+              // Создаем ключ для кэша
+              const cacheKey = `achievement_translation_${achievement.id}_${currentLanguage}`
+              
+              // Проверяем кэш
+              const cached = sessionStorage.getItem(cacheKey)
+              if (cached) {
+                try {
+                  const cachedData = JSON.parse(cached)
+                  // Проверяем, что кэш актуален
+                  if (cachedData.originalName === achievement.name && 
+                      cachedData.originalDesc === achievement.description) {
+                    return {
+                      ...achievement,
+                      name: cachedData.translatedName,
+                      description: cachedData.translatedDesc
+                    }
+                  }
+                } catch (e) {
+                  console.warn('Ошибка чтения кэша:', e)
+                }
+              }
+              
               const nameLanguage = detectTextLanguage(achievement.name)
               const descLanguage = detectTextLanguage(achievement.description)
               const targetLang = currentLanguage.toLowerCase()
-              
-              console.log(`🔍 Достижение: "${achievement.name}"`);
-              console.log(`   Язык названия: ${nameLanguage}, Язык описания: ${descLanguage}, Целевой: ${targetLang}`);
               
               let translatedName = achievement.name
               let translatedDescription = achievement.description
@@ -232,22 +267,14 @@ const AchievementsPage = () => {
                 const trimmedName = achievement.name.trim();
                 const hasInDict = achievementTranslations[targetLang]?.[trimmedName];
                 
-                console.log(`   Проверка словаря для названия:`);
-                console.log(`   - Оригинал: "${achievement.name}" (длина: ${achievement.name.length})`);
-                console.log(`   - Обрезанный: "${trimmedName}" (длина: ${trimmedName.length})`);
-                console.log(`   - Есть в словаре: ${!!hasInDict}`);
-                
                 if (hasInDict) {
                   translatedName = hasInDict;
-                  console.log(`   ✅ Название из словаря: "${translatedName}"`);
                 } else {
                   // Если нет в словаре, пробуем API
                   try {
-                    console.log(`   🌐 Переводим название через API с ${nameLanguage} на ${targetLang}`);
                     translatedName = await translateStoryContent(trimmedName, currentLanguage, nameLanguage);
-                    console.log(`   ✅ Переведено через API: "${translatedName}"`);
                   } catch (error) {
-                    console.warn(`   ⚠️ Ошибка API перевода названия:`, error.message);
+                    console.warn(`⚠️ Ошибка API перевода названия:`, error.message);
                     translatedName = achievement.name;
                   }
                 }
@@ -258,25 +285,29 @@ const AchievementsPage = () => {
                 const trimmedDesc = achievement.description.trim();
                 const hasInDict = achievementTranslations[targetLang]?.[trimmedDesc];
                 
-                console.log(`   Проверка словаря для описания:`);
-                console.log(`   - Оригинал: "${achievement.description}" (длина: ${achievement.description.length})`);
-                console.log(`   - Обрезанный: "${trimmedDesc}" (длина: ${trimmedDesc.length})`);
-                console.log(`   - Есть в словаре: ${!!hasInDict}`);
-                
                 if (hasInDict) {
                   translatedDescription = hasInDict;
-                  console.log(`   ✅ Описание из словаря: "${translatedDescription}"`);
                 } else {
                   // Если нет в словаре, пробуем API
                   try {
-                    console.log(`   🌐 Переводим описание через API с ${descLanguage} на ${targetLang}`);
                     translatedDescription = await translateStoryContent(trimmedDesc, currentLanguage, descLanguage);
-                    console.log(`   ✅ Переведено через API: "${translatedDescription}"`);
                   } catch (error) {
-                    console.warn(`   ⚠️ Ошибка API перевода описания:`, error.message);
+                    console.warn(`⚠️ Ошибка API перевода описания:`, error.message);
                     translatedDescription = achievement.description;
                   }
                 }
+              }
+              
+              // Сохраняем в кэш
+              try {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                  originalName: achievement.name,
+                  originalDesc: achievement.description,
+                  translatedName: translatedName,
+                  translatedDesc: translatedDescription
+                }))
+              } catch (e) {
+                console.warn('Ошибка сохранения в кэш:', e)
               }
               
               return {
@@ -438,6 +469,29 @@ const AchievementsPage = () => {
       })
     }
   }
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    const params = {}
+    if (activeTab !== 'all') params.tab = activeTab
+    if (currentPage > 1) params.page = currentPage.toString()
+    
+    setSearchParams(params, { replace: true })
+  }, [activeTab, currentPage, setSearchParams])
+  
+  // Сброс страницы при изменении вкладки (но не при первой загрузке)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    
+    if (!isInitialized.current) {
+      return
+    }
+    
+    setCurrentPage(1)
+  }, [activeTab])
 
   const handleClaimClick = (achievement) => {
     setSelectedAchievement(achievement)

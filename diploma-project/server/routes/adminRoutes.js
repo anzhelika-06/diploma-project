@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool, query, getClient } = require('../config/database');
 const { authenticateToken, isAdmin } = require('../middleware/authMiddleware');
+const { createNotification } = require('../utils/notificationHelper');
 const rateLimit = require('express-rate-limit');
 
 // Rate limiting для админ-роутов
@@ -249,7 +250,26 @@ router.post('/support/tickets/:ticketId/respond', authenticateToken, isAdmin, as
       adminId: req.user.id
     });
     
-    // TODO: Здесь можно добавить отправку email уведомления пользователю
+    // Отправляем уведомление пользователю
+    try {
+      console.log('📨 Отправка уведомления пользователю о ответе на обращение...');
+      const io = req.app.get('io');
+      console.log('📡 Socket.IO instance:', !!io);
+      
+      await createNotification(
+        currentTicket.user_id,
+        'support_response',
+        'Ответ на ваше обращение',
+        `Администратор ответил на ваше обращение: ${currentTicket.subject}`,
+        '/settings?tab=support',
+        ticketId,
+        io
+      );
+      console.log(`✅ Уведомление отправлено пользователю ID: ${currentTicket.user_id}`);
+    } catch (notifError) {
+      console.error('❌ Ошибка отправки уведомления пользователю:', notifError);
+      // Не прерываем выполнение, так как ответ уже сохранен
+    }
     
     res.json({
       success: true,

@@ -14,7 +14,7 @@
 }
 
 .settings-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   color: var(--primary-color);
   margin-bottom: 24px;
@@ -25,7 +25,7 @@
 .settings-tabs {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 8px;
   flex-wrap: wrap;
@@ -92,13 +92,15 @@
 }
 
 .setting-group {
-  margin-bottom: 30px;
-  padding-bottom: 30px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--border-color);
 }
 
 .setting-group:last-child {
   border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .setting-group h3 {

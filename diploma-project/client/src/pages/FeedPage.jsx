@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSocket } from '../contexts/SocketContext';
 import { getCurrentUser } from '../utils/authUtils';
@@ -10,7 +10,12 @@ const FeedPage = () => {
   const { t, currentLanguage } = useLanguage();
   const currentUser = getCurrentUser();
   const navigate = useNavigate();
-  const { socket, isConnected } = useSocket(); // Используем глобальный socket
+  const { socket } = useSocket(); // Используем глобальный socket
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   // Проверка авторизации
   useEffect(() => {
@@ -23,7 +28,12 @@ const FeedPage = () => {
   const [translatedPosts, setTranslatedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    const pageNum = parseInt(pageParam);
+    console.log('🔍 FeedPage: Initial page from URL:', pageParam, '→', pageNum);
+    return !isNaN(pageNum) && pageNum > 0 ? pageNum : 1;
+  });
   const [hasMore, setHasMore] = useState(true);
   
   // Состояние для создания поста
@@ -231,10 +241,36 @@ const FeedPage = () => {
   }, [openMenu, openCommentMenu]);
 
   useEffect(() => {
-    loadPosts(1);
+    loadPosts(page);
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true;
+      console.log('✅ FeedPage: Initialization complete');
+    }, 100);
   }, [loadPosts]);
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('⏭️ FeedPage: First render, skipping URL sync');
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      console.log('⏳ FeedPage: Still initializing, skipping URL sync');
+      return;
+    }
+    
+    const params = {};
+    if (page > 1) params.page = page.toString();
+    
+    console.log('📝 FeedPage: Updating URL params:', params);
+    setSearchParams(params, { replace: true });
+  }, [page, setSearchParams]);
 
-  // Перевод постов при изменении языка или постов
+  // Перевод постов при изменении языка или постов с кэшированием
   useEffect(() => {
     const translatePosts = async () => {
       if (posts.length === 0) {
@@ -246,6 +282,26 @@ const FeedPage = () => {
         const translated = await Promise.all(
           posts.map(async (post) => {
             try {
+              // Создаем ключ для кэша
+              const cacheKey = `feed_post_translation_${post.id}_${currentLanguage}`;
+              
+              // Проверяем кэш
+              const cached = sessionStorage.getItem(cacheKey);
+              if (cached) {
+                try {
+                  const cachedData = JSON.parse(cached);
+                  // Проверяем, что кэш актуален (контент не изменился)
+                  if (cachedData.originalContent === post.content) {
+                    return {
+                      ...post,
+                      content: cachedData.translatedContent
+                    };
+                  }
+                } catch (e) {
+                  console.warn('Ошибка чтения кэша поста:', e);
+                }
+              }
+              
               const contentLanguage = detectTextLanguage(post.content);
               const targetLang = currentLanguage.toLowerCase();
               
@@ -258,6 +314,16 @@ const FeedPage = () => {
                   console.warn('⚠️ Ошибка перевода поста:', error);
                   translatedContent = post.content;
                 }
+              }
+              
+              // Сохраняем в кэш
+              try {
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                  originalContent: post.content,
+                  translatedContent: translatedContent
+                }));
+              } catch (e) {
+                console.warn('Ошибка сохранения в кэш поста:', e);
               }
 
               return {
@@ -281,7 +347,7 @@ const FeedPage = () => {
     translatePosts();
   }, [posts, currentLanguage]);
 
-  // Перевод комментариев при изменении языка или комментариев
+  // Перевод комментариев при изменении языка или комментариев с кэшированием
   useEffect(() => {
     const translateAllComments = async () => {
       if (Object.keys(comments).length === 0) {
@@ -298,6 +364,26 @@ const FeedPage = () => {
           const translated = await Promise.all(
             postComments.map(async (comment) => {
               try {
+                // Создаем ключ для кэша
+                const cacheKey = `feed_comment_translation_${comment.id}_${currentLanguage}`;
+                
+                // Проверяем кэш
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) {
+                  try {
+                    const cachedData = JSON.parse(cached);
+                    // Проверяем, что кэш актуален (контент не изменился)
+                    if (cachedData.originalContent === comment.content) {
+                      return {
+                        ...comment,
+                        content: cachedData.translatedContent
+                      };
+                    }
+                  } catch (e) {
+                    console.warn('Ошибка чтения кэша комментария:', e);
+                  }
+                }
+                
                 const contentLanguage = detectTextLanguage(comment.content);
                 const targetLang = currentLanguage.toLowerCase();
                 
@@ -310,6 +396,16 @@ const FeedPage = () => {
                     console.warn('⚠️ Ошибка перевода комментария:', error);
                     translatedContent = comment.content;
                   }
+                }
+                
+                // Сохраняем в кэш
+                try {
+                  sessionStorage.setItem(cacheKey, JSON.stringify({
+                    originalContent: comment.content,
+                    translatedContent: translatedContent
+                  }));
+                } catch (e) {
+                  console.warn('Ошибка сохранения в кэш комментария:', e);
                 }
 
                 return {

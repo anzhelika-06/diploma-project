@@ -27,7 +27,7 @@
 }
 
 .admin-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   color: #1a1a1a;
   display: flex;
@@ -37,7 +37,7 @@
 }
 
 .admin-title .material-icons {
-  font-size: 32px;
+  font-size: 36px;
   color: #4caf50;
 }
 
@@ -2624,10 +2624,15 @@
   color: #333333;
 }
 
+.ticket-user {
+  text-align: left !important;
+}
+
 .ticket-user .user-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  align-items: flex-start;
 }
 
 .user-email {

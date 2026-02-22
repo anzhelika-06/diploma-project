@@ -1035,11 +1035,13 @@ form.modal-body {
 /* Пагинация */
 .teams-pagination-container {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  margin-top: 40px;
-  padding: 20px 0;
+  margin-top: 30px;
+  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
 }
 
 .teams-pagination-info {
@@ -1054,65 +1056,146 @@ form.modal-body {
 
 .teams-pagination-buttons {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
 }
 
 .teams-pagination-button {
-  min-width: 40px;
-  height: 40px;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.teams-pagination-button:hover {
+.teams-pagination-button:hover:not(:disabled) {
   background: var(--hover-bg);
   border-color: var(--primary-color);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .teams-pagination-button.active {
   background: var(--primary-color);
-  color: white;
   border-color: var(--primary-color);
+  color: #ffffff;
+}
+
+.teams-pagination-button.active:hover {
+  background: #45a049;
+  border-color: #45a049;
+}
+
+.teams-pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-primary);
 }
 
 .teams-pagination-button .material-icons {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .teams-pagination-ellipsis {
-  padding: 8px 4px;
+  padding: 0 8px;
   color: var(--text-secondary);
-  font-size: 14px;
+  font-weight: 500;
+  user-select: none;
+}
+
+/* Темная тема для пагинации */
+[data-theme="dark"] .teams-pagination-container {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .teams-pagination-info {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .teams-pagination-info strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .teams-pagination-button {
+  background: var(--bg-primary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .teams-pagination-button:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .teams-pagination-button.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .teams-pagination-button.active:hover {
+  background: #45a049;
+  border-color: #45a049;
+}
+
+[data-theme="dark"] .teams-pagination-button:disabled {
+  background: var(--bg-primary);
+}
+
+[data-theme="dark"] .teams-pagination-ellipsis {
+  color: var(--text-secondary);
 }
 
 @media (max-width: 768px) {
   .teams-pagination-container {
-    margin-top: 30px;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 24px;
   }
   
   .teams-pagination-info {
-    font-size: 13px;
+    order: 2;
+    text-align: center;
+  }
+  
+  .teams-pagination-buttons {
+    order: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .teams-pagination-container {
+    padding: 12px;
+    margin-top: 20px;
+  }
+  
+  .teams-pagination-info {
+    font-size: 12px;
+  }
+  
+  .teams-pagination-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
   }
   
   .teams-pagination-button {
-    min-width: 36px;
-    height: 36px;
-    padding: 6px 10px;
+    min-width: 32px;
+    height: 32px;
     font-size: 13px;
   }
   
   .teams-pagination-button .material-icons {
-    font-size: 18px;
+    font-size: 16px;
   }
 }

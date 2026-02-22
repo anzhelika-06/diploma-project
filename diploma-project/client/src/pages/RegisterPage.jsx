@@ -15,6 +15,7 @@ const RegisterPage = () => {
   const navigate = useNavigate()
   const { currentLanguage, t } = useLanguage()
   const { updateUser } = useUser()
+  
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     login: '',

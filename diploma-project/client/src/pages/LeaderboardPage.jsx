@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSocket } from '../contexts/SocketContext';
 import { getEmojiByCarbon } from '../utils/emojiMapper';
@@ -9,29 +9,42 @@ const LeaderboardPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const { socket, isConnected } = useSocket(); // Используем глобальный socket
-  const [activeTab, setActiveTab] = useState('users');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Инициализация состояния из URL
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'users');
   const [currentUser, setCurrentUser] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   // Состояния для пользователей
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
-  const [usersPagination, setUsersPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 1
+  const [usersPagination, setUsersPagination] = useState(() => {
+    const page = parseInt(searchParams.get('usersPage'));
+    return {
+      page: !isNaN(page) && page > 0 ? page : 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1
+    };
   });
   const [userRank, setUserRank] = useState(null);
   
   // Состояния для команд
   const [teams, setTeams] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
-  const [teamsPagination, setTeamsPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 1
+  const [teamsPagination, setTeamsPagination] = useState(() => {
+    const page = parseInt(searchParams.get('teamsPage'));
+    return {
+      page: !isNaN(page) && page > 0 ? page : 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1
+    };
   });
   const [userTeamRank, setUserTeamRank] = useState(null);
 
@@ -81,15 +94,42 @@ const LeaderboardPage = () => {
         console.error('Ошибка предзагрузки данных:', error);
       } finally {
         setIsInitialLoad(false);
+        
+        // Помечаем что инициализация завершена
+        setTimeout(() => {
+          isInitialized.current = true;
+        }, 100);
       }
     };
     
     preloadData();
   }, []); // Только при монтировании компонента
+  
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      return;
+    }
+    
+    const params = {};
+    if (activeTab !== 'users') params.tab = activeTab;
+    if (usersPagination.page > 1) params.usersPage = usersPagination.page.toString();
+    if (teamsPagination.page > 1) params.teamsPage = teamsPagination.page.toString();
+    
+    setSearchParams(params, { replace: true });
+  }, [activeTab, usersPagination.page, teamsPagination.page, setSearchParams]);
 
   // Загрузка рейтинга пользователей (для пагинации)
   const loadUsersLeaderboard = useCallback(async (page = 1) => {
-    setUsersLoading(true);
+    // Показываем прелоадер только если нет пользователей (первая загрузка)
+    if (users.length === 0) {
+      setUsersLoading(true);
+    }
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -122,7 +162,10 @@ const LeaderboardPage = () => {
 
   // Загрузка рейтинга команд (для пагинации)
   const loadTeamsLeaderboard = useCallback(async (page = 1) => {
-    setTeamsLoading(true);
+    // Показываем прелоадер только если нет команд (первая загрузка)
+    if (teams.length === 0) {
+      setTeamsLoading(true);
+    }
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -426,7 +469,7 @@ const LeaderboardPage = () => {
         <div className="leaderboard-content">
           {activeTab === 'users' && (
             <div className="leaderboard-section">
-              {usersLoading ? (
+              {usersLoading && users.length === 0 ? (
                 <div className="leaderboard-loading">
                   <div className="loading-spinner"></div>
                   <p>{t('loading') || 'Загрузка...'}</p>
@@ -450,7 +493,13 @@ const LeaderboardPage = () => {
                       </thead>
                       <tbody>
                         {users.map((user, index) => (
-                          <tr key={user.id} className={currentUser?.id === user.id ? 'current-user' : ''}>
+                          <tr 
+                            key={user.id} 
+                            className={currentUser?.id === user.id ? 'current-user' : ''}
+                            onClick={() => navigate(`/profile?userId=${user.id}`)}
+                            style={{ cursor: 'pointer' }}
+                            title={t('viewProfile') || 'Посмотреть профиль'}
+                          >
                             <td className="rank-cell">
                               <div className="rank-badge">
                                 {user.rank <= 3 && (
@@ -492,7 +541,7 @@ const LeaderboardPage = () => {
 
           {activeTab === 'teams' && (
             <div className="leaderboard-section">
-              {teamsLoading ? (
+              {teamsLoading && teams.length === 0 ? (
                 <div className="leaderboard-loading">
                   <div className="loading-spinner"></div>
                   <p>{t('loading') || 'Загрузка...'}</p>
@@ -517,7 +566,12 @@ const LeaderboardPage = () => {
                       </thead>
                       <tbody>
                         {teams.map((team, index) => (
-                          <tr key={team.id}>
+                          <tr 
+                            key={team.id}
+                            onClick={() => navigate(`/teams?tab=all&search=${encodeURIComponent(team.name)}`)}
+                            style={{ cursor: 'pointer' }}
+                            title={t('viewTeam') || 'Посмотреть команду'}
+                          >
                             <td className="rank-cell">
                               <div className="rank-badge">
                                 {team.rank <= 3 && (

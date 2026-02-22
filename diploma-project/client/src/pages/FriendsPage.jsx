@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { translateEcoLevel } from '../utils/translations';
@@ -10,14 +10,23 @@ const FriendsPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
-  const { socket, isConnected } = useSocket(); // Используем глобальный socket из контекста
+  const { socket } = useSocket(); // Используем глобальный socket из контекста
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Ref для отслеживания инициализации
+  const isFirstRender = useRef(true);
+  const isInitialized = useRef(false);
   
   const [friends, setFriends] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const search = searchParams.get('search');
+    console.log('🔍 FriendsPage: Initial search from URL:', search);
+    return search || '';
+  });
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -74,7 +83,33 @@ const FriendsPage = () => {
   useEffect(() => {
     if (!currentUser) return;
     loadData();
+    
+    // Помечаем что инициализация завершена
+    setTimeout(() => {
+      isInitialized.current = true;
+      console.log('✅ FriendsPage: Initialization complete');
+    }, 100);
   }, [currentUser?.id]);
+
+  // Синхронизация состояния с URL
+  useEffect(() => {
+    if (isFirstRender.current) {
+      console.log('⏭️ FriendsPage: First render, skipping URL sync');
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (!isInitialized.current) {
+      console.log('⏳ FriendsPage: Still initializing, skipping URL sync');
+      return;
+    }
+    
+    const params = {};
+    if (searchQuery) params.search = searchQuery;
+    
+    console.log('📝 FriendsPage: Updating URL params:', params);
+    setSearchParams(params, { replace: true });
+  }, [searchQuery, setSearchParams]);
 
   // WebSocket обработчики - используем глобальный socket
   useEffect(() => {
@@ -135,8 +170,6 @@ const FriendsPage = () => {
   useEffect(() => {
     if (!currentUser) return;
     
-    const userId = currentUser.id;
-    
     const searchUsers = async () => {
       if (!searchQuery.trim() || searchQuery.trim().length < 2) {
         setSearchResults([]);
@@ -146,7 +179,7 @@ const FriendsPage = () => {
 
       setSearching(true);
       try {
-        const response = await fetch(`/api/users/search?query=${encodeURIComponent(searchQuery)}&currentUserId=${userId}`);
+        const response = await fetch(`/api/users/search?query=${encodeURIComponent(searchQuery)}&currentUserId=${currentUser.id}`);
         const data = await response.json();
         if (data.success) {
           setSearchResults(data.users);
@@ -308,7 +341,12 @@ const FriendsPage = () => {
     
     return (
       <div key={user.id} className="user-card-list">
-        <div className="user-card-left" onClick={() => handleViewProfile(user.id)}>
+        <div 
+          className="user-card-left" 
+          onClick={() => handleViewProfile(user.id)}
+          style={{ cursor: 'pointer' }}
+          title={t('viewProfile') || 'Посмотреть профиль'}
+        >
           <div className="user-avatar">{user.avatar_emoji || '🌱'}</div>
           <div className="user-info">
             <span className="user-name">{user.nickname}</span>

@@ -1,6 +1,7 @@
 // routes/support.js
 const express = require('express');
 const { Pool } = require('pg');
+const { createNotification } = require('../utils/notificationHelper');
 const router = express.Router();
 
 console.log('=== ЗАГРУЗКА support.js ===');
@@ -188,6 +189,32 @@ router.post('/', requireAuth, async (req, res) => {
         subject: savedTicket.subject,
         status: savedTicket.status
       });
+      
+      // Отправляем уведомления всем администраторам
+      try {
+        console.log('📨 Отправка уведомлений администраторам о новом обращении...');
+        const adminsResult = await pool.query('SELECT id FROM users WHERE is_admin = true AND is_banned = false');
+        console.log(`👥 Найдено администраторов: ${adminsResult.rows.length}`);
+        
+        const io = req.app.get('io');
+        console.log('📡 Socket.IO instance:', !!io);
+        
+        for (const admin of adminsResult.rows) {
+          await createNotification(
+            admin.id,
+            'support_ticket',
+            'Новое обращение в поддержку',
+            `Пользователь отправил обращение: ${trimmedSubject}`,
+            '/admin?tab=support',
+            savedTicket.id,
+            io
+          );
+          console.log(`✅ Уведомление отправлено админу ID: ${admin.id}`);
+        }
+      } catch (notifError) {
+        console.error('❌ Ошибка отправки уведомлений администраторам:', notifError);
+        // Не прерываем выполнение, так как тикет уже создан
+      }
       
       return res.status(201).json({
         success: true,
