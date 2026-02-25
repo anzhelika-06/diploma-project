@@ -137,5 +137,9 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-# VS Code
+# VS Code 
+.vscode
 .vscode/
+.vscode/*
+**/.vscode
+**/.vscode/**
