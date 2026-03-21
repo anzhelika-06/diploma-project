@@ -343,6 +343,7 @@ router.post('/login', async (req, res) => {
     const userQuery = `
       SELECT id, email, nickname, password_hash, is_admin,
              carbon_saved, eco_level, avatar_emoji, is_banned,
+             ban_reason, ban_expires_at,
              last_login_at, eco_coins
       FROM users 
       WHERE email = $1 OR nickname = $1
@@ -369,7 +370,13 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({
         success: false,
         error: 'USER_BANNED',
-        message: 'Ваш аккаунт заблокирован'
+        message: 'Ваш аккаунт заблокирован',
+        userId: user.id,
+        ban: {
+          reason: user.ban_reason,
+          expiresAt: user.ban_expires_at,
+          isPermanent: !user.ban_expires_at
+        }
       });
     }
 
@@ -585,7 +592,7 @@ router.get('/verify', async (req, res) => {
       
       // Получаем актуальные данные пользователя
       const userQuery = `
-        SELECT id, email, nickname, is_admin, carbon_saved, eco_level, avatar_emoji, is_banned, eco_coins
+        SELECT id, email, nickname, is_admin, carbon_saved, eco_level, avatar_emoji, is_banned, ban_reason, ban_expires_at, eco_coins
         FROM users WHERE id = $1
       `;
       
@@ -606,7 +613,12 @@ router.get('/verify', async (req, res) => {
         return res.status(403).json({
           success: false,
           error: 'USER_BANNED',
-          message: 'Ваш аккаунт заблокирован'
+          message: 'Ваш аккаунт заблокирован',
+          ban: {
+            reason: user.ban_reason,
+            expiresAt: user.ban_expires_at,
+            isPermanent: !user.ban_expires_at
+          }
         });
       }
       

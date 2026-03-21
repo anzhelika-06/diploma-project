@@ -12,6 +12,7 @@ import listikImage from '../assets/images/listik.png'
 import { applyTheme, getSavedTheme } from '../utils/themeManager'
 import { useLanguage } from '../contexts/LanguageContext'
 import { useUser } from '../contexts/UserContext'
+import BannedModal from '../components/BannedModal'
 
 const AuthPage = () => {
   const navigate = useNavigate()
@@ -25,6 +26,7 @@ const AuthPage = () => {
   const [staticPhrase, setStaticPhrase] = useState('')
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [banInfo, setBanInfo] = useState(null)
   const audioRef = useRef(null)
   const videoRef = useRef(null)
   const [showStaticLeaf, setShowStaticLeaf] = useState(true)
@@ -269,6 +271,10 @@ const AuthPage = () => {
         } else if (response.status === 401) {
           errorMessage = data?.message || t('invalidCredentials')
         } else if (response.status === 403) {
+          if (data?.error === 'USER_BANNED') {
+            setBanInfo({ ...data.ban, userId: data.userId });
+            return;
+          }
           errorMessage = data?.message || t('accessDenied')
         } else if (response.status === 404) {
           errorMessage = data?.message || t('userNotFound')
@@ -299,6 +305,7 @@ const AuthPage = () => {
 
   return (
     <div className="auth-page" data-theme={currentTheme}>
+      {banInfo && <BannedModal ban={banInfo} onClose={() => setBanInfo(null)} />}
       <div className="auth-white-block">
         <div className="home-link">
           <Link to="/" className="home-link-content">

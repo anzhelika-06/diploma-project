@@ -27,12 +27,14 @@ import { UserProvider } from './contexts/UserContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
 import { isUserAdmin } from './utils/authUtils';
+import BannedModal from './components/BannedModal';
 import './styles/variables.css';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [banInfo, setBanInfo] = useState(null);
 
   // Функция для показа уведомлений
   const showAppNotification = useCallback((title, body, type = 'success') => {
@@ -81,6 +83,17 @@ function App() {
               
               if (payload.userId) {
                 setIsAuthenticated(true);
+                
+                // Проверяем бан через verify
+                try {
+                  const verifyRes = await fetch('/api/auth/verify', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  });
+                  const verifyData = await verifyRes.json();
+                  if (!verifyRes.ok && verifyData.error === 'USER_BANNED') {
+                    setBanInfo(verifyData.ban);
+                  }
+                } catch (_) {}
                 
                 // Синхронизируем тему
                 syncTheme().catch(error => {
@@ -136,6 +149,7 @@ function App() {
       <UserProvider>
         <SocketProvider>
           <div className="page-container">
+            {banInfo && <BannedModal ban={banInfo} onClose={() => setBanInfo(null)} />}
             <Router>
             <Routes>
             {/* Главная страница */}
