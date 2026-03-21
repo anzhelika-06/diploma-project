@@ -15,9 +15,14 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { currentUser } = useUser(); // Используем контекст пользователя
+  const { currentUser } = useUser();
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const onBannedRef = useRef(null);
+
+  const setOnBanned = (cb) => {
+    onBannedRef.current = cb;
+  };
 
   useEffect(() => {
     // Очищаем предыдущий таймаут
@@ -86,6 +91,13 @@ export const SocketProvider = ({ children }) => {
       console.log('🧪 SocketProvider: Получено тестовое уведомление:', data);
     });
 
+    newSocket.on('user:banned', (data) => {
+      console.log('🚫 SocketProvider: Получено событие бана:', data);
+      if (onBannedRef.current) {
+        onBannedRef.current(data);
+      }
+    });
+
     newSocket.on('disconnect', (reason) => {
       console.log('🔌 SocketProvider: WebSocket отключен:', reason);
       setIsConnected(false);
@@ -110,7 +122,7 @@ export const SocketProvider = ({ children }) => {
   // console.log('🔌 SocketProvider: Рендер, socket:', !!socket, 'isConnected:', isConnected, 'currentUser:', !!currentUser);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
+    <SocketContext.Provider value={{ socket, isConnected, setOnBanned }}>
       {children}
     </SocketContext.Provider>
   );

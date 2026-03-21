@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../styles/components/BannedModal.css';
 
-const BannedModal = ({ ban, onClose }) => {
+const BannedModal = ({ ban, onClose, forcedLogout = false }) => {
   const [timeLeft, setTimeLeft] = useState('');
   const [showSupport, setShowSupport] = useState(false);
   const [supportForm, setSupportForm] = useState({ subject: '', message: '' });
@@ -84,7 +84,7 @@ const BannedModal = ({ ban, onClose }) => {
   };
 
   return (
-    <div className="banned-overlay" onClick={onClose}>
+    <div className="banned-overlay" onClick={forcedLogout ? undefined : onClose}>
       <div className="banned-modal" data-theme={theme} onClick={e => e.stopPropagation()}>
         <div className="banned-header">
           <div className="banned-header-icon">
@@ -122,7 +122,7 @@ const BannedModal = ({ ban, onClose }) => {
                 Написать в поддержку
               </button>
               <button className="banned-btn banned-btn-ghost" onClick={onClose}>
-                Закрыть
+                {forcedLogout ? 'Выйти из аккаунта' : 'Закрыть'}
               </button>
             </div>
           </>
@@ -163,7 +163,7 @@ const BannedModal = ({ ban, onClose }) => {
               )}
               {supportSent ? (
                 <button className="banned-btn banned-btn-ghost" onClick={onClose}>
-                  Закрыть
+                  {forcedLogout ? 'Выйти из аккаунта' : 'Закрыть'}
                 </button>
               ) : (
                 <button className="banned-btn banned-btn-ghost" onClick={() => setShowSupport(false)}>

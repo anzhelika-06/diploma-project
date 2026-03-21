@@ -24,17 +24,28 @@ import AdminPage from './pages/AdminPage';
 import NotificationSystem from './components/NotificationSystem';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { UserProvider } from './contexts/UserContext';
-import { SocketProvider } from './contexts/SocketContext';
+import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
 import { isUserAdmin } from './utils/authUtils';
 import BannedModal from './components/BannedModal';
 import './styles/variables.css';
+
+// Слушает socket событие бана пока пользователь онлайн
+function BanWatcher({ onBanned }) {
+  const { setOnBanned } = useSocket();
+  useEffect(() => {
+    setOnBanned(onBanned);
+    return () => setOnBanned(null);
+  }, [onBanned, setOnBanned]);
+  return null;
+}
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [banInfo, setBanInfo] = useState(null);
+  const [forcedBan, setForcedBan] = useState(false); // бан пришёл пока онлайн
 
   // Функция для показа уведомлений
   const showAppNotification = useCallback((title, body, type = 'success') => {
@@ -148,8 +159,24 @@ function App() {
     <LanguageProvider>
       <UserProvider>
         <SocketProvider>
+          <BanWatcher onBanned={(data) => { setBanInfo(data); setForcedBan(true); }} />
           <div className="page-container">
-            {banInfo && <BannedModal ban={banInfo} onClose={() => setBanInfo(null)} />}
+            {banInfo && (
+              <BannedModal
+                ban={banInfo}
+                forcedLogout={forcedBan}
+                onClose={() => {
+                  if (forcedBan) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('isAuthenticated');
+                    setIsAuthenticated(false);
+                    setForcedBan(false);
+                  }
+                  setBanInfo(null);
+                }}
+              />
+            )}
             <Router>
             <Routes>
             {/* Главная страница */}

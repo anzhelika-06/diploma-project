@@ -793,7 +793,22 @@ router.post('/users/:userId/ban', authenticateToken, isAdmin, async (req, res) =
     }
     
     await client.query('COMMIT');
-    
+
+    // Уведомляем пользователя через WebSocket если он онлайн
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`user:${userId}`).emit('user:banned', {
+          reason: reason,
+          expiresAt: banExpiresAt ? banExpiresAt.toISOString() : null,
+          isPermanent: is_permanent || false
+        });
+        console.log(`📡 Ban event sent to user:${userId}`);
+      }
+    } catch (wsError) {
+      console.error('❌ Ошибка отправки ban события через WebSocket:', wsError);
+    }
+
     res.json({
       success: true,
       message: 'Пользователь успешно заблокирован',
