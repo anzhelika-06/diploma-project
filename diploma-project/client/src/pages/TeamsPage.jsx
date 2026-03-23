@@ -1031,7 +1031,7 @@ const TeamsPage = () => {
                       <div className="teams-member-details">
                         <span className="teams-member-name">{member.nickname}</span>
                         {member.role === 'admin' ? (
-                          <span className="team-admin-badge">{t('adminBadge')}</span>
+                          <span className="team-admin-crown" title={t('adminBadge')}><CrownIcon /></span>
                         ) : (
                           <span className="team-member-badge">{t('memberBadge')}</span>
                         )}
@@ -1293,9 +1293,16 @@ const TeamsPage = () => {
 };
 
 // Компонент карточки команды
+const CrownIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+    <path d="M3 18h18M5 18L3 8l5.5 4L12 4l3.5 8L21 8l-2 10H5z"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const TeamCard = ({ team, isMember, isAdmin, onViewMembers, onJoin, onLeave, onDelete, onViewProfile }) => {
   const { t } = useLanguage();
-  const progress = team.goal_target > 0 ? Math.min((team.goal_current / team.goal_target) * 100, 100) : 0;
+  const progress = team.goal_target > 0 ? Math.min((Math.max(0, team.goal_current) / team.goal_target) * 100, 100) : 0;
   
   return (
     <div className="team-card">
@@ -1304,7 +1311,7 @@ const TeamCard = ({ team, isMember, isAdmin, onViewMembers, onJoin, onLeave, onD
         <div className="team-info">
           <h3>{team.name}</h3>
           {isAdmin ? (
-            <span className="team-admin-badge">{t('adminBadge')}</span>
+            <span className="team-admin-crown" title={t('adminBadge')}><CrownIcon /></span>
           ) : isMember ? (
             <span className="team-member-badge">{t('memberBadge')}</span>
           ) : null}
@@ -1329,7 +1336,7 @@ const TeamCard = ({ team, isMember, isAdmin, onViewMembers, onJoin, onLeave, onD
         <div className="team-goal">
           <div className="teams-goal-header">
             <span className="teams-goal-label">{team.goal_description}</span>
-            <span className="teams-goal-progress-text">{team.goal_current || 0} / {team.goal_target} {t('kgCO2')}</span>
+            <span className="teams-goal-progress-text">{Math.max(0, team.goal_current || 0)} / {team.goal_target} {t('kgCO2')}</span>
           </div>
           <div className="teams-progress-bar">
             <div className="teams-progress-fill" style={{ width: `${progress}%` }}></div>

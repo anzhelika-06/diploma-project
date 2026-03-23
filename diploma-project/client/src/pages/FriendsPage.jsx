@@ -213,7 +213,7 @@ const FriendsPage = () => {
   };
 
   const handleSendMessage = (userId, nickname) => {
-    alert(`Функция отправки сообщений пользователю ${nickname} будет доступна в следующей версии!`);
+    navigate('/messages', { state: { openChat: { userId, nickname } } });
   };
 
   const handleAddFriend = async (userId) => {

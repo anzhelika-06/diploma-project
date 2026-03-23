@@ -215,6 +215,17 @@
   font-weight: 600;
   text-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.team-admin-crown {
+  display: inline-flex;
+  align-items: center;
+  color: #f5a623;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .team-member-badge {

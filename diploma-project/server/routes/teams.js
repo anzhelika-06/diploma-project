@@ -91,6 +91,9 @@ router.get('/:id', async (req, res) => {
         name,
         description,
         avatar_emoji,
+        goal_description,
+        goal_target,
+        goal_current,
         carbon_saved,
         member_count,
         created_at
@@ -108,7 +111,7 @@ router.get('/:id', async (req, res) => {
     // Получить участников команды
     const membersResult = await pool.query(`
       SELECT 
-        u.id,
+        u.id AS user_id,
         u.nickname,
         u.avatar_emoji,
         u.carbon_saved,
@@ -578,6 +581,18 @@ router.post('/:id/leave', async (req, res) => {
     const teamName = teamResult.rows[0]?.name || 'Команда';
     const userNickname = userResult.rows[0]?.nickname || 'Пользователь';
 
+    // Проверяем роль — админ не может покинуть команду
+    const roleCheck = await pool.query(
+      'SELECT role FROM team_members WHERE team_id = $1 AND user_id = $2',
+      [id, user_id]
+    );
+    if (roleCheck.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Вы не состоите в этой команде' });
+    }
+    if (roleCheck.rows[0].role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Администратор не может покинуть команду' });
+    }
+
     // Удаляем пользователя из команды
     const result = await pool.query(
       'DELETE FROM team_members WHERE team_id = $1 AND user_id = $2 RETURNING id',
@@ -590,7 +605,6 @@ router.post('/:id/leave', async (req, res) => {
         message: 'Вы не состоите в этой команде'
       });
     }
-
     // Обновляем счетчик участников
     await pool.query(
       'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
@@ -848,6 +862,12 @@ router.post('/:id/remove-member', async (req, res) => {
         error: 'MEMBER_NOT_FOUND'
       });
     }
+
+    // Обновляем счётчик участников
+    await pool.query(
+      'UPDATE teams SET member_count = (SELECT COUNT(*) FROM team_members WHERE team_id = $1) WHERE id = $1',
+      [id]
+    );
 
     res.json({
       success: true,

@@ -23,6 +23,7 @@ const supportRoutes = require('./routes/support');
 const postsRoutes = require('./routes/posts');
 const calculationsRouter = require('./routes/calculations');
 const profileRouter = require('./routes/profile');
+const messagesRouter = require('./routes/messages');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -152,6 +153,91 @@ io.on('connection', (socket) => {
       console.log(`🧪 Отправлено тестовое уведомление в комнату ${roomId}`);
     }, 2000);
   });
+
+  // Присоединение к командному чату
+  socket.on('join:team', (teamId) => {
+    socket.join(`team:${teamId}`);
+    console.log(`📍 Socket ${socket.id} присоединился к командному чату team:${teamId}`);
+  });
+
+  // Покинуть командный чат
+  socket.on('leave:team', (teamId) => {
+    socket.leave(`team:${teamId}`);
+    console.log(`📍 Socket ${socket.id} покинул командный чат team:${teamId}`);
+  });
+
+  // Отправка личного сообщения через socket
+  socket.on('send:direct', async (data) => {
+    const { receiverId, content } = data;
+    const session = await sessionManager.getSession(socket.id);
+    if (!session || !content?.trim()) return;
+
+    try {
+      const { pool } = require('./config/database');
+      // Проверяем дружбу
+      const friendship = await pool.query(
+        `SELECT id FROM friendships
+         WHERE ((user_id=$1 AND friend_id=$2) OR (user_id=$2 AND friend_id=$1))
+           AND status='accepted'`,
+        [session.userId, receiverId]
+      );
+      if (!friendship.rows.length) return;
+
+      const result = await pool.query(
+        `INSERT INTO direct_messages (sender_id, receiver_id, content)
+         VALUES ($1, $2, $3)
+         RETURNING id, sender_id, receiver_id, content, is_read, created_at`,
+        [session.userId, receiverId, content.trim()]
+      );
+      const msg = {
+        ...result.rows[0],
+        sender_nickname: session.nickname,
+        sender_avatar: session.avatar_emoji || '🌱'
+      };
+      io.to(`user:${receiverId}`).emit('message:direct', msg);
+      io.to(`user:${session.userId}`).emit('message:direct', msg);
+    } catch (err) {
+      console.error('socket send:direct error:', err);
+    }
+  });
+
+  // Отправка сообщения в командный чат через socket
+  socket.on('send:team', async (data) => {
+    const { teamId, content } = data;
+    const session = await sessionManager.getSession(socket.id);
+    if (!session || !content?.trim()) return;
+
+    try {
+      const { pool } = require('./config/database');
+      const member = await pool.query(
+        'SELECT id FROM team_members WHERE team_id=$1 AND user_id=$2',
+        [teamId, session.userId]
+      );
+      if (!member.rows.length) return;
+
+      const result = await pool.query(
+        `INSERT INTO team_messages (team_id, sender_id, content)
+         VALUES ($1, $2, $3)
+         RETURNING id, team_id, sender_id, content, created_at`,
+        [teamId, session.userId, content.trim()]
+      );
+      // Обновляем last_read_at для отправителя
+      await pool.query(
+        `INSERT INTO team_message_reads (user_id, team_id, last_read_at)
+         VALUES ($1, $2, NOW())
+         ON CONFLICT (user_id, team_id) DO UPDATE SET last_read_at = NOW()`,
+        [session.userId, teamId]
+      );
+      const msg = {
+        ...result.rows[0],
+        sender_nickname: session.nickname,
+        sender_avatar: session.avatar_emoji || '🌱'
+      };
+      io.to(`team:${teamId}`).emit('message:team', msg);
+    } catch (err) {
+      console.error('socket send:team error:', err);
+    }
+  });
   
   // Выход из комнаты
   socket.on('leave:room', (roomId) => {
@@ -235,7 +321,8 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/calculations', calculationsRouter);
-app.use('/api/users', profileRouter); 
+app.use('/api/users', profileRouter);
+app.use('/api/messages', messagesRouter);
 // Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {
   console.log('GET /api/eco-tips/daily');

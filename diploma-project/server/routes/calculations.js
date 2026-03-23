@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
@@ -306,7 +306,7 @@ router.post('/calculate', async (req, res) => {
     // Обновляем общую экономию пользователя
     if (co2Saved > 0) {
       await db.query(
-        'UPDATE users SET carbon_saved = carbon_saved + $1 WHERE id = $2',
+        'UPDATE users SET carbon_saved = GREATEST(0, carbon_saved) + $1 WHERE id = $2',
         [Math.round(co2Saved), userId]
       );
       
@@ -439,7 +439,7 @@ router.post('/calculate-extended', async (req, res) => {
     // Обновляем общую экономию пользователя
     if (co2Saved > 0) {
       await db.query(
-        'UPDATE users SET carbon_saved = carbon_saved + $1 WHERE id = $2',
+        'UPDATE users SET carbon_saved = GREATEST(0, carbon_saved) + $1 WHERE id = $2',
         [Math.round(co2Saved), userId]
       );
       

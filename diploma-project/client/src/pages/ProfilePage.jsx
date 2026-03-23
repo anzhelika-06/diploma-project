@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { useParams, useLocation, useSearchParams, useNavigate } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import '../styles/pages/ProfilePage.css';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -12,6 +12,7 @@ const ProfilePage = () => {
   const { trackEvent } = useEventTracker();
   const { userId: urlUserId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const currentUserId = currentUser?.id;
   const { socket } = useSocket(); // Используем глобальный socket
@@ -1420,7 +1421,7 @@ const ProfilePage = () => {
                   <>
                     <button 
                       className="profile-action-btn btn-send-message"
-                      onClick={() => alert(t('messagesComingSoon') || 'Функция сообщений будет доступна в следующей версии!')}
+                      onClick={() => navigate('/messages', { state: { openChat: { userId: profileData.id, nickname: profileData.nickname } } })}
                     >
                       <span className="material-icons">message</span>
                       {t('sendMessage')}
