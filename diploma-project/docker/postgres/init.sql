@@ -38,12 +38,6 @@ CREATE TABLE IF NOT EXISTS users (
     deleted_at TIMESTAMP
 );
 
--- Гарантируем что carbon_saved не уходит в минус
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'chk_carbon_saved_non_negative') THEN
-    ALTER TABLE users ADD CONSTRAINT chk_carbon_saved_non_negative CHECK (carbon_saved >= 0);
-  END IF;
-END $$;
 -- ============ ИСТОРИЯ БАНОВ ПОЛЬЗОВАТЕЛЕЙ ============
 CREATE TABLE IF NOT EXISTS ban_history (
     id SERIAL PRIMARY KEY,
@@ -104,6 +98,7 @@ CREATE TABLE IF NOT EXISTS teams (
     goal_description TEXT,
     goal_target INTEGER,
     goal_current INTEGER DEFAULT 0,
+    goal_category VARCHAR(50) DEFAULT NULL,
     carbon_saved INTEGER DEFAULT 0,
     member_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -118,6 +113,31 @@ CREATE TABLE IF NOT EXISTS team_members (
     role VARCHAR(20) DEFAULT 'member' CHECK (role IN ('admin', 'member')),
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(team_id, user_id)
+);
+
+-- ============ СООБЩЕНИЯ ============
+CREATE TABLE IF NOT EXISTS direct_messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS team_messages (
+    id SERIAL PRIMARY KEY,
+    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS team_message_reads (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    last_read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, team_id)
 );
 
 -- ============ ИСТОРИИ УСПЕХА ============
@@ -420,7 +440,21 @@ CREATE TABLE IF NOT EXISTS carbon_calculations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(user_id, calculation_date, is_baseline)
 );
-
+-- ============ ВИРТУАЛЬНЫЙ ПИТОМЕЦ ============
+CREATE TABLE IF NOT EXISTS user_pets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    pet_type VARCHAR(20) NOT NULL CHECK (pet_type IN ('cat', 'fox', 'turtle')),
+    name VARCHAR(30) DEFAULT NULL,
+    level INTEGER DEFAULT 1,
+    xp INTEGER DEFAULT 0,
+    xp_to_next_level INTEGER DEFAULT 100,
+    last_fed_at TIMESTAMP DEFAULT NULL,
+    hunger INTEGER DEFAULT 100 CHECK (hunger BETWEEN 0 AND 100),
+    happiness INTEGER DEFAULT 100 CHECK (happiness BETWEEN 0 AND 100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 -- ============ ИНДЕКСЫ ============
 
 -- Индекс для быстрого поиска расчетов по пользователю и дате
@@ -1013,8 +1047,6 @@ CREATE TRIGGER trigger_set_ticket_number
 CREATE OR REPLACE FUNCTION update_team_carbon_saved()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Обновляем carbon_saved и goal_current для всех команд, в которых состоит пользователь
-    -- GREATEST(0, ...) гарантирует что значения не уходят в минус
     UPDATE teams t
     SET
         carbon_saved = GREATEST(0, (
@@ -1024,15 +1056,34 @@ BEGIN
             WHERE tm.team_id = t.id
         )),
         goal_current = GREATEST(0, (
-            SELECT COALESCE(SUM(GREATEST(0, u.carbon_saved)), 0)
-            FROM team_members tm
-            JOIN users u ON tm.user_id = u.id
-            WHERE tm.team_id = t.id
+            CASE
+                WHEN t.goal_category IS NOT NULL THEN (
+                    SELECT COALESCE(SUM(
+                        cc.co2_saved *
+                        CASE WHEN cc.total_footprint > 0 THEN
+                            CASE t.goal_category
+                                WHEN 'transport' THEN COALESCE((cc.categories->>'transport')::DECIMAL, 0)
+                                WHEN 'food'      THEN COALESCE((cc.categories->>'food')::DECIMAL, 0)
+                                WHEN 'energy'    THEN COALESCE((cc.categories->>'housing')::DECIMAL, 0)
+                                WHEN 'waste'     THEN COALESCE((cc.categories->>'waste')::DECIMAL, 0)
+                                ELSE 0
+                            END / cc.total_footprint
+                        ELSE 0 END
+                    ), 0)
+                    FROM team_members tm
+                    JOIN carbon_calculations cc ON cc.user_id = tm.user_id AND cc.is_baseline = FALSE
+                    WHERE tm.team_id = t.id
+                )
+                ELSE (
+                    SELECT COALESCE(SUM(GREATEST(0, u.carbon_saved)), 0)
+                    FROM team_members tm
+                    JOIN users u ON tm.user_id = u.id
+                    WHERE tm.team_id = t.id
+                )
+            END
         ))
     WHERE t.id IN (
-        SELECT team_id
-        FROM team_members
-        WHERE user_id = NEW.id
+        SELECT team_id FROM team_members WHERE user_id = NEW.id
     );
     RETURN NEW;
 END;
@@ -1247,14 +1298,16 @@ WHERE u.email IN ('emma.earth@test.com', 'david.solar@test.com')
 ON CONFLICT DO NOTHING;
 
 -- Создаем команды
-INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target) VALUES 
-('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000),
-('Эко-студенты МГКЦТ', 'Студенты за экологию', '🎓', 'Перейти на велосипеды и общественный транспорт', 25000),
-('Велосипедисты Гомеля', 'Велосипед вместо автомобиля', '🚴', 'Проехать 5000 км на велосипедах', 20000),
-('Солнечная энергия', 'Возобновляемые источники энергии', '☀️', 'Установить солнечные панели в 10 домах', 15000),
-('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000)
+INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count) VALUES 
+('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000, 23400, 23400, 8),
+('Эко-студенты МГКЦТ', 'Студенты за экологию', '🎓', 'Перейти на велосипеды и общественный транспорт', 25000, 18900, 18900, 6),
+('Велосипедисты Гомеля', 'Велосипед вместо автомобиля', '🚴', 'Проехать 5000 км на велосипедах', 20000, 15600, 15600, 4),
+('Солнечная энергия', 'Возобновляемые источники энергии', '☀️', 'Установить солнечные панели в 10 домах', 15000, 12300, 12300, 3),
+('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000, 11800, 11800, 4)
 ON CONFLICT (name) DO UPDATE SET
     description = EXCLUDED.description,
+    goal_current = EXCLUDED.goal_current,
+    carbon_saved = EXCLUDED.carbon_saved,
     updated_at = CURRENT_TIMESTAMP;
 
 -- Создаем участников команд
@@ -1296,23 +1349,6 @@ ON CONFLICT (team_id, user_id) DO UPDATE SET
 UPDATE teams SET member_count = (
     SELECT COUNT(*) FROM team_members WHERE team_id = teams.id
 );
-
--- Пересчитываем goal_current и carbon_saved на основе реальных данных участников
--- чтобы хардкодные значения не расходились с реальностью
-UPDATE teams t
-SET
-    carbon_saved = GREATEST(0, (
-        SELECT COALESCE(SUM(GREATEST(0, u.carbon_saved)), 0)
-        FROM team_members tm
-        JOIN users u ON tm.user_id = u.id
-        WHERE tm.team_id = t.id
-    )),
-    goal_current = GREATEST(0, (
-        SELECT COALESCE(SUM(GREATEST(0, u.carbon_saved)), 0)
-        FROM team_members tm
-        JOIN users u ON tm.user_id = u.id
-        WHERE tm.team_id = t.id
-    ));
 
 -- Создаем тестовые посты для админа и друзей
 INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
@@ -1676,6 +1712,27 @@ END $$;
 
 
 -- ============ МИГРАЦИИ ============
+-- Таблица виртуальных питомцев
+DO $$ BEGIN
+  CREATE TABLE IF NOT EXISTS user_pets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    pet_type VARCHAR(20) NOT NULL CHECK (pet_type IN ('cat', 'fox', 'turtle')),
+    name VARCHAR(30) DEFAULT NULL,
+    level INTEGER DEFAULT 1,
+    xp INTEGER DEFAULT 0,
+    xp_to_next_level INTEGER DEFAULT 100,
+    last_fed_at TIMESTAMP DEFAULT NULL,
+    hunger INTEGER DEFAULT 100 CHECK (hunger BETWEEN 0 AND 100),
+    happiness INTEGER DEFAULT 100 CHECK (happiness BETWEEN 0 AND 100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'user_pets already exists or error: %', SQLERRM;
+END $$;
+
+-- ============ МИГРАЦИИ ============
 -- Обновление ограничения типов уведомлений
 DO $$ 
 BEGIN
@@ -1693,35 +1750,4 @@ EXCEPTION
 END $$;
 
 
--- ============ ЛИЧНЫЕ СООБЩЕНИЯ ============
-CREATE TABLE IF NOT EXISTS direct_messages (
-    id SERIAL PRIMARY KEY,
-    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    receiver_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
-CREATE INDEX IF NOT EXISTS idx_direct_messages_sender ON direct_messages(sender_id);
-CREATE INDEX IF NOT EXISTS idx_direct_messages_receiver ON direct_messages(receiver_id);
-CREATE INDEX IF NOT EXISTS idx_direct_messages_conversation ON direct_messages(LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id), created_at);
-
--- ============ СООБЩЕНИЯ В КОМАНДАХ ============
-CREATE TABLE IF NOT EXISTS team_messages (
-    id SERIAL PRIMARY KEY,
-    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    sender_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_team_messages_team ON team_messages(team_id, created_at);
-
--- ============ ПРОЧИТАННЫЕ СООБЩЕНИЯ В КОМАНДАХ ============
-CREATE TABLE IF NOT EXISTS team_message_reads (
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    last_read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, team_id)
-);

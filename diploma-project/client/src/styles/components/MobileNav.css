@@ -48,7 +48,7 @@
   padding: 12px;
   text-decoration: none;
   color: var(--mobile-nav-text, #666);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-radius: 12px;
   min-width: 48px;
   background: transparent;
@@ -218,7 +218,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .mobile-menu-close:hover {
@@ -243,7 +243,7 @@
   text-decoration: none;
   color: var(--mobile-menu-text, #333);
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
   position: relative;
 }

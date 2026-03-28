@@ -93,7 +93,7 @@
   overflow: visible;
   border: none;
   box-shadow: none;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 /* В темной теме добавляем обводку как у кнопки */
@@ -164,7 +164,7 @@
   color: var(--auth-input-text);
   box-sizing: border-box;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   height: 50px;
   flex-shrink: 0;
 }
@@ -299,7 +299,7 @@
   color: var(--auth-input-text);
   box-sizing: border-box;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -374,7 +374,7 @@
   font-size: clamp(13px, 1.1vw, 14px);
   color: var(--auth-input-text);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   text-align: center;
   border-bottom: 1px solid #f0f0f0;
 }
@@ -465,7 +465,7 @@
   color: var(--auth-input-text);
   box-sizing: border-box;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -535,7 +535,7 @@
   font-size: clamp(14px, 1.2vw, 16px);
   color: var(--auth-input-text);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   text-align: left;
   background-color: var(--auth-input-bg);
   border-bottom: 1px solid #f0f0f0;
@@ -611,7 +611,7 @@
   font-size: clamp(16px, 1.4vw, 18px);
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   font-family: 'Libre Caslon Text', serif;
   min-width: clamp(130px, 12vw, 160px);
   margin-top: clamp(-25px, 0vw, -15px);
@@ -654,7 +654,7 @@
   font-size: clamp(16px, 1.4vw, 18px);
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   font-family: 'Libre Caslon Text', serif;
   min-width: clamp(130px, 12vw, 160px);
   margin-top: clamp(-25px, 0vw, -15px);
@@ -1245,7 +1245,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   position: absolute;
   right: 15px;
   top: 15px;
@@ -1284,7 +1284,7 @@
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1421,7 +1421,7 @@
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1530,7 +1530,7 @@
   border: 2px solid var(--auth-border-color);
   border-radius: 10px;
   font-family: 'Courier New', monospace;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .code-input:focus {

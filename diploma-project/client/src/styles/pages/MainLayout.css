@@ -180,7 +180,7 @@
   font-family: 'Libre Caslon Text', serif;
   color: #222222;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -231,7 +231,7 @@
   font-family: 'Libre Caslon Text', serif;
   color: #222222;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   text-align: center;
   background-color: transparent !important;
   background: none !important;
@@ -317,7 +317,7 @@
   font-size: clamp(16px, 1.2vw, 18px);
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border: none;
   outline: none;
   white-space: nowrap;

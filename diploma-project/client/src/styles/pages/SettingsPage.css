@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-
+﻿
 .settings-page {
   max-width: 90%;
   margin: 0 auto;
@@ -44,7 +43,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   min-width: 200px;
   min-height: 50px;
@@ -133,7 +132,7 @@
   border-radius: 12px;
   background: var(--bg-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   text-align: center;
   min-height: 150px;
   justify-content: center;
@@ -214,7 +213,7 @@
   border-radius: 12px;
   background: var(--bg-primary);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   font-size: 16px;
   font-weight: 500;
   color: var(--text-primary);
@@ -244,7 +243,7 @@
   border-radius: 12px;
   margin-bottom: 16px;
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-height: 100px;
 }
 
@@ -337,7 +336,7 @@ input:checked + .toggle-slider:before {
   border-radius: 12px;
   margin-bottom: 16px;
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-height: 120px;
 }
 
@@ -504,12 +503,6 @@ input:checked + .toggle-slider:before {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 2000;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 /* ОСНОВНОЕ МОДАЛЬНОЕ ОКНО */
@@ -523,41 +516,23 @@ input:checked + .toggle-slider:before {
   width: 90%;
   max-width: 600px;
   z-index: 2001;
-  animation: slideIn 0.3s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   max-height: 90vh;
   overflow-y: auto;
 }
 
-@keyframes slideIn {
-  from { 
-    transform: translate(-50%, -50%) scale(0.95);
-    opacity: 0; 
-  }
-  to { 
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1; 
-  }
-}
-
 /* СПЕЦИФИЧНЫЕ СТИЛИ ДЛЯ УВЕДОМЛЕНИЯ ОБ УСПЕШНОЙ ОЧИСТКЕ КЭША */
 .modal.notification-modal {
-  position: fixed !important;
-  top: 50% !important;
-  left: 50% !important;
-  transform: translate(-50%, -50%) !important;
   width: 90% !important;
   max-width: 400px !important;
   min-width: 300px !important;
   z-index: 2002 !important;
-  animation: slideInScale 0.3s ease;
   border-radius: 12px;
   background: var(--bg-primary);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
 
-/* Принудительно переопределяем любые возможные конфликты */
 .settings-page .modal.notification-modal,
 .settings-container .modal.notification-modal {
   position: fixed !important;
@@ -565,17 +540,6 @@ input:checked + .toggle-slider:before {
   left: 50% !important;
   transform: translate(-50%, -50%) !important;
   margin: 0 !important;
-}
-
-@keyframes slideInScale {
-  from { 
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 0; 
-  }
-  to { 
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1; 
-  }
 }
 
 /* Стили для контента уведомления */

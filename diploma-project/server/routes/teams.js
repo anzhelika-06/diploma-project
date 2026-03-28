@@ -142,7 +142,7 @@ router.post('/', async (req, res) => {
   const client = await pool.connect();
   
   try {
-    const { name, description, avatar_emoji, goal_description, goal_target, creator_id } = req.body;
+    const { name, description, avatar_emoji, goal_description, goal_target, goal_category, creator_id } = req.body;
 
     // Валидация обязательных полей
     if (!name || !creator_id) {
@@ -198,15 +198,16 @@ router.post('/', async (req, res) => {
 
     // Создаем команду
     const teamResult = await client.query(`
-      INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, member_count)
-      VALUES ($1, $2, $3, $4, $5, 1)
-      RETURNING id, name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count, created_at
+      INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_category, member_count)
+      VALUES ($1, $2, $3, $4, $5, $6, 1)
+      RETURNING id, name, description, avatar_emoji, goal_description, goal_target, goal_category, goal_current, carbon_saved, member_count, created_at
     `, [
       name, 
       description, 
       avatar_emoji,
       goal_description,
-      goal_target
+      goal_target,
+      goal_category || null
     ]);
 
     const team = teamResult.rows[0];

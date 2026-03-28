@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-
+﻿
 /* Основные стили страницы рейтинга */
 .leaderboard-page {
   margin: 0;
@@ -97,7 +96,7 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-width: 150px;
   justify-content: center;
 }

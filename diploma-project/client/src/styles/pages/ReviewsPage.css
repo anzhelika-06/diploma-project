@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
 @import '../variables.css';
 
 /* Тема переменные */
@@ -91,7 +90,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   min-width: 200px;
   min-height: 50px;
@@ -143,7 +142,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   font-family: 'Libre Caslon Text', serif;
   min-height: 50px;
   min-width: 220px;
@@ -198,7 +197,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-height: 50px;
   min-width: 120px;
   font-family: 'Libre Caslon Text', serif;
@@ -238,7 +237,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-height: 50px;
   min-width: 140px;
   font-family: 'Libre Caslon Text', serif;
@@ -295,7 +294,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   font-family: 'Libre Caslon Text', serif;
   min-height: 40px;
   display: inline-flex;
@@ -337,7 +336,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   height: 42px;
   box-sizing: border-box;
 }
@@ -405,7 +404,7 @@
   font-size: 14px;
   color: #1a1a1a;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-bottom: 1px solid #f0f0f0;
   background: #ffffff;
   text-align: left;
@@ -515,7 +514,7 @@
   border-radius: 12px;
   padding: 24px;
   border: 1px solid var(--border-color);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-sizing: border-box;
   min-height: 280px;
   display: flex;
@@ -684,7 +683,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-height: 36px;
   min-width: 70px;
   justify-content: center;
@@ -744,7 +743,7 @@
   color: #666;
   font-size: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-height: 36px;
   min-width: 36px;
 }
@@ -972,7 +971,7 @@
   font-family: 'Libre Caslon Text', serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-sizing: border-box;
   max-height: 100px;
 }
@@ -1007,7 +1006,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-width: 100px;
   height: 40px;
   display: flex;
@@ -1030,7 +1029,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-width: 100px;
   height: 40px;
   display: flex;
@@ -1071,7 +1070,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   height: 42px;
   box-sizing: border-box;
 }
@@ -1765,7 +1764,7 @@
   font-size: 16px; /* Увеличил шрифт кнопок */
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-width: 140px; /* Увеличил минимальную ширину */
   height: 48px; /* Увеличил высоту */
   display: flex;
@@ -1930,7 +1929,7 @@
   font-family: 'Libre Caslon Text', serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-sizing: border-box;
 }
 
@@ -1964,7 +1963,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-width: 100px;
   height: 40px;
   display: flex;
@@ -1987,7 +1986,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   min-width: 100px;
   height: 40px;
   display: flex;
@@ -2028,7 +2027,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   height: 42px;
   box-sizing: border-box;
 }

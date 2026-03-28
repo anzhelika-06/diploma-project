@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/components/NotificationSystem.css'
 
 const NotificationSystem = ({ isVisible, onClose }) => {
+  const { t } = useLanguage()
   const [notifications, setNotifications] = useState([])
   const [settings, setSettings] = useState({
     ecoTips: true,
@@ -216,14 +218,14 @@ const NotificationSystem = ({ isVisible, onClose }) => {
           <button 
             className="clear-all-btn"
             onClick={clearAllNotifications}
-            title="Очистить все"
+            title={t('clearAllNotifications')}
           >
             <span className="material-icons">delete_sweep</span>
           </button>
           <button 
             className="close-btn"
             onClick={onClose}
-            title="Скрыть"
+            title={t('hideNotifications')}
           >
             <span className="material-icons">close</span>
           </button>
@@ -276,7 +278,7 @@ const NotificationSystem = ({ isVisible, onClose }) => {
               <button 
                 className="remove-notification-btn"
                 onClick={() => removeNotification(notification.id)}
-                title="Удалить уведомление"
+                title={t('deleteNotification')}
               >
                 <span className="material-icons">close</span>
               </button>

@@ -43,7 +43,7 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-btn-create-team:hover {
@@ -76,7 +76,7 @@
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   margin-bottom: -2px;
 }
 
@@ -120,7 +120,7 @@
   font-size: 16px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-search-input:focus {
@@ -161,7 +161,7 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .team-card:hover {
@@ -245,7 +245,7 @@
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -311,7 +311,7 @@
   height: 100%;
   background: linear-gradient(90deg, var(--primary-color), #66bb6a);
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width 0.2s ease;
 }
 
 .teams-goal-percentage {
@@ -359,7 +359,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-btn-view-members {
@@ -456,7 +456,7 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .modal-close:hover {
@@ -601,7 +601,7 @@ form.modal-body {
   font-size: 14px;
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-form-group input:focus,
@@ -631,7 +631,7 @@ form.modal-body {
   background: var(--bg-primary);
   font-size: 24px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -663,7 +663,7 @@ form.modal-body {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-member-card:hover {
@@ -710,7 +710,7 @@ form.modal-body {
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-btn-remove-member:hover {
@@ -724,7 +724,7 @@ form.modal-body {
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-btn-report-member:hover {
@@ -741,7 +741,7 @@ form.modal-body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .teams-btn-primary {
@@ -865,11 +865,11 @@ form.modal-body {
 @keyframes modalFadeIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
+    transform: scale(0.97) translateY(-8px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -1210,3 +1210,156 @@ form.modal-body {
     font-size: 16px;
   }
 }
+
+/* ── Goal type selector ── */
+.teams-goal-category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.teams-goal-cat-btn {
+  padding: 5px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+.teams-goal-cat-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.teams-goal-cat-btn:active {
+  font-weight: 500;
+}
+
+.teams-goal-cat-btn.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+  font-weight: 500;
+}
+
+.teams-goal-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 2px;
+  border-radius: 8px;
+}
+
+.teams-goal-types-grid.error-border {
+  outline: 2px solid #f44336;
+  border-radius: 8px;
+}
+
+.teams-goal-type-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
+  font-weight: 400;
+  text-align: left;
+  min-height: 44px;
+}
+
+.teams-goal-type-card:hover {
+  border-color: var(--primary-color);
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.teams-goal-type-card:active {
+  font-weight: 400;
+}
+
+.teams-goal-type-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(76, 175, 80, 0.1);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.teams-goal-type-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.teams-goal-type-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.teams-goal-type-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.3;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  -webkit-font-smoothing: antialiased;
+}
+
+.teams-goal-type-card:active .teams-goal-type-label {
+  font-weight: 500;
+}
+
+.teams-goal-type-unit {
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.teams-goal-preview {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: rgba(76, 175, 80, 0.08);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  flex-wrap: wrap;
+}
+
+.teams-goal-preview-co2 {
+  font-weight: 700;
+  color: var(--primary-color);
+  white-space: nowrap;
+}
+
+/* Scrollbar for goal grid */
+.teams-goal-types-grid::-webkit-scrollbar { width: 4px; }
+.teams-goal-types-grid::-webkit-scrollbar-track { background: transparent; }
+.teams-goal-types-grid::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }

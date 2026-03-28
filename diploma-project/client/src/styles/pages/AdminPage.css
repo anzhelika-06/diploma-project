@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-
+﻿
 /* Основные стили админ-панели */
 .admin-page {
   margin: 0;
@@ -65,7 +64,7 @@
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   min-width: 200px;
   min-height: 50px;
@@ -207,7 +206,7 @@
   background: #ffffff;
   border-radius: var(--radius-lg) !important;
   border: 1px solid #d9d9d9;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
@@ -287,7 +286,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   height: 42px;
   box-sizing: border-box;
 }
@@ -346,7 +345,7 @@
   font-size: 14px;
   color: #1a1a1a;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-bottom: 1px solid #f0f0f0;
   background: #ffffff;
 }
@@ -1279,7 +1278,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   height: 42px;
   box-sizing: border-box;
 }
@@ -1339,7 +1338,7 @@
   font-size: 14px;
   color: #1a1a1a;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-bottom: 1px solid #f0f0f0;
   background: #ffffff;
   display: flex;
@@ -2656,8 +2655,8 @@
 
 .ticket-status .status-badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 4px !important;
+  padding: 4px 12px;
+  border-radius: 20px !important;
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
@@ -4225,7 +4224,7 @@
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border: 2px solid #e9ecef;
   background: repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
 }

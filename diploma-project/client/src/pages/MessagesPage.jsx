@@ -341,7 +341,7 @@ const MessagesPage = () => {
     if (!socket) return;
     socket.emit('get:online:users');
     const handleOnlineList = ({ users }) => {
-      if (Array.isArray(users)) setOnlineUsers(new Set(users.map(u => u.userId)));
+      if (Array.isArray(users)) setOnlineUsers(new Set(users.map(u => String(u.userId))));
     };
     const handleDirect = (msg) => {
       const chat = activeChatRef.current;
@@ -365,8 +365,8 @@ const MessagesPage = () => {
         unread_count: isActive ? 0 : (t.unread_count || 0) + (msg.sender_id !== currentUser?.id ? 1 : 0)
       } : t).sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0)));
     };
-    const handleOnline = ({ userId }) => setOnlineUsers(prev => new Set([...prev, userId]));
-    const handleOffline = ({ userId }) => setOnlineUsers(prev => { const s = new Set(prev); s.delete(userId); return s; });
+    const handleOnline = ({ userId }) => setOnlineUsers(prev => new Set([...prev, String(userId)]));
+    const handleOffline = ({ userId }) => setOnlineUsers(prev => { const s = new Set(prev); s.delete(String(userId)); return s; });
     socket.on('online:users:list', handleOnlineList);
     socket.on('message:direct', handleDirect);
     socket.on('message:team', handleTeam);
@@ -574,9 +574,15 @@ const MessagesPage = () => {
                       : onlineUsers.has(activeChat.id) ? t('online') : t('offline')}
                   </span>
                 </div>
-                <button className="messages-info-btn" onClick={openInfo} title={t('infoTitle')}>
-                  <InfoIcon />
-                </button>
+                {activeChat.type === 'team' && (
+                  <button
+                    className={`messages-info-btn${showInfo ? ' messages-info-btn--active' : ''}`}
+                    onClick={showInfo ? closeInfo : openInfo}
+                    title={showInfo ? t('closeInfo') : t('infoTitle')}
+                  >
+                    {showInfo ? <CloseIcon /> : <InfoIcon />}
+                  </button>
+                )}
               </div>
 
               <div className="messages-body">

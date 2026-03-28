@@ -148,7 +148,7 @@
   overflow: visible;
   border: none;
   box-shadow: none;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 /* В темной теме добавляем обводку как у кнопки */
@@ -207,7 +207,7 @@
   color: var(--auth-input-text);
   box-sizing: border-box;
   outline: none;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 /* В темной теме текстбоксы остаются темными */
@@ -320,7 +320,7 @@
   font-size: clamp(16px, 1.4vw, 18px);
   font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   font-family: 'Libre Caslon Text', serif;
   align-self: flex-end;
   min-width: clamp(130px, 12vw, 160px);
@@ -478,7 +478,7 @@
   align-items: center;
   justify-content: center;
   z-index: 10;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   animation: soundPulse 2s infinite;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

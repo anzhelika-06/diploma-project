@@ -18,7 +18,10 @@ export default defineConfig({
         target: 'http://server:3001',
         changeOrigin: true,
         ws: true,
-        secure: false
+        secure: false,
+        configure: (proxy) => {
+          proxy.on('error', () => {}) // подавляем лог ECONNREFUSED
+        }
       }
     }
   }

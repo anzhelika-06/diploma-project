@@ -281,10 +281,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 18px;
+  padding: 9px 18px;
   border-bottom: 1px solid #e8e8e8;
   background: #fafafa;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
 [data-theme="dark"] .messages-chat-header {
@@ -383,17 +385,17 @@
 
 .messages-msg-bubble {
   background: #f0f0f0;
-  border-radius: 16px 16px 16px 4px;
-  padding: 9px 13px;
+  border-radius: 12px 12px 12px 3px;
+  padding: 7px 11px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   max-width: 100%;
 }
 
 .messages-msg--own .messages-msg-bubble {
   background: #e8f5e9;
-  border-radius: 16px 16px 4px 16px;
+  border-radius: 12px 12px 3px 12px;
 }
 
 [data-theme="dark"] .messages-msg-bubble {
@@ -815,6 +817,7 @@
 /* Info button in header */
 .messages-info-btn {
   margin-left: auto;
+  margin-right: 40px;
   background: none;
   border: none;
   cursor: pointer;
@@ -837,7 +840,18 @@
   color: #81c784;
 }
 
-/* Кликабельное имя/аватар в info panel */
+.messages-info-btn--active {
+  background: #f0f0f0;
+  color: #e53935;
+  margin-right: 0;
+}
+
+[data-theme="dark"] .messages-info-btn--active {
+  background: #3a3a3a;
+  color: #ef9a9a;
+}
+
+
 .msg-info-avatar-btn {
   background: none;
   border: none;

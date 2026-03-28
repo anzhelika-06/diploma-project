@@ -56,7 +56,7 @@
   border-radius: 8px;
   font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   margin-bottom: 1rem;
 }
 
@@ -1495,7 +1495,7 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-post:hover:not(:disabled) {
@@ -1576,7 +1576,7 @@
   cursor: pointer;
   padding: 8px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-delete-post:hover {
@@ -1628,7 +1628,7 @@
   color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-like:hover,
@@ -1709,7 +1709,7 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
 }
 
 .btn-delete-comment:hover {
@@ -1751,7 +1751,7 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;

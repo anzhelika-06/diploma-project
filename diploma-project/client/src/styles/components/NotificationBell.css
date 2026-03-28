@@ -3,7 +3,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 1000;
+  z-index: 500;
 }
 
 /* Кнопка колокольчика */
@@ -407,7 +407,7 @@
   .notification-bell-container {
     top: 12px;
     right: 12px;
-    z-index: 999; /* Ниже чем модальные окна, но выше контента */
+    z-index: 500;
   }
 
   .notification-bell-button {
@@ -456,7 +456,7 @@
   .notification-bell-container {
     top: 10px;
     right: 10px;
-    z-index: 999;
+    z-index: 500;
   }
 
   .notification-bell-button {

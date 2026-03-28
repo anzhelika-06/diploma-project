@@ -23,6 +23,7 @@ const supportRoutes = require('./routes/support');
 const postsRoutes = require('./routes/posts');
 const calculationsRouter = require('./routes/calculations');
 const profileRouter = require('./routes/profile');
+const petRouter = require('./routes/pet');
 const messagesRouter = require('./routes/messages');
 const app = express();
 const server = http.createServer(app);
@@ -323,6 +324,7 @@ app.use('/api/posts', postsRoutes);
 app.use('/api/calculations', calculationsRouter);
 app.use('/api/users', profileRouter);
 app.use('/api/messages', messagesRouter);
+app.use('/api/pet', petRouter);
 // Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {
   console.log('GET /api/eco-tips/daily');

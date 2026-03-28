@@ -120,7 +120,7 @@
   font-family: 'Libre Caslon Text', serif;
   color: #666;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
 }
@@ -266,7 +266,7 @@
   font-size: clamp(14px, 1.1vw, 16px);
   color: #666;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
@@ -317,7 +317,7 @@
   background: var(--about-story-bg);
   border-radius: 15px;
   padding: 25px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border-left: 4px solid #7cb342;
   border: 1px solid transparent;
 }
@@ -416,7 +416,7 @@
   font-size: clamp(14px, 1.1vw, 16px);
   color: #666;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
@@ -471,7 +471,7 @@
   border-radius: 15px;
   padding: 20px;
   margin-bottom: 15px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border: 2px solid transparent;
 }
 
@@ -710,7 +710,7 @@
   cursor: pointer;
   font-size: 13px;
   color: #666;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   position: relative;
   overflow: hidden;

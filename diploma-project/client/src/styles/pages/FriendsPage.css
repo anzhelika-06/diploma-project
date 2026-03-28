@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-
+﻿
 /* Тема переменные */
 :root {
   --primary-color: #4caf50;
@@ -69,7 +68,7 @@
   border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 15px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -180,7 +179,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 20px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   border: 1px solid var(--border-color);
   min-height: 80px;
 }
@@ -283,7 +282,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.3s ease;
+  transition: all 0.15s ease;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-width: 40px;

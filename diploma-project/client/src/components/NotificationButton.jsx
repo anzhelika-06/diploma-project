@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/components/NotificationButton.css'
 
 const NotificationButton = ({ onClick, hasNotifications = false }) => {
+  const { t } = useLanguage()
   const [settings, setSettings] = useState({
     notifications: true
   })
@@ -81,8 +83,7 @@ const NotificationButton = ({ onClick, hasNotifications = false }) => {
     <button 
       className={`notification-button ${hasNotifications ? 'has-notifications' : ''}`}
       onClick={onClick}
-      title="Уведомления"
-    >
+      title={t('notificationsButtonTitle')}    >
       <span className="material-icons">
         {hasNotifications ? 'notifications_active' : 'notifications'}
       </span>
