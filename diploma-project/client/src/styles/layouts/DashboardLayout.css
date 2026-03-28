@@ -11,6 +11,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 
 /* Темная тема */
@@ -61,6 +62,6 @@
 @media (max-width: 768px) {
   .dashboard-main {
     margin-left: 0;
-    padding-bottom: 0; /* Footer сам добавит отступ */
+    padding-bottom: 72px; /* space for MobileNav */
   }
 }

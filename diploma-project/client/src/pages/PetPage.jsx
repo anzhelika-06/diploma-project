@@ -205,10 +205,29 @@ const STAGE_LABELS = {
   BY: ['Малы', 'Падлетак', 'Дарослы', 'Мудрэц', 'Легенда'],
 };
 
+// Stage index: 0=Baby(1-5), 1=Teen(6-10), 2=Adult(11-15), 3=Sage(16-20), 4=Legend(21+)
+function getStageIndex(level) {
+  return Math.min(Math.floor((level - 1) / 5), 4);
+}
+
 function getStageLabel(level, lang) {
   const labels = STAGE_LABELS[lang] || STAGE_LABELS.RU;
-  return labels[Math.min(Math.floor((level - 1) / 5), labels.length - 1)];
+  return labels[getStageIndex(level)];
 }
+
+// Scene theme per stage
+const STAGE_SCENES = [
+  // 0 Baby — sunny meadow
+  { light: 'linear-gradient(160deg,#b3e5fc 0%,#e8f5e9 50%,#c8e6c9 100%)', dark: 'linear-gradient(160deg,#1a2a3a 0%,#1a2e1a 50%,#162416 100%)' },
+  // 1 Teen — forest
+  { light: 'linear-gradient(160deg,#a5d6a7 0%,#c8e6c9 40%,#81c784 100%)', dark: 'linear-gradient(160deg,#0d2b0d 0%,#1b3a1b 50%,#0a1f0a 100%)' },
+  // 2 Adult — mountains
+  { light: 'linear-gradient(160deg,#b0bec5 0%,#e3f2fd 45%,#90caf9 100%)', dark: 'linear-gradient(160deg,#1a2030 0%,#263040 50%,#1a2535 100%)' },
+  // 3 Sage — sunset
+  { light: 'linear-gradient(160deg,#ffe0b2 0%,#ffccbc 45%,#ffab91 100%)', dark: 'linear-gradient(160deg,#2d1a0a 0%,#3d2010 50%,#2a1508 100%)' },
+  // 4 Legend — night sky
+  { light: 'linear-gradient(160deg,#7986cb 0%,#9575cd 45%,#ce93d8 100%)', dark: 'linear-gradient(160deg,#0d0d2b 0%,#1a1040 50%,#0d0820 100%)' },
+];
 
 function canFeedToday(lastFedAt) {
   if (!lastFedAt) return true;
@@ -216,16 +235,24 @@ function canFeedToday(lastFedAt) {
 }
 
 // ── Mood effects ──
-function HappyStars() {
-  const stars = ['⭐','✨','🌟','💫','⭐','✨'];
+function HappySparkles() {
+  const items = [
+    { emoji: '✨', x: '18%', y: '12%', dur: '2.4s', delay: '0s' },
+    { emoji: '🌿', x: '78%', y: '8%',  dur: '3.1s', delay: '0.5s' },
+    { emoji: '💚', x: '88%', y: '38%', dur: '2.7s', delay: '1.1s' },
+    { emoji: '🍃', x: '10%', y: '42%', dur: '3.4s', delay: '0.3s' },
+    { emoji: '✨', x: '55%', y: '5%',  dur: '2.9s', delay: '0.8s' },
+    { emoji: '💫', x: '30%', y: '18%', dur: '3.2s', delay: '1.4s' },
+  ];
   return (
-    <div className="pet-stars">
-      {stars.map((s, i) => (
-        <span key={i} className="pet-star" style={{
-          '--dur': `${2.8 + i * 0.3}s`,
-          '--delay': `${i * 0.45}s`,
-          '--angle': `${i * 60}deg`,
-        }}>{s}</span>
+    <div className="pet-sparkles">
+      {items.map((s, i) => (
+        <span key={i} className="pet-sparkle-item" style={{
+          '--dur': s.dur,
+          '--delay': s.delay,
+          left: s.x,
+          top: s.y,
+        }}>{s.emoji}</span>
       ))}
     </div>
   );
@@ -234,7 +261,8 @@ function HappyStars() {
 function NeutralThought({ t }) {
   return (
     <div className="pet-thought">
-      🍽️ {t('petThoughtHungry') || 'Хочу кушать...'}
+      <span className="pet-thought-icon">🍽️</span>
+      <span>{t('petThoughtHungry') || 'Хочу кушать...'}</span>
     </div>
   );
 }
@@ -334,9 +362,11 @@ export default function PetPage() {
   const [loading, setLoading] = useState(true);
   const [ecoCoins, setEcoCoins] = useState(0);
   const [feeding, setFeeding] = useState(false);
+  const [reviving, setReviving] = useState(false);
   const [eatAnim, setEatAnim] = useState(false);
   const [particles, setParticles] = useState(false);
   const [levelUpMsg, setLevelUpMsg] = useState(null);
+  const [levelFlash, setLevelFlash] = useState(false);
   const [feedMsg, setFeedMsg] = useState(null);
   const [renameVal, setRenameVal] = useState('');
   const [showRename, setShowRename] = useState(false);
@@ -379,6 +409,8 @@ export default function PetPage() {
         if (data.leveled_up) {
           clearTimeout(lvlTimer.current);
           setLevelUpMsg(`🎉 ${t('petLevel') || 'Уровень'} ${data.new_level}!`);
+          setLevelFlash(true);
+          setTimeout(() => setLevelFlash(false), 700);
           lvlTimer.current = setTimeout(() => setLevelUpMsg(null), 2600);
         }
       } else {
@@ -389,6 +421,26 @@ export default function PetPage() {
       }
     } catch { setFeedMsg({ text: 'Ошибка', type: 'error' }); }
     setFeeding(false);
+  };
+
+  const handleRevive = async () => {
+    if (reviving) return;
+    setReviving(true); setFeedMsg(null);
+    try {
+      const res = await fetch(`${API}/revive`, { method: 'POST', headers: { ...authHeader(), 'Content-Type': 'application/json' } });
+      const data = await res.json();
+      if (data.success) {
+        setPet(data.pet); setEcoCoins(data.eco_coins);
+        setParticles(true);
+        setTimeout(() => setParticles(false), 900);
+      } else {
+        const msgs = { not_enough_coins: t('petNotEnoughCoins') || 'Недостаточно экоинов', pet_not_dead: 'Питомец ещё жив!' };
+        clearTimeout(msgTimer.current);
+        setFeedMsg({ text: msgs[data.error] || data.error, type: 'error' });
+        msgTimer.current = setTimeout(() => setFeedMsg(null), 3000);
+      }
+    } catch { setFeedMsg({ text: 'Ошибка', type: 'error' }); }
+    setReviving(false);
   };
 
   const handleRename = async () => {
@@ -414,17 +466,39 @@ export default function PetPage() {
   const petDef = PET_TYPES.find(p => p.id === pet.pet_type);
   const displayName = pet.name || petDef?.name[lang] || 'Питомец';
   const stageLabel = getStageLabel(pet.level, lang);
+  const stageIndex = getStageIndex(pet.level);
   const xpPct = Math.min(100, Math.round((pet.xp / pet.xp_to_next_level) * 100));
   const canFeed = canFeedToday(pet.last_fed_at);
   const minStat = Math.min(pet.hunger, pet.happiness);
-  const mood = minStat < 30 ? 'sad' : minStat < 70 ? 'neutral' : 'happy';
-  const figClass = eatAnim ? 'anim-eat' : mood === 'sad' ? 'anim-sad' : mood === 'neutral' ? 'anim-neutral' : 'anim-float';
+  const isDead = pet.hunger === 0 && pet.happiness === 0;
+  const mood = isDead ? 'dead' : minStat < 30 ? 'sad' : minStat < 70 ? 'neutral' : 'happy';
+  const figClass = isDead ? 'anim-dead' : eatAnim ? 'anim-eat' :
+    mood === 'sad' ? 'anim-sad' :
+    mood === 'neutral' ? 'anim-neutral' :
+    // happy — stage-based animation
+    stageIndex === 0 ? 'anim-baby' :
+    stageIndex === 1 ? 'anim-teen' :
+    stageIndex === 2 ? 'anim-float' :
+    stageIndex === 3 ? 'anim-sage' :
+    'anim-legend';
+
+  const daysWithPet = pet.created_at
+    ? Math.max(1, Math.floor((Date.now() - new Date(pet.created_at)) / 86400000))
+    : 1;
 
   const moodMsg = {
     happy:   t('petMoodHappy')   || '😊 Питомец счастлив!',
     neutral: t('petMoodNeutral') || '😐 Питомец немного голоден',
     sad:     t('petMoodSad')     || '😢 Питомец грустит, покорми его!',
+    dead:    t('petMoodDead')    || '💀 Питомец без сознания...',
   };
+
+  const TIPS = [
+    { icon: '🍃', text: t('petTip1') || 'Корми питомца раз в день, чтобы поддерживать сытость и счастье.' },
+    { icon: '📉', text: t('petTip2') || 'Если пропустить день — сытость падает на 20%, счастье на 15%.' },
+    { icon: '⭐', text: t('petTip3') || 'Каждое кормление даёт +30 XP и приближает к новому уровню.' },
+    { icon: '💀', text: t('petTip4') || 'Если оба показателя упадут до 0 — питомца нужно восстановить за 50 монет.' },
+  ];
 
   return (
     <div className="pet-page">
@@ -433,22 +507,50 @@ export default function PetPage() {
         {/* ── LEFT ── */}
         <div className="pet-left">
 
+          {/* Stats */}
+          <div className="pet-stats-card">
+            <p className="pet-stats-title">{t('petStatsTitle') || '📊 Статистика'}</p>
+            <div className="pet-stats-grid">
+              <div className="pet-stat-item">
+                <span className="pet-stat-val">{pet.level}</span>
+                <span className="pet-stat-label">{t('petLevel') || 'Уровень'}</span>
+              </div>
+              <div className="pet-stat-item">
+                <span className="pet-stat-val">{daysWithPet}</span>
+                <span className="pet-stat-label">{t('petDays') || 'Дней вместе'}</span>
+              </div>
+              <div className="pet-stat-item">
+                <span className="pet-stat-val">{stageLabel}</span>
+                <span className="pet-stat-label">{t('petStage') || 'Стадия'}</span>
+              </div>
+              <div className="pet-stat-item">
+                <span className="pet-stat-val">{xpPct}%</span>
+                <span className="pet-stat-label">{t('petXpProgress') || 'До уровня'}</span>
+              </div>
+            </div>
+          </div>
+
           {/* Scene */}
-          <div className={`pet-scene mood-${mood}`}>
+          <div
+            className={`pet-scene mood-${mood}${levelFlash ? ' level-flash' : ''}`}
+            style={mood === 'happy' || mood === 'neutral' ? {
+              '--scene-bg-light': STAGE_SCENES[stageIndex].light,
+              '--scene-bg-dark': STAGE_SCENES[stageIndex].dark,
+            } : {}}
+          >
             <span className="pet-cloud">☁️</span>
             <span className="pet-cloud">☁️</span>
-            <div className="pet-scene-ground" />
             {levelUpMsg && <div className="pet-levelup">{levelUpMsg}</div>}
-            {mood === 'happy'   && <HappyStars />}
+            {mood === 'happy'   && <HappySparkles />}
             {mood === 'neutral' && <NeutralThought t={t} />}
             {mood === 'sad'     && <SadTears />}
             <div className="pet-character-wrap">
-              <div style={{ position: 'relative' }}>
+              <div className={`pet-stage-${stageIndex}`}>
                 <PetComp className={figClass} />
                 <Particles active={particles} />
               </div>
-              <div className="pet-name-tag">{displayName}</div>
             </div>
+            <div className="pet-name-tag">{displayName}</div>
             <div className={`pet-status-msg ${mood}`}>{moodMsg[mood]}</div>
             <div className="pet-bars">
               <div className="pet-bar-row">
@@ -464,9 +566,20 @@ export default function PetPage() {
             </div>
           </div>
 
-          {/* Tips */}
-          <div className="pet-tips">
-            <p><strong>{t('petTipsTitle') || 'Советы:'}</strong><br />{t('petTips') || 'Корми питомца раз в день экоинами. Если пропустить — сытость и счастье уменьшаются.'}</p>
+          {/* Rename */}
+          <div className="pet-card">
+            <h4>✏️ {t('petRename') || 'Переименовать'}</h4>
+            {showRename ? (
+              <div className="pet-rename-row">
+                <input placeholder={t('petNewName') || 'Новое имя'} value={renameVal}
+                  onChange={e => setRenameVal(e.target.value)} maxLength={20}
+                  onKeyDown={e => e.key === 'Enter' && handleRename()} autoFocus />
+                <button className="pet-btn-sm" onClick={handleRename}>{t('save') || 'Сохранить'}</button>
+                <button className="pet-btn-sm cancel" onClick={() => setShowRename(false)}>✕</button>
+              </div>
+            ) : (
+              <button className="pet-btn-sm full" onClick={() => setShowRename(true)}>{t('petRename') || 'Переименовать'}</button>
+            )}
           </div>
         </div>
 
@@ -492,33 +605,55 @@ export default function PetPage() {
             <div className="pet-xp-track"><div className="pet-xp-fill" style={{ width: `${xpPct}%` }} /></div>
           </div>
 
-          {/* Feed */}
+          {/* Feed / Revive */}
           <div className="pet-card">
             <h4>🍃 {t('petFeedTitle') || 'Кормление'}</h4>
-            <button className="pet-feed-btn" onClick={handleFeed} disabled={!canFeed || feeding || ecoCoins < 10}>
-              {canFeed
-                ? (feeding ? '...' : <>{t('petFeedBtn') || 'Покормить'} · 10 <img src={ecoinsImage} alt="eco" className="pet-coin-icon-sm" /></>)
-                : (t('petFedToday') || 'Покормлен сегодня ✓')}
-            </button>
-            {feedMsg && <span className={`pet-hint ${feedMsg.type}`}>{feedMsg.text}</span>}
-            {!feedMsg && canFeed && <span className="pet-hint">{t('petFeedHint') || '+30 XP за кормление'}</span>}
-            {!canFeed && <span className="pet-hint">{t('petNextFeed') || 'Следующее кормление завтра'}</span>}
-          </div>
-
-          {/* Rename */}
-          <div className="pet-card">
-            <h4>✏️ {t('petRename') || 'Переименовать'}</h4>
-            {showRename ? (
-              <div className="pet-rename-row">
-                <input placeholder={t('petNewName') || 'Новое имя'} value={renameVal}
-                  onChange={e => setRenameVal(e.target.value)} maxLength={20}
-                  onKeyDown={e => e.key === 'Enter' && handleRename()} autoFocus />
-                <button className="pet-btn-sm" onClick={handleRename}>{t('save') || 'Сохранить'}</button>
-                <button className="pet-btn-sm cancel" onClick={() => setShowRename(false)}>✕</button>
+            {isDead ? (
+              <div className="pet-revive-block">
+                <div className="pet-revive-warning">
+                  <span className="pet-revive-icon">💀</span>
+                  <p>{t('petDeadMsg') || 'Питомец без сознания. Восстановите его!'}</p>
+                </div>
+                <button
+                  className="pet-revive-btn"
+                  onClick={handleRevive}
+                  disabled={reviving || ecoCoins < 50}
+                  data-tooltip={ecoCoins < 50 ? (t('petNotEnoughCoins') || 'Недостаточно экоинов') : undefined}
+                >
+                  {reviving ? '...' : (t('petReviveBtn') || 'Восстановить')}
+                </button>
+                {feedMsg && <span className={`pet-hint ${feedMsg.type}`}>{feedMsg.text}</span>}
               </div>
             ) : (
-              <button className="pet-btn-sm full" onClick={() => setShowRename(true)}>✏️ {t('petRename') || 'Переименовать'}</button>
+              <>
+                <button
+                  className="pet-feed-btn"
+                  onClick={handleFeed}
+                  disabled={!canFeed || feeding || ecoCoins < 10}
+                  data-tooltip={ecoCoins < 10 ? (t('petNotEnoughCoins') || 'Недостаточно экоинов') : undefined}
+                >
+                  {canFeed
+                    ? (feeding ? '...' : (t('petFeedBtn') || 'Покормить'))
+                    : (t('petFedToday') || 'Покормлен сегодня ✓')}
+                </button>
+                {feedMsg && <span className={`pet-hint ${feedMsg.type}`}>{feedMsg.text}</span>}
+                {!feedMsg && canFeed && <span className="pet-hint">{t('petFeedHint') || '+30 XP за кормление'}</span>}
+                {!canFeed && <span className="pet-hint">{t('petNextFeed') || 'Следующее кормление завтра'}</span>}
+              </>
             )}
+          </div>
+
+          {/* Tips — right column */}
+          <div className="pet-tips">
+            <p className="pet-tips-title">{t('petTipsTitle') || '💡 Советы'}</p>
+            <div className="pet-tips-list">
+              {TIPS.map((tip, i) => (
+                <div key={i} className="pet-tip-item">
+                  <span className="pet-tip-icon">{tip.icon}</span>
+                  <span className="pet-tip-text">{tip.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Delete */}
@@ -533,35 +668,10 @@ export default function PetPage() {
                 </div>
               </div>
             ) : (
-              <button className="pet-btn-sm danger full" onClick={() => setShowDeleteConfirm(true)}>🗑️ {t('petDelete') || 'Удалить питомца'}</button>
+              <button className="pet-btn-sm danger full" onClick={() => setShowDeleteConfirm(true)}>{t('petDelete') || 'Удалить питомца'}</button>
             )}
           </div>
 
-          {/* Debug — dev only */}
-          {import.meta.env.DEV && (
-            <div className="pet-card pet-debug-card">
-              <h4>🛠 Debug</h4>
-              <div className="pet-debug-btns">
-                {[
-                  { label: 'Грустный (10%)',    body: { hunger: 10, happiness: 10 } },
-                  { label: 'Нейтральный (50%)', body: { hunger: 50, happiness: 50 } },
-                  { label: 'Счастливый (100%)', body: { hunger: 100, happiness: 100 } },
-                  { label: 'Пропустил день',    body: { last_fed_at: new Date(Date.now() - 86400000 * 2).toISOString() } },
-                  { label: 'Почти level up',    body: { xp: pet.xp_to_next_level - 5 } },
-                ].map((p, i) => (
-                  <button key={i} className="pet-debug-btn" onClick={async () => {
-                    const res = await fetch(`${API}/debug`, {
-                      method: 'PATCH',
-                      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-                      body: JSON.stringify(p.body),
-                    });
-                    const data = await res.json();
-                    if (data.success) setPet(data.pet);
-                  }}>{p.label}</button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
