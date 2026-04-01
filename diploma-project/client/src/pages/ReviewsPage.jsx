@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSocket } from '../contexts/SocketContext'
 import '../styles/pages/ReviewsPage.css'
 import { getEmojiByCode } from '../utils/emojiMapper'
@@ -14,13 +14,14 @@ import { useEventTracker } from '../hooks/useEventTracker' // Импортиру
 
 const ReviewsPage = () => {
   const { currentLanguage, t } = useLanguage()
-  const { trackEvent } = useEventTracker() // Используем хук
+  const { trackEvent } = useEventTracker()
   const navigate = useNavigate()
-  
-  // Состояние без инициализации из URL
-  const [activeTab, setActiveTab] = useState('all')
-  const [storiesFilter, setStoriesFilter] = useState('all')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Инициализация состояния из URL
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'all')
+  const [storiesFilter, setStoriesFilter] = useState(() => searchParams.get('filter') || 'all')
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || 'all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [currentPage, setCurrentPage] = useState(1)
   
@@ -66,6 +67,15 @@ const ReviewsPage = () => {
   
   // Флаг для предотвращения перевода при обновлении лайков
   const skipTranslationRef = useRef(false)
+
+  // Синхронизация состояния в URL
+  useEffect(() => {
+    const params = {}
+    if (activeTab !== 'all') params.tab = activeTab
+    if (storiesFilter !== 'all') params.filter = storiesFilter
+    if (selectedCategory !== 'all') params.category = selectedCategory
+    setSearchParams(params, { replace: true })
+  }, [activeTab, storiesFilter, selectedCategory, setSearchParams])
 
   // Проверка авторизации и получение пользователя
   useEffect(() => {

@@ -2725,11 +2725,43 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+[data-theme="dark"] .response-modal.large {
+  background: var(--bg-primary);
 }
 
 .response-modal .modal-body {
   flex: 1;
   padding: 24px;
+  overflow-y: auto;
+  background: #ffffff;
+  color: #1a1a1a;
+}
+[data-theme="dark"] .response-modal .modal-body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.response-modal .modal-header {
+  background: #f8f8f8;
+  border-bottom: 1px solid #e0e0e0;
+  border-radius: var(--radius-xl, 16px) var(--radius-xl, 16px) 0 0;
+}
+[data-theme="dark"] .response-modal .modal-header {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border-color);
+}
+.response-modal .modal-footer {
+  background: #ffffff;
+  border-top: 1px solid #e0e0e0;
+  border-radius: 0 0 var(--radius-xl, 16px) var(--radius-xl, 16px);
+}
+[data-theme="dark"] .response-modal .modal-footer {
+  background: var(--bg-primary);
+  border-top-color: var(--border-color);
+}
 }
 
 /* Кастомный скроллбар для модального окна поддержки */
@@ -2917,7 +2949,23 @@
 [data-theme="dark"] .readonly-field {
   background: var(--bg-secondary);
   border-color: var(--border-color);
-  color: var(--text-primary) !important; /* Фиксим белый текст */
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .readonly-field.message-field {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary) !important;
+}
+
+.readonly-field-highlight {
+  background-color: #f0f9ff;
+  border-color: #0ea5e9;
+}
+[data-theme="dark"] .readonly-field-highlight {
+  background-color: rgba(14, 165, 233, 0.15);
+  border-color: #0ea5e9;
+  color: var(--text-primary) !important;
 }
 
 /* В темной теме для status badges оставляем цветные фоны */

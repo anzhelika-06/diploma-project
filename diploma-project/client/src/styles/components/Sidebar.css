@@ -125,7 +125,6 @@
 .sidebar-item.active {
   background: var(--sidebar-active-bg, #e8f5e9);
   color: var(--sidebar-active, #2e7d32);
-  font-weight: 600;
 }
 
 .logo-icon-svg {
