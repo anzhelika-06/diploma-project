@@ -823,10 +823,16 @@ const ProfilePage = () => {
     console.log('👤 Клик на просмотр профиля из запроса в друзья');
     console.log('   userId:', userId, 'type:', typeof userId);
     setShowFriendRequests(false);
-    isInternalNavigation.current = true;
     const friendId = Number(userId);
-    console.log('   Устанавливаем viewingUserId =', friendId);
-    setViewingUserId(friendId);
+    console.log('   Переходим к профилю userId =', friendId);
+    
+    // Если это свой профиль, переходим на /profile
+    if (friendId === currentUserId) {
+      navigate('/profile', { replace: true });
+    } else {
+      // Иначе переходим на /profile/:userId
+      navigate(`/profile/${friendId}`, { replace: true });
+    }
   };
 
   const handleSubmitReport = async () => {
@@ -1010,8 +1016,8 @@ const ProfilePage = () => {
       return;
     }
     
-    if (yearNum < 1900 || yearNum > new Date().getFullYear()) {
-      setDateError(t('invalidYear') || `Год должен быть от 1900 до ${new Date().getFullYear()}`);
+    if (yearNum < 1940 || yearNum > new Date().getFullYear()) {
+      setDateError(t('invalidYear') || `Год должен быть от 1940 до ${new Date().getFullYear()}`);
       return;
     }
     
@@ -1343,8 +1349,8 @@ const ProfilePage = () => {
               className="back-to-profile-btn"
               onClick={() => {
                 console.log('⬅️ Возврат к своему профилю:', currentUserId);
-                isInternalNavigation.current = true;
-                setViewingUserId(Number(currentUserId));
+                // Используем navigate для перехода на /profile без параметров
+                navigate('/profile', { replace: true });
               }}
               title={t('backToMyProfile') || 'Вернуться к моему профилю'}
             >
@@ -1711,7 +1717,11 @@ const ProfilePage = () => {
               </div>
               <div className="modal-body">
                 {friendsList.length === 0 ? (
-                  <p className="no-friends">{t('noFriends')}</p>
+                  <p className="no-friends">
+                    {friendsListOwnerId === currentUserId 
+                      ? t('noFriends') 
+                      : (t('userHasNoFriends') || 'У пользователя нет друзей')}
+                  </p>
                 ) : (
                   <div className="friends-list">
                     {friendsList.map(friend => {
@@ -1735,11 +1745,16 @@ const ProfilePage = () => {
                                 console.log('   friend.id:', friend.id, 'type:', typeof friend.id);
                                 console.log('   friendId (Number):', friendId);
                                 console.log('   friend.nickname:', friend.nickname);
-                                console.log('   Текущий viewingUserId:', viewingUserId);
                                 setShowFriendsList(false);
-                                console.log('   Устанавливаем viewingUserId =', friendId);
-                                isInternalNavigation.current = true;
-                                setViewingUserId(friendId);
+                                console.log('   Переходим к профилю userId =', friendId);
+                                
+                                // Если это свой профиль, переходим на /profile
+                                if (friendId === currentUserId) {
+                                  navigate('/profile', { replace: true });
+                                } else {
+                                  // Иначе переходим на /profile/:userId
+                                  navigate(`/profile/${friendId}`, { replace: true });
+                                }
                               }}
                               title={t('viewProfile')}
                             >
@@ -1800,28 +1815,43 @@ const ProfilePage = () => {
                         <div className="friend-actions">
                           <button 
                             className="btn-view-profile-icon"
-                            onClick={() => handleViewProfileFromRequest(request.user_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('🔍 Клик на кнопку просмотра профиля');
+                              console.log('   request:', request);
+                              console.log('   request.user_id:', request.user_id);
+                              handleViewProfileFromRequest(request.user_id);
+                            }}
                             title={t('viewProfile')}
                           >
                             <span className="material-icons">visibility</span>
                           </button>
                           <button 
                             className="btn-accept-request"
-                            onClick={() => handleAcceptRequestFromModal(request.friendship_id, request.user_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAcceptRequestFromModal(request.friendship_id, request.user_id);
+                            }}
                             title={t('acceptRequest') || 'Принять'}
                           >
                             <span className="material-icons">check</span>
                           </button>
                           <button 
                             className="btn-reject-request"
-                            onClick={() => handleRejectRequestFromModal(request.friendship_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRejectRequestFromModal(request.friendship_id);
+                            }}
                             title={t('rejectRequest') || 'Отклонить'}
                           >
                             <span className="material-icons">close</span>
                           </button>
                           <button 
                             className="btn-report-request"
-                            onClick={() => handleReportFromRequest(request.user_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleReportFromRequest(request.user_id);
+                            }}
                             title={t('report') || 'Пожаловаться'}
                           >
                             <span className="material-icons">report</span>

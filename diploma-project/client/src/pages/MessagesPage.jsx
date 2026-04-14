@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
@@ -180,11 +180,20 @@ const MessagesPage = () => {
   const { t, currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [tab, setTab] = useState('friends');
+  const [tab, setTab] = useState(() => searchParams.get('tab') || 'friends');
   const [conversations, setConversations] = useState([]);
   const [teamChats, setTeamChats] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
+  const [activeChat, setActiveChat] = useState(() => {
+    // Инициализируем activeChat из URL если есть
+    const chatId = searchParams.get('chatId');
+    const chatType = searchParams.get('chatType');
+    if (chatId && chatType) {
+      return { type: chatType, id: Number(chatId), name: '', avatar: '' };
+    }
+    return null;
+  });
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -200,6 +209,17 @@ const MessagesPage = () => {
   const activeChatRef = useRef(null);
   const pendingOpenRef = useRef(location.state?.openChat || null);
   activeChatRef.current = activeChat;
+
+  // Sync tab and activeChat to URL
+  useEffect(() => {
+    const params = {};
+    if (tab !== 'friends') params.tab = tab;
+    if (activeChat) {
+      params.chatId = activeChat.id.toString();
+      params.chatType = activeChat.type;
+    }
+    setSearchParams(params, { replace: true });
+  }, [tab, activeChat, setSearchParams]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -222,6 +242,41 @@ const MessagesPage = () => {
   }, []);
 
   useEffect(() => { loadConversations(); loadTeamChats(); }, [loadConversations, loadTeamChats]);
+
+  // Восстановить activeChat из URL после загрузки данных
+  useEffect(() => {
+    const chatId = searchParams.get('chatId');
+    const chatType = searchParams.get('chatType');
+    
+    if (!chatId || !chatType) return;
+    if (activeChat && activeChat.name) return; // Уже восстановлен
+    
+    const id = Number(chatId);
+    
+    if (chatType === 'direct' && conversations.length > 0) {
+      const found = conversations.find(c => Number(c.id) === id);
+      if (found) {
+        setActiveChat({
+          type: 'direct',
+          id: found.id,
+          name: found.nickname,
+          avatar: found.avatar_emoji
+        });
+        setMobileView('chat');
+      }
+    } else if (chatType === 'team' && teamChats.length > 0) {
+      const found = teamChats.find(t => Number(t.id) === id);
+      if (found) {
+        setActiveChat({
+          type: 'team',
+          id: found.id,
+          name: found.name,
+          avatar: found.avatar_emoji
+        });
+        setMobileView('chat');
+      }
+    }
+  }, [searchParams, conversations, teamChats, activeChat]);
 
   // Открыть чат из навигации после загрузки conversations
   useEffect(() => {

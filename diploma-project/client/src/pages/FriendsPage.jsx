@@ -278,7 +278,7 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        setIncomingRequests(prev => prev.filter(u => u.id !== userId));
+        setIncomingRequests(prev => prev.filter(u => (u.user_id || u.id) !== userId));
         const friendsResponse = await fetch(`/api/users/${currentUser.id}/friends`);
         const friendsData = await friendsResponse.json();
         if (friendsData.success) {
@@ -302,7 +302,7 @@ const FriendsPage = () => {
       });
       const data = await response.json();
       if (data.success) {
-        setIncomingRequests(prev => prev.filter(u => u.id !== userId));
+        setIncomingRequests(prev => prev.filter(u => (u.user_id || u.id) !== userId));
         loadRecommendations();
         setShowRejectModal(false);
         setUserToReject(null);
@@ -512,8 +512,8 @@ const FriendsPage = () => {
                     <h3 className="subsection-title">{t('incomingRequests') || 'Входящие запросы'} ({incomingRequests.length})</h3>
                     <div className="users-list">
                       {incomingRequests.map(user => (
-                        <div key={user.id} className="user-card-list">
-                          <div className="user-card-left" onClick={() => handleViewProfile(user.id)}>
+                        <div key={user.user_id || user.id} className="user-card-list">
+                          <div className="user-card-left" onClick={() => handleViewProfile(user.user_id || user.id)}>
                             <div className="user-avatar">{user.avatar_emoji || '🌱'}</div>
                             <div className="user-info">
                               <span className="user-name">{user.nickname}</span>
@@ -663,7 +663,7 @@ const FriendsPage = () => {
               <button className="friends-page-modal-btn secondary" onClick={() => setShowAcceptModal(false)}>
                 {t('cancel') || 'Отмена'}
               </button>
-              <button className="friends-page-modal-btn success" onClick={() => handleAcceptRequest(userToAccept.id)}>
+              <button className="friends-page-modal-btn success" onClick={() => handleAcceptRequest(userToAccept.user_id || userToAccept.id)}>
                 {t('accept') || 'Принять'}
               </button>
             </div>
@@ -688,7 +688,7 @@ const FriendsPage = () => {
               <button className="friends-page-modal-btn secondary" onClick={() => setShowRejectModal(false)}>
                 {t('cancel') || 'Отмена'}
               </button>
-              <button className="friends-page-modal-btn danger" onClick={() => handleRejectRequest(userToReject.id)}>
+              <button className="friends-page-modal-btn danger" onClick={() => handleRejectRequest(userToReject.user_id || userToReject.id)}>
                 {t('reject') || 'Отклонить'}
               </button>
             </div>

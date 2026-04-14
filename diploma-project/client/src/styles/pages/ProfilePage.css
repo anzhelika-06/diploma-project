@@ -1132,6 +1132,7 @@
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .btn-view-profile {
@@ -1809,8 +1810,8 @@
   position: absolute;
   top: -8px;
   right: -8px;
-  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-  color: #000;
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%);
+  color: white;
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -1821,7 +1822,7 @@
   font-weight: bold;
   cursor: pointer;
   z-index: 1;
-  box-shadow: 0 3px 8px rgba(255, 215, 0, 0.5), 0 0 0 2px white;
+  box-shadow: 0 3px 8px rgba(76, 175, 80, 0.5), 0 0 0 2px white;
   transition: all 0.2s;
   animation: pulse-badge 2s infinite;
 }
@@ -1837,11 +1838,42 @@
 
 .friend-requests-badge:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.7), 0 0 0 2px white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.7), 0 0 0 2px white;
   animation: none;
 }
 
 /* Кнопки в модальном окне запросов */
+.btn-view-profile-icon {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-secondary);
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.btn-view-profile-icon:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+.btn-view-profile-icon .material-icons {
+  font-size: 20px;
+  pointer-events: none;
+}
+
 .btn-accept-request {
   background: var(--success-color, #4caf50);
   color: white;
@@ -1854,11 +1886,21 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-accept-request:hover {
   background: #45a049;
   transform: scale(1.05);
+  z-index: 2;
+}
+
+.btn-accept-request .material-icons {
+  font-size: 20px;
+  pointer-events: none;
 }
 
 .btn-reject-request {
@@ -1873,11 +1915,21 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-reject-request:hover {
   background: #da190b;
   transform: scale(1.05);
+  z-index: 2;
+}
+
+.btn-reject-request .material-icons {
+  font-size: 20px;
+  pointer-events: none;
 }
 
 .btn-report-request {
@@ -1892,11 +1944,21 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-report-request:hover {
   background: #e68900;
   transform: scale(1.05);
+  z-index: 2;
+}
+
+.btn-report-request .material-icons {
+  font-size: 20px;
+  pointer-events: none;
 }
 
 .no-friends {

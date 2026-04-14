@@ -597,7 +597,14 @@ const FeedPage = () => {
   useEffect(() => {
     if (targetUserId !== null) {
       console.log('   Переход на /profile с userId:', targetUserId);
-      navigate('/profile', { state: { viewUserId: targetUserId } });
+      const currentUser = getCurrentUser();
+      // Если это свой профиль, переходим на /profile
+      if (targetUserId === currentUser?.id) {
+        navigate('/profile');
+      } else {
+        // Иначе переходим на /profile/:userId
+        navigate(`/profile/${targetUserId}`);
+      }
       setTargetUserId(null);
     }
   }, [targetUserId, navigate]);

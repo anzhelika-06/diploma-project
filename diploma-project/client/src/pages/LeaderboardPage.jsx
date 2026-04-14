@@ -496,7 +496,15 @@ const LeaderboardPage = () => {
                           <tr 
                             key={user.id} 
                             className={currentUser?.id === user.id ? 'current-user' : ''}
-                            onClick={() => navigate(`/profile?userId=${user.id}`)}
+                            onClick={() => {
+                              // Если это свой профиль, переходим на /profile
+                              if (user.id === currentUser?.id) {
+                                navigate('/profile');
+                              } else {
+                                // Иначе переходим на /profile/:userId
+                                navigate(`/profile/${user.id}`);
+                              }
+                            }}
                             style={{ cursor: 'pointer' }}
                             title={t('viewProfile') || 'Посмотреть профиль'}
                           >

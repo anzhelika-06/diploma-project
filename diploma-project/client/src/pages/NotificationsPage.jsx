@@ -43,6 +43,34 @@ const NotificationsPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Загружаем только при монтировании компонента
   
+  // Слушаем события от NotificationBell
+  useEffect(() => {
+    const handleNotificationReadFromBell = (event) => {
+      const { notificationId } = event.detail;
+      console.log('📨 NotificationsPage: Получено событие notificationRead от колокольчика:', notificationId);
+      setNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      );
+      setTranslatedNotifications(prev =>
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      );
+    };
+
+    const handleNotificationsReadAllFromBell = () => {
+      console.log('📨 NotificationsPage: Получено событие notificationsReadAll от колокольчика');
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setTranslatedNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    };
+
+    window.addEventListener('notificationRead', handleNotificationReadFromBell);
+    window.addEventListener('notificationsReadAll', handleNotificationsReadAllFromBell);
+
+    return () => {
+      window.removeEventListener('notificationRead', handleNotificationReadFromBell);
+      window.removeEventListener('notificationsReadAll', handleNotificationsReadAllFromBell);
+    };
+  }, []);
+  
   // Синхронизация состояния с URL
   useEffect(() => {
     if (isFirstRender.current) {

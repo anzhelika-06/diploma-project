@@ -912,7 +912,7 @@ const SettingsPage = () => {
                   <div className="privacy-content">
                     <h3>{t('privacyPolicyTitle')}</h3>
                     <p>{t('privacyPolicyDesc')}</p>
-                    <Link to="/privacy" state={{ from: '/settings' }} className="action-btn secondary">
+                    <Link to="/privacy" state={{ from: '/settings?tab=privacy' }} className="action-btn secondary">
                       <span className="material-icons">description</span>
                       {t('readPolicy')}
                     </Link>
@@ -926,7 +926,7 @@ const SettingsPage = () => {
                   <div className="privacy-content">
                     <h3>{t('termsOfUseTitle')}</h3>
                     <p>{t('termsOfUseDesc')}</p>
-                    <Link to="/terms" state={{ from: '/settings' }} className="action-btn secondary">
+                    <Link to="/terms" state={{ from: '/settings?tab=privacy' }} className="action-btn secondary">
                       <span className="material-icons">assignment</span>
                       {t('readTerms')}
                     </Link>

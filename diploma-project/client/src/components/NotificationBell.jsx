@@ -286,6 +286,9 @@ const NotificationBell = () => {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setTranslatedNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setUnreadCount(0);
+      
+      // Отправляем событие для синхронизации с NotificationsPage
+      window.dispatchEvent(new CustomEvent('notificationsReadAll'));
     } catch (error) {
       console.error('Ошибка отметки всех уведомлений:', error);
     }

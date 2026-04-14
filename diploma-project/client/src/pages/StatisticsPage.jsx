@@ -20,6 +20,14 @@ const StatisticsPage = () => {
     const offset = parseInt(searchParams.get('weekOffset'));
     return !isNaN(offset) ? offset : 0;
   });
+  const [selectedMonthOffset, setSelectedMonthOffset] = useState(() => {
+    const offset = parseInt(searchParams.get('monthOffset'));
+    return !isNaN(offset) ? offset : 0;
+  });
+  const [selectedYearOffset, setSelectedYearOffset] = useState(() => {
+    const offset = parseInt(searchParams.get('yearOffset'));
+    return !isNaN(offset) ? offset : 0;
+  });
   const [historyPage, setHistoryPage] = useState(() => {
     const page = parseInt(searchParams.get('historyPage'));
     return !isNaN(page) && page > 0 ? page : 1;
@@ -174,10 +182,12 @@ const StatisticsPage = () => {
     const params = {};
     if (chartPeriod !== 'month') params.period = chartPeriod;
     if (selectedWeekOffset !== 0) params.weekOffset = selectedWeekOffset.toString();
+    if (selectedMonthOffset !== 0) params.monthOffset = selectedMonthOffset.toString();
+    if (selectedYearOffset !== 0) params.yearOffset = selectedYearOffset.toString();
     if (historyPage > 1) params.historyPage = historyPage.toString();
     
     setSearchParams(params, { replace: true });
-  }, [chartPeriod, selectedWeekOffset, historyPage, setSearchParams]);
+  }, [chartPeriod, selectedWeekOffset, selectedMonthOffset, selectedYearOffset, historyPage, setSearchParams]);
 
   const loadUserData = async () => {
     try {
@@ -455,11 +465,21 @@ const StatisticsPage = () => {
         return calcDate >= weekStart && calcDate <= weekEnd;
       });
     } else if (chartPeriod === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      filteredCalcs = calculations.filter(calc => new Date(calc.date || calc.calculation_date) >= monthAgo);
+      // Вычисляем начало и конец выбранного месяца
+      const monthStart = new Date(now.getFullYear(), now.getMonth() + selectedMonthOffset, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + selectedMonthOffset + 1, 0, 23, 59, 59, 999);
+      filteredCalcs = calculations.filter(calc => {
+        const calcDate = new Date(calc.date || calc.calculation_date);
+        return calcDate >= monthStart && calcDate <= monthEnd;
+      });
     } else if (chartPeriod === 'year') {
-      const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      filteredCalcs = calculations.filter(calc => new Date(calc.date || calc.calculation_date) >= yearAgo);
+      // Вычисляем начало и конец выбранного года
+      const yearStart = new Date(now.getFullYear() + selectedYearOffset, 0, 1);
+      const yearEnd = new Date(now.getFullYear() + selectedYearOffset, 11, 31, 23, 59, 59, 999);
+      filteredCalcs = calculations.filter(calc => {
+        const calcDate = new Date(calc.date || calc.calculation_date);
+        return calcDate >= yearStart && calcDate <= yearEnd;
+      });
     }
     
     // Сортируем по дате: старые слева, новые справа
@@ -588,7 +608,7 @@ const StatisticsPage = () => {
           <div className="stats-charts-header">
             <h2 className="stats-section-title">{t('statsChartTitle')}</h2>
             <div className="stats-period-controls">
-              {/* Селектор недели - показывается слева от кнопок периода когда выбран период "неделя" */}
+              {/* Селектор периода - показывается слева от кнопок периода */}
               {chartPeriod === 'week' && (
                 <div className="stats-week-selector">
                   <button 
@@ -613,7 +633,66 @@ const StatisticsPage = () => {
                   </button>
                 </div>
               )}
-              
+
+              {chartPeriod === 'month' && (
+                <div className="stats-week-selector">
+                  <button
+                    className="stats-week-nav-btn"
+                    onClick={() => setSelectedMonthOffset(selectedMonthOffset - 1)}
+                    title={t('statsPreviousMonth') || 'Предыдущий месяц'}
+                  >
+                    <span className="material-icons">chevron_left</span>
+                  </button>
+                  <span className="stats-week-label">
+                    {(() => {
+                      if (selectedMonthOffset === 0) {
+                        return t('statsCurrentMonth') || 'Текущий месяц';
+                      } else if (selectedMonthOffset === -1) {
+                        return t('statsLastMonth') || 'Прошлый месяц';
+                      } else {
+                        const date = new Date(new Date().getFullYear(), new Date().getMonth() + selectedMonthOffset, 1);
+                        const currentLang = t('statsKg') === 'kg' ? 'en' : (t('statsKg') === 'кг' ? 'ru' : 'be');
+                        return date.toLocaleString(currentLang === 'en' ? 'en-US' : currentLang === 'ru' ? 'ru-RU' : 'be-BY', { month: 'long', year: 'numeric' });
+                      }
+                    })()}
+                  </span>
+                  <button
+                    className="stats-week-nav-btn"
+                    onClick={() => setSelectedMonthOffset(selectedMonthOffset + 1)}
+                    disabled={selectedMonthOffset >= 0}
+                    title={t('statsNextMonth') || 'Следующий месяц'}
+                  >
+                    <span className="material-icons">chevron_right</span>
+                  </button>
+                </div>
+              )}
+
+              {chartPeriod === 'year' && (
+                <div className="stats-week-selector">
+                  <button
+                    className="stats-week-nav-btn"
+                    onClick={() => setSelectedYearOffset(selectedYearOffset - 1)}
+                    title={t('statsPreviousYear') || 'Предыдущий год'}
+                  >
+                    <span className="material-icons">chevron_left</span>
+                  </button>
+                  <span className="stats-week-label">
+                    {selectedYearOffset === 0
+                      ? (t('statsCurrentYear') || 'Текущий год')
+                      : selectedYearOffset === -1
+                        ? (t('statsLastYear') || 'Прошлый год')
+                        : `${new Date().getFullYear() + selectedYearOffset} ${t('statsYear') || 'год'}`}
+                  </span>
+                  <button
+                    className="stats-week-nav-btn"
+                    onClick={() => setSelectedYearOffset(selectedYearOffset + 1)}
+                    disabled={selectedYearOffset >= 0}
+                    title={t('statsNextYear') || 'Следующий год'}
+                  >
+                    <span className="material-icons">chevron_right</span>
+                  </button>
+                </div>
+              )}
               <div className="stats-period-buttons">
                 {['week', 'month', 'year'].map(period => (
                   <button
@@ -621,7 +700,9 @@ const StatisticsPage = () => {
                     className={`stats-period-btn ${chartPeriod === period ? 'active' : ''}`}
                     onClick={() => {
                       setChartPeriod(period);
-                      setSelectedWeekOffset(0); // Сбрасываем выбор недели при смене периода
+                      setSelectedWeekOffset(0);
+                      setSelectedMonthOffset(0);
+                      setSelectedYearOffset(0);
                       // Отслеживаем смену периода
                     const currentUser = getCurrentUser();
                     if (currentUser?.id) {

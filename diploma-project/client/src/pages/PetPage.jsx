@@ -629,8 +629,12 @@ export default function PetPage() {
                 <button
                   className="pet-feed-btn"
                   onClick={handleFeed}
-                  disabled={!canFeed || feeding || ecoCoins < 10}
-                  data-tooltip={ecoCoins < 10 ? (t('petNotEnoughCoins') || 'Недостаточно экоинов') : undefined}
+                  disabled={!canFeed || feeding || ecoCoins < 10 || (pet.hunger >= 100 && pet.happiness >= 100)}
+                  data-tooltip={
+                    ecoCoins < 10 ? (t('petNotEnoughCoins') || 'Недостаточно экоинов') :
+                    (pet.hunger >= 100 && pet.happiness >= 100) ? (t('petAlreadyFull') || 'Питомец сыт и счастлив!') :
+                    undefined
+                  }
                 >
                   {canFeed
                     ? (feeding ? '...' : (t('petFeedBtn') || 'Покормить'))

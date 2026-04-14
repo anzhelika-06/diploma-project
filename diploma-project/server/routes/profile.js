@@ -1103,7 +1103,7 @@ router.get('/:userId/friends/requests/incoming', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         f.id as friendship_id,
-        u.id,
+        u.id as user_id,
         u.nickname,
         u.avatar_emoji,
         u.eco_level,

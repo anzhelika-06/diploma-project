@@ -22,7 +22,7 @@ const PrivacyPage = () => {
     const from = location.state?.from || document.referrer
     
     if (from && (from.includes('/settings') || from.includes('settings'))) {
-      setReturnPath('/settings')
+      setReturnPath(location.state?.from || '/settings')
     } else if (from && (from.includes('/register') || from.includes('register'))) {
       setReturnPath('/register')
     } else if (from && (from.includes('/auth') || from.includes('auth'))) {
