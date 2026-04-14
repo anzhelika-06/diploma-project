@@ -66,29 +66,6 @@ CREATE TABLE IF NOT EXISTS user_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ============ КОДЫ ПОДТВЕРЖДЕНИЯ EMAIL ============
-CREATE TABLE IF NOT EXISTS email_verification_codes (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL,
-    code VARCHAR(6) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- ============ ВРЕМЕННЫЕ ДАННЫЕ РЕГИСТРАЦИИ ============
-CREATE TABLE IF NOT EXISTS pending_registrations (
-    id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    nickname VARCHAR(100) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    date_of_birth DATE,
-    gender_id INTEGER REFERENCES genders(id),
-    verification_code VARCHAR(6) NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- ============ КОМАНДЫ ============
 CREATE TABLE IF NOT EXISTS teams (
     id SERIAL PRIMARY KEY,

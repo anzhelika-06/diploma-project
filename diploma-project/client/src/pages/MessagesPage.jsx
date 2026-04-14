@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../contexts/SocketContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -98,7 +98,7 @@ const DirectInfoPanel = ({ chat, online, onClose, t }) => {
 };
 
 // ── Info panel for team chat ──
-const TeamInfoPanel = ({ chat, teamDetail, currentUserId, onClose, onLeave, onKick, t }) => {
+const TeamInfoPanel = ({ chat, teamDetail, currentUserId, onlineUsers, onClose, onLeave, onKick, t }) => {
   const navigate = useNavigate();
 
   if (!teamDetail) return (
@@ -141,7 +141,7 @@ const TeamInfoPanel = ({ chat, teamDetail, currentUserId, onClose, onLeave, onKi
           {members.map(m => (
             <div key={m.user_id} className="msg-member-row">
               <button className="msg-member-avatar-btn" onClick={() => navigate(`/profile/${m.user_id}`)}>
-                <Avatar emoji={m.avatar_emoji} size={32} />
+                <Avatar emoji={m.avatar_emoji} size={32} online={onlineUsers?.has(String(m.user_id))} />
               </button>
               <div className="msg-member-info">
                 <button className="msg-member-name-btn" onClick={() => navigate(`/profile/${m.user_id}`)}>
@@ -151,6 +151,9 @@ const TeamInfoPanel = ({ chat, teamDetail, currentUserId, onClose, onLeave, onKi
                   <span className="msg-member-crown" title={t('administrator')}>
                     <CrownIcon />
                   </span>
+                )}
+                {onlineUsers?.has(String(m.user_id)) && (
+                  <span className="msg-member-online-label">{t('online')}</span>
                 )}
               </div>
               {isAdmin && Number(m.user_id) !== Number(currentUserId) && m.role !== 'admin' && (
@@ -185,15 +188,7 @@ const MessagesPage = () => {
   const [tab, setTab] = useState(() => searchParams.get('tab') || 'friends');
   const [conversations, setConversations] = useState([]);
   const [teamChats, setTeamChats] = useState([]);
-  const [activeChat, setActiveChat] = useState(() => {
-    // Инициализируем activeChat из URL если есть
-    const chatId = searchParams.get('chatId');
-    const chatType = searchParams.get('chatType');
-    if (chatId && chatType) {
-      return { type: chatType, id: Number(chatId), name: '', avatar: '' };
-    }
-    return null;
-  });
+  const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -205,13 +200,26 @@ const MessagesPage = () => {
   const [confirmModal, setConfirmModal] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const messagesBodyRef = useRef(null);
   const inputRef = useRef(null);
   const activeChatRef = useRef(null);
   const pendingOpenRef = useRef(location.state?.openChat || null);
+  const restoredFromUrlRef = useRef(false);
   activeChatRef.current = activeChat;
 
-  // Sync tab and activeChat to URL
+  const isNearBottom = () => {
+    const el = messagesBodyRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
+  // Sync tab and activeChat to URL — only after restore attempt is done
   useEffect(() => {
+    // Don't wipe chatId/chatType from URL until we've had a chance to restore
+    const hasPendingRestore = !restoredFromUrlRef.current &&
+      (searchParams.get('chatId') || searchParams.get('chatType'));
+    if (hasPendingRestore) return;
+
     const params = {};
     if (tab !== 'friends') params.tab = tab;
     if (activeChat) {
@@ -219,9 +227,15 @@ const MessagesPage = () => {
       params.chatType = activeChat.type;
     }
     setSearchParams(params, { replace: true });
-  }, [tab, activeChat, setSearchParams]);
+  }, [tab, activeChat, setSearchParams, searchParams]);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useLayoutEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    const isOwn = lastMsg?.sender_id === currentUser?.id;
+    if (isOwn || isNearBottom()) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
@@ -242,41 +256,6 @@ const MessagesPage = () => {
   }, []);
 
   useEffect(() => { loadConversations(); loadTeamChats(); }, [loadConversations, loadTeamChats]);
-
-  // Восстановить activeChat из URL после загрузки данных
-  useEffect(() => {
-    const chatId = searchParams.get('chatId');
-    const chatType = searchParams.get('chatType');
-    
-    if (!chatId || !chatType) return;
-    if (activeChat && activeChat.name) return; // Уже восстановлен
-    
-    const id = Number(chatId);
-    
-    if (chatType === 'direct' && conversations.length > 0) {
-      const found = conversations.find(c => Number(c.id) === id);
-      if (found) {
-        setActiveChat({
-          type: 'direct',
-          id: found.id,
-          name: found.nickname,
-          avatar: found.avatar_emoji
-        });
-        setMobileView('chat');
-      }
-    } else if (chatType === 'team' && teamChats.length > 0) {
-      const found = teamChats.find(t => Number(t.id) === id);
-      if (found) {
-        setActiveChat({
-          type: 'team',
-          id: found.id,
-          name: found.name,
-          avatar: found.avatar_emoji
-        });
-        setMobileView('chat');
-      }
-    }
-  }, [searchParams, conversations, teamChats, activeChat]);
 
   // Открыть чат из навигации после загрузки conversations
   useEffect(() => {
@@ -374,6 +353,30 @@ const MessagesPage = () => {
     if (chat.type === 'team')
       setTeamChats(prev => prev.map(t => t.id === chat.id ? { ...t, unread_count: 0 } : t));
   }, [socket]);
+
+  // Восстановить activeChat из URL после загрузки данных
+  useEffect(() => {
+    if (restoredFromUrlRef.current) return;
+    const chatId = searchParams.get('chatId');
+    const chatType = searchParams.get('chatType');
+    if (!chatId || !chatType) return;
+
+    const id = Number(chatId);
+
+    if (chatType === 'direct' && conversations.length > 0) {
+      const found = conversations.find(c => Number(c.id) === id);
+      if (found) {
+        restoredFromUrlRef.current = true;
+        openChat({ type: 'direct', id: found.id, name: found.nickname, avatar: found.avatar_emoji });
+      }
+    } else if (chatType === 'team' && teamChats.length > 0) {
+      const found = teamChats.find(t => Number(t.id) === id);
+      if (found) {
+        restoredFromUrlRef.current = true;
+        openChat({ type: 'team', id: found.id, name: found.name, avatar: found.avatar_emoji, memberCount: found.member_count });
+      }
+    }
+  }, [conversations, teamChats, openChat, searchParams]);
 
   const openInfo = () => {
     setShowInfo(true);
@@ -554,7 +557,7 @@ const MessagesPage = () => {
                 <button key={c.id}
                   className={`messages-item${activeChat?.type === 'direct' && activeChat.id === c.id ? ' messages-item--active' : ''}`}
                   onClick={() => openChat({ type: 'direct', id: c.id, name: c.nickname, avatar: c.avatar_emoji })}>
-                  <Avatar emoji={c.avatar_emoji} online={onlineUsers.has(c.id)} />
+                  <Avatar emoji={c.avatar_emoji} online={onlineUsers.has(String(c.id))} />
                   <div className="messages-item-info">
                     <div className="messages-item-top">
                       <span className="messages-item-name">{c.nickname}</span>
@@ -616,7 +619,7 @@ const MessagesPage = () => {
                   <BackIcon />
                 </button>
                 <Avatar emoji={activeChat.avatar} size={36} isTeam={activeChat.type === 'team'}
-                  online={activeChat.type === 'direct' && onlineUsers.has(activeChat.id)} />
+                  online={activeChat.type === 'direct' && onlineUsers.has(String(activeChat.id))} />
                 <div className="messages-chat-header-info">
                   <button className="messages-chat-header-name-btn" onClick={
                     activeChat.type === 'direct' ? () => navigate(`/profile/${activeChat.id}`) : openInfo
@@ -626,7 +629,7 @@ const MessagesPage = () => {
                   <span className="messages-chat-header-sub">
                     {activeChat.type === 'team'
                       ? `${activeChat.memberCount || ''} ${t('membersCount')}`
-                      : onlineUsers.has(activeChat.id) ? t('online') : t('offline')}
+                      : onlineUsers.has(String(activeChat.id)) ? t('online') : t('offline')}
                   </span>
                 </div>
                 {activeChat.type === 'team' && (
@@ -640,7 +643,7 @@ const MessagesPage = () => {
                 )}
               </div>
 
-              <div className="messages-body">
+              <div className="messages-body" ref={messagesBodyRef}>
                 {loading && <div className="messages-loading">{t('loadingMessages')}</div>}
                 {!loading && messages.length === 0 && <div className="messages-no-messages">{t('noMessages')}</div>}
                 {messages.map((msg, i) => {
@@ -683,8 +686,9 @@ const MessagesPage = () => {
         {/* Info panel */}
         {showInfo && activeChat && (
           activeChat.type === 'direct'
-            ? <DirectInfoPanel chat={activeChat} online={onlineUsers.has(activeChat.id)} onClose={closeInfo} t={t} />
+            ? <DirectInfoPanel chat={activeChat} online={onlineUsers.has(String(activeChat.id))} onClose={closeInfo} t={t} />
             : <TeamInfoPanel chat={activeChat} teamDetail={translatedTeamDetail} currentUserId={currentUser?.id}
+                onlineUsers={onlineUsers}
                 onClose={closeInfo} onLeave={handleLeaveTeam} onKick={handleKickMember} t={t} />
         )}
       </div>

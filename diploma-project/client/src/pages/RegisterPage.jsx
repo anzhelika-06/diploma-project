@@ -374,29 +374,11 @@ const RegisterPage = () => {
       const data = await response.json()
       
       if (data.success) {
-        // ✅ ВАЖНО: Теперь сервер возвращает токен
-        console.log('✅ Регистрация успешна!')
-        console.log('🔑 Токен получен:', data.token ? 'Да' : 'Нет')
-        console.log('👤 Данные пользователя:', data.user)
-        
-        // Сохраняем пользователя и токен в localStorage
-        localStorage.setItem('user', JSON.stringify(data.user))
-        localStorage.setItem('token', data.token) // ← СОХРАНЯЕМ ТОКЕН
-        
-        // Обновляем контекст пользователя
-        updateUser(data.user)
-        console.log('👤 Пользователь обновлен в контексте после регистрации')
-        
-        // Уведомляем SocketProvider об изменении пользователя
-        window.dispatchEvent(new Event('userChanged'))
-        console.log('🔔 Отправлено событие userChanged')
-        
-        // Показываем модалку успеха
+        // Показываем модалку успеха и редиректим на авторизацию
         setShowSuccessModal(true)
         
-        // Редирект на главную страницу через 2 секунды
         setTimeout(() => {
-          navigate('/') // Идем на главную, а не на авторизацию
+          navigate('/auth')
         }, 2000)
       } else {
         // Обработка ошибок с сервера
@@ -442,7 +424,7 @@ const RegisterPage = () => {
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false)
-    navigate('/') // Идем на главную
+    navigate('/auth')
   }
 
   const handleErrorModalClose = () => {

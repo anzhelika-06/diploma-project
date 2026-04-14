@@ -32,6 +32,10 @@ const SettingsPage = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({ oldPassword: '', newPassword: '', confirmPassword: '' })
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [deleteEmailConfirmation, setDeleteEmailConfirmation] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
@@ -507,12 +511,41 @@ const SettingsPage = () => {
   };
   
   const handleResetPassword = async () => {
+    setPasswordError('')
+    const { oldPassword, newPassword, confirmPassword } = passwordForm
+
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setPasswordError(t('fillRequiredFields') || 'Заполните все поля')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError(t('passwordsDoNotMatch') || 'Пароли не совпадают')
+      return
+    }
+
+    setPasswordLoading(true)
     try {
-      alert('Ссылка для сброса пароля отправлена на ваш email')
-      setShowResetPasswordModal(false)
-    } catch (error) {
-      console.error('Ошибка сброса пароля:', error)
-      alert('Ошибка при сбросе пароля')
+      const token = localStorage.getItem('token')
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ oldPassword, newPassword })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPasswordSuccess(true)
+        setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' })
+        setTimeout(() => {
+          setShowResetPasswordModal(false)
+          setPasswordSuccess(false)
+        }, 1500)
+      } else {
+        setPasswordError(data.message || t('unknownError'))
+      }
+    } catch (e) {
+      setPasswordError(t('checkInternetConnection') || 'Ошибка соединения')
+    } finally {
+      setPasswordLoading(false)
     }
   }
 
@@ -1288,39 +1321,67 @@ const SettingsPage = () => {
         </>
       )}
 
-      {/* Модальное окно сброса пароля */}
+      {/* Модальное окно смены пароля */}
       {showResetPasswordModal && (
         <>
-          <div className="modal-overlay" onClick={() => setShowResetPasswordModal(false)} />
+          <div className="modal-overlay" onClick={() => { setShowResetPasswordModal(false); setPasswordError(''); setPasswordForm({ oldPassword: '', newPassword: '', confirmPassword: '' }) }} />
           <div className="modal">
             <div className="modal-header">
-              <h3>{t('resetPasswordTitle') || 'Сброс пароля'}</h3>
-              <button 
-                className="modal-close"
-                onClick={() => setShowResetPasswordModal(false)}
-              >
+              <h3>{t('changePasswordModalTitle') || 'Смена пароля'}</h3>
+              <button className="modal-close" onClick={() => { setShowResetPasswordModal(false); setPasswordError(''); setPasswordSuccess(false) }}>
                 <span className="material-icons">close</span>
               </button>
             </div>
-            <div className="modal-body">
-              <p>{t('resetPasswordDesc') || 'Мы отправим ссылку для сброса пароля на ваш email:'}</p>
-              <p><strong>{user?.email}</strong></p>
-              <p>{t('checkSpamFolder') || 'Проверьте папку "Спам", если письмо не придет в течение нескольких минут.'}</p>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="modal-btn secondary"
-                onClick={() => setShowResetPasswordModal(false)}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                className="modal-btn primary"
-                onClick={handleResetPassword}
-              >
-                {t('sendLink') || 'Отправить ссылку'}
-              </button>
-            </div>
+            {passwordSuccess ? (
+              <div className="modal-body" style={{ textAlign: 'center', padding: '32px 24px' }}>
+                <span className="material-icons" style={{ fontSize: 48, color: '#4caf50' }}>check_circle</span>
+                <p style={{ marginTop: 12, fontWeight: 500 }}>{t('passwordChanged') || 'Пароль успешно изменён'}</p>
+              </div>
+            ) : (
+              <>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>{t('currentPassword') || 'Текущий пароль'}</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={passwordForm.oldPassword}
+                      onChange={e => setPasswordForm(p => ({ ...p, oldPassword: e.target.value }))}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('newPassword') || 'Новый пароль'}</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={passwordForm.newPassword}
+                      onChange={e => setPasswordForm(p => ({ ...p, newPassword: e.target.value }))}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('confirmPassword') || 'Подтвердите новый пароль'}</label>
+                    <input
+                      type="password"
+                      className="form-input"
+                      value={passwordForm.confirmPassword}
+                      onChange={e => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  {passwordError && <p className="form-error">{passwordError}</p>}
+                </div>
+                <div className="modal-footer">
+                  <button className="modal-btn secondary" onClick={() => { setShowResetPasswordModal(false); setPasswordError('') }}>
+                    {t('cancel')}
+                  </button>
+                  <button className="modal-btn primary" onClick={handleResetPassword} disabled={passwordLoading}>
+                    {passwordLoading ? '...' : (t('save') || 'Сохранить')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

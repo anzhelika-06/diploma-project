@@ -725,4 +725,49 @@ router.post('/refresh', async (req, res) => {
 });
 
 
+// Смена пароля (старый + новый)
+router.post('/change-password', async (req, res) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'Требуется авторизация' });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ecosteps-secret-key-2024');
+
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Укажите старый и новый пароль' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'Новый пароль должен содержать минимум 6 символов' });
+    }
+
+    if (!/(?=.*[a-zA-Z])(?=.*\d)/.test(newPassword)) {
+      return res.status(400).json({ success: false, message: 'Пароль должен содержать буквы и цифры' });
+    }
+
+    const userResult = await pool.query('SELECT password_hash FROM users WHERE id = $1', [decoded.userId]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const isValid = await bcrypt.compare(oldPassword, userResult.rows[0].password_hash);
+    if (!isValid) {
+      return res.status(400).json({ success: false, message: 'Неверный текущий пароль' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [newHash, decoded.userId]);
+
+    res.json({ success: true, message: 'Пароль успешно изменён' });
+  } catch (error) {
+    console.error('Ошибка смены пароля:', error);
+    res.status(500).json({ success: false, message: 'Внутренняя ошибка сервера' });
+  }
+});
+
 module.exports = router;

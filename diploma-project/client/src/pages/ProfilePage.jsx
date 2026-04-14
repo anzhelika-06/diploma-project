@@ -1016,8 +1016,8 @@ const ProfilePage = () => {
       return;
     }
     
-    if (yearNum < 1940 || yearNum > new Date().getFullYear()) {
-      setDateError(t('invalidYear') || `Год должен быть от 1940 до ${new Date().getFullYear()}`);
+    if (yearNum < 1926 || yearNum > new Date().getFullYear()) {
+      setDateError(t('invalidYear') || `Год должен быть от 1926 до ${new Date().getFullYear()}`);
       return;
     }
     
