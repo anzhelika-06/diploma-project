@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import '../styles/components/MobileNav.css'
 import homeIcon from '../assets/icons/home.svg'
 import notificationIcon from '../assets/icons/notification.svg'
@@ -14,14 +14,81 @@ import leaderboardIcon from '../assets/icons/leaderboard.svg'
 import contributionIcon from '../assets/icons/contribution.svg'
 import reviewsIcon from '../assets/icons/reviews.svg'
 import settingsIcon from '../assets/icons/settings.svg'
+import vacationIcon from '../assets/icons/vacation.svg'
 import { getUserInfo } from '../utils/authUtils';
 import adminIcon from '../assets/icons/admin.svg';
+import { useLanguage } from '../contexts/LanguageContext'
 
 const MobileNav = () => {
   const location = useLocation()
+  const { t } = useLanguage()
   const [showMenu, setShowMenu] = useState(false)
   const [currentTheme, setCurrentTheme] = useState('light')
-  const [user, setUser] = useState(null) // Добавьте состояние для пользователя
+  const [user, setUser] = useState(null)
+
+  // Vacation modal state
+  const [showVacationModal, setShowVacationModal] = useState(false)
+  const [vacationLoading, setVacationLoading] = useState(false)
+  const [vacationMsg, setVacationMsg] = useState(null)
+  const [vacationUsed, setVacationUsed] = useState(0)
+  const [petFrozen, setPetFrozen] = useState(false)
+  const [canVacation, setCanVacation] = useState(true)
+
+  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` })
+
+  const loadPetVacationInfo = useCallback(async () => {
+    try {
+      const res = await fetch('/api/pet', { headers: authHeader() })
+      const data = await res.json()
+      if (data.success && data.pet) {
+        const pet = data.pet
+        const currentMonth = new Date().getMonth() + 1
+        const used = pet.vacation_month === currentMonth ? (pet.vacation_used_this_month || 0) : 0
+        setVacationUsed(used)
+        setPetFrozen(!!pet.is_frozen)
+        const alreadyFedToday = pet.last_fed_at
+          ? new Date(pet.last_fed_at).toDateString() === new Date().toDateString()
+          : false
+        setCanVacation(!pet.is_frozen && used < 3 && !alreadyFedToday)
+      }
+    } catch (e) { console.error(e) }
+  }, [])
+
+  const handleOpenVacation = () => {
+    loadPetVacationInfo()
+    setVacationMsg(null)
+    setShowMenu(false)
+    setShowVacationModal(true)
+  }
+
+  const handleVacation = async () => {
+    setVacationLoading(true)
+    setVacationMsg(null)
+    try {
+      const res = await fetch('/api/pet/vacation', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setVacationUsed(data.vacation_used)
+        setPetFrozen(true)
+        setCanVacation(false)
+        setVacationMsg({ text: `🏖️ ${t('petVacationSuccess') || 'Эко-отпуск активирован!'} (${t('petVacationLeft') || 'осталось'}: ${data.vacation_left})`, type: 'success' })
+        setTimeout(() => setShowVacationModal(false), 2000)
+      } else {
+        const msgs = {
+          vacation_limit_reached: t('petVacationLimit') || 'Лимит отпусков на этот месяц исчерпан (3/3)',
+          already_on_vacation: t('petAlreadyOnVacation') || 'Питомец уже на отпуске',
+          already_fed_today: t('petAlreadyFed') || 'Питомец уже покормлен сегодня'
+        }
+        setVacationMsg({ text: msgs[data.error] || data.error, type: 'error' })
+      }
+    } catch (e) {
+      setVacationMsg({ text: t('checkInternetConnection') || 'Ошибка соединения', type: 'error' })
+    }
+    setVacationLoading(false)
+  }
 
   useEffect(() => {
     // Получаем текущую тему из localStorage
@@ -98,7 +165,11 @@ const MobileNav = () => {
   ] : []
 
   // Объединяем все пункты меню
-  const allMenuItems = [...menuItems, ...adminMenuItem]
+  const allMenuItems = [
+    ...menuItems,
+    ...adminMenuItem,
+    { id: 'eco-vacation', label: t('menuEcoVacation') || 'Эко-отпуск', icon: vacationIcon, isVacation: true }
+  ]
 
   return (
     <>
@@ -147,22 +218,17 @@ const MobileNav = () => {
               {allMenuItems.map(item => (
                 <Link
                   key={item.id}
-                  to={item.path}
-                  className={`mobile-menu-item ${location.pathname === item.path ? 'active' : ''}`}
-                  onClick={() => setShowMenu(false)}
+                  to={item.isVacation ? '#' : item.path}
+                  className={`mobile-menu-item${item.isVacation ? ' eco-vacation' : ''}${!item.isVacation && location.pathname === item.path ? ' active' : ''}`}
+                  onClick={e => {
+                    if (item.isVacation) { e.preventDefault(); setShowMenu(false); handleOpenVacation(); }
+                    else setShowMenu(false);
+                  }}
                 >
                   <img src={item.icon} alt={item.label} className="mobile-menu-icon-svg" />
                   <span className="mobile-menu-label">{item.label}</span>
-                  
-                  {/* Бейдж ADMIN для админского пункта */}
-                  {item.isAdmin && (
-                    <span className="mobile-admin-badge">ADMIN</span>
-                  )}
-                  
-                  {/* Индикатор активного пути */}
-                  {location.pathname === item.path && (
-                    <div className="mobile-menu-active-indicator" />
-                  )}
+                  {item.isAdmin && <span className="mobile-admin-badge">ADMIN</span>}
+                  {!item.isVacation && location.pathname === item.path && <div className="mobile-menu-active-indicator" />}
                 </Link>
               ))}
             </div>
@@ -181,6 +247,61 @@ const MobileNav = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Vacation Modal */}
+      {showVacationModal && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowVacationModal(false)} />
+          <div className="modal vacation-modal">
+            <div className="modal-header">
+              <h3>{t('petVacationTitle')}</h3>
+              <button className="modal-close" onClick={() => setShowVacationModal(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            {vacationMsg?.type === 'success' ? (
+              <div className="modal-body vacation-success-body">
+                <span className="material-icons vacation-success-icon">check_circle</span>
+                <p className="vacation-success-title">{t('petVacationSuccess')}</p>
+                <p className="vacation-success-desc">{t('petVacationSuccessDesc')}</p>
+                <div className="vacation-counter">
+                  {[0,1,2].map(i => (
+                    <span key={i} className={`vacation-dot${i < vacationUsed ? ' used' : ''}`} />
+                  ))}
+                  <span className="vacation-counter-label">{vacationUsed}/3 {t('petVacationUsed')}</span>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="modal-body">
+                  <p>{t('petVacationModalDesc')}</p>
+                  <ul className="vacation-rules-list">
+                    <li>{t('petVacationRule1')}</li>
+                    <li>{t('petVacationRule2')}</li>
+                    <li>{t('petVacationRule3')}</li>
+                    <li>{t('petVacationRule4')}</li>
+                  </ul>
+                  <div className="vacation-counter">
+                    {[0,1,2].map(i => (
+                      <span key={i} className={`vacation-dot${i < vacationUsed ? ' used' : ''}`} />
+                    ))}
+                    <span className="vacation-counter-label">{vacationUsed}/3 {t('petVacationUsed')}</span>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button className="modal-btn secondary" onClick={() => setShowVacationModal(false)}>
+                    {t('cancel')}
+                  </button>
+                  <button className="modal-btn primary" onClick={handleVacation} disabled={vacationLoading || !canVacation}
+                    title={!canVacation ? (petFrozen ? t('petFrozenBadge') : vacationUsed >= 3 ? t('petVacationLimit') : t('petAlreadyFed')) : undefined}>
+                    {vacationLoading ? '...' : t('petVacationConfirm')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

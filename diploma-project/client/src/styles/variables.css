@@ -39,6 +39,13 @@
   --text-primary: #222222;
   --text-secondary: #666666;
   --text-muted: #888888;
+
+  /* Фоны светлой темы */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f0f0f0;
+  --border-color: #e0e0e0;
+  --modal-bg: #ffffff;
   
   /* Цвета состояний */
   --success-color: #4caf50;

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useLanguage } from '../contexts/LanguageContext'
 import '../styles/components/Sidebar.css'
 import petIcon from '../assets/icons/pet.svg'
@@ -26,44 +26,84 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   const location = useLocation()
   const { t } = useLanguage()
   const [currentTheme, setCurrentTheme] = useState('light')
-  const [user, setUser] = useState(null)
-  const [isMobile, setIsMobile] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  useEffect(() => {
-    // Проверяем размер экрана
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768)
+  // Vacation modal state
+  const [showVacationModal, setShowVacationModal] = useState(false)
+  const [vacationLoading, setVacationLoading] = useState(false)
+  const [vacationMsg, setVacationMsg] = useState(null) // { text, type }
+  const [vacationUsed, setVacationUsed] = useState(0)
+  const [petFrozen, setPetFrozen] = useState(false)
+  const [canVacation, setCanVacation] = useState(true)
+
+  const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` })
+
+  const loadPetVacationInfo = useCallback(async () => {
+    try {
+      const res = await fetch('/api/pet', { headers: authHeader() })
+      const data = await res.json()
+      if (data.success && data.pet) {
+        const pet = data.pet
+        const currentMonth = new Date().getMonth() + 1
+        const used = pet.vacation_month === currentMonth ? (pet.vacation_used_this_month || 0) : 0
+        setVacationUsed(used)
+        setPetFrozen(!!pet.is_frozen)
+        // can't vacation if already fed today or already frozen or limit reached
+        const alreadyFedToday = pet.last_fed_at
+          ? new Date(pet.last_fed_at).toDateString() === new Date().toDateString()
+          : false
+        setCanVacation(!pet.is_frozen && used < 3 && !alreadyFedToday)
+      }
+    } catch (e) { console.error(e) }
+  }, [])
+
+  const handleOpenVacation = () => {
+    loadPetVacationInfo()
+    setVacationMsg(null)
+    setShowVacationModal(true)
+  }
+
+  const handleVacation = async () => {
+    setVacationLoading(true)
+    setVacationMsg(null)
+    try {
+      const res = await fetch('/api/pet/vacation', {
+        method: 'POST',
+        headers: { ...authHeader(), 'Content-Type': 'application/json' }
+      })
+      const data = await res.json()
+      if (data.success) {
+        setVacationUsed(data.vacation_used)
+        setPetFrozen(true)
+        setCanVacation(false)
+        setVacationMsg({ text: `🏖️ ${t('petVacationSuccess') || 'Эко-отпуск активирован!'} (${t('petVacationLeft') || 'осталось'}: ${data.vacation_left})`, type: 'success' })
+        setTimeout(() => setShowVacationModal(false), 2000)
+      } else {
+        const msgs = {
+          vacation_limit_reached: t('petVacationLimit') || 'Лимит отпусков на этот месяц исчерпан (3/3)',
+          already_on_vacation: t('petAlreadyOnVacation') || 'Питомец уже на отпуске',
+          already_fed_today: t('petAlreadyFed') || 'Питомец уже покормлен сегодня'
+        }
+        setVacationMsg({ text: msgs[data.error] || data.error, type: 'error' })
+      }
+    } catch (e) {
+      setVacationMsg({ text: t('checkInternetConnection') || 'Ошибка соединения', type: 'error' })
     }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    
-    // Получаем текущую тему из localStorage
+    setVacationLoading(false)
+  }
+
+  useEffect(() => {
     const savedSettings = localStorage.getItem('appSettings')
     if (savedSettings) {
       const settings = JSON.parse(savedSettings)
       setCurrentTheme(settings.theme || 'light')
     }
 
-    // Получаем данные пользователя
     const updateUserData = () => {
-      const userData = getUserInfo()
-      setUser(prevUser => {
-        const userStr = JSON.stringify(userData)
-        const currentUserStr = JSON.stringify(prevUser)
-        
-        if (userStr !== currentUserStr) {
-          setIsAdmin(isUserAdmin())
-          return userData
-        }
-        return prevUser
-      })
+      setIsAdmin(isUserAdmin())
     }
-    
     updateUserData()
-    
-    // Слушаем изменения темы
+
     const handleStorageChange = () => {
       const savedSettings = localStorage.getItem('appSettings')
       if (savedSettings) {
@@ -73,19 +113,14 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
           return newTheme !== prevTheme ? newTheme : prevTheme
         })
       }
-      
-      // Обновляем данные пользователя при изменениях
       updateUserData()
     }
 
     window.addEventListener('storage', handleStorageChange)
-    
-    // Проверяем изменения каждые 5 секунд (вместо каждой секунды)
     const interval = setInterval(handleStorageChange, 5000)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('resize', checkMobile)
       clearInterval(interval)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -114,56 +149,9 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
   // Объединяем все пункты меню
   const allMenuItems = [...mainMenuItems, ...adminMenuItem]
 
-  // Если мобилка - показываем сайдбар с уведомлениями
-  if (isMobile) {
-    return (
-      <aside 
-        className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
-        data-theme={currentTheme}
-        onMouseEnter={() => setIsExpanded(true)}
-        onMouseLeave={() => setIsExpanded(false)}
-      >
-        <div className="sidebar-content">
-          <Link to="/feed" className="sidebar-logo">
-            <img src={logoIcon} alt="EcoSteps" className="logo-icon-svg" />
-            {isExpanded && <span className="logo-text">EcoSteps</span>}
-          </Link>
-
-          <nav className="sidebar-nav">
-            {[
-              ...mainMenuItems.slice(0, 4), // pet, teams, messages, friends
-              { id: 'notifications', label: t('menuNotifications'), path: '/notifications', icon: notificationIcon },
-              ...mainMenuItems.slice(4), // остальные пункты
-              ...adminMenuItem
-            ].map(item => (
-              <Link
-                key={item.id}
-                to={item.path}
-                className={`sidebar-item ${location.pathname === item.path ? 'active' : ''} ${item.id === 'admin' ? 'admin-item' : ''}`}
-              >
-                <img src={item.icon} alt={item.label} className="sidebar-icon-svg" />
-                {isExpanded && <span className="sidebar-label">{item.label}</span>}
-                
-                {item.id === 'admin' && isExpanded && (
-                  <span className="admin-badge">ADMIN</span>
-                )}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="sidebar-footer">
-            <button className="sidebar-item eco-vacation">
-              <img src={vacationIcon} alt={t('menuEcoVacation')} className="sidebar-icon-svg" />
-              {isExpanded && <span className="sidebar-label">{t('menuEcoVacation')}</span>}
-            </button>
-          </div>
-        </div>
-      </aside>
-    )
-  }
-
   // Десктопная версия
   return (
+    <>
     <aside 
       className={`sidebar ${isExpanded ? 'expanded' : 'collapsed'}`}
       data-theme={currentTheme}
@@ -194,13 +182,69 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="sidebar-item eco-vacation">
+          <button className="sidebar-item eco-vacation" onClick={handleOpenVacation}>
             <img src={vacationIcon} alt={t('menuEcoVacation')} className="sidebar-icon-svg" />
             {isExpanded && <span className="sidebar-label">{t('menuEcoVacation')}</span>}
           </button>
         </div>
       </div>
     </aside>
+
+    {/* Vacation Modal — rendered outside aside so it's not clipped */}
+    {showVacationModal && (
+      <>
+        <div className="modal-overlay" onClick={() => setShowVacationModal(false)} />
+        <div className="modal vacation-modal">
+          <div className="modal-header">
+            <h3>{t('petVacationTitle')}</h3>
+            <button className="modal-close" onClick={() => setShowVacationModal(false)}>
+              <span className="material-icons">close</span>
+            </button>
+          </div>
+          {vacationMsg?.type === 'success' ? (
+            <div className="modal-body vacation-success-body">
+              <span className="material-icons vacation-success-icon">check_circle</span>
+              <p className="vacation-success-title">{t('petVacationSuccess')}</p>
+              <p className="vacation-success-desc">{t('petVacationSuccessDesc')}</p>
+              <div className="vacation-counter">
+                {[0,1,2].map(i => (
+                  <span key={i} className={`vacation-dot${i < vacationUsed ? ' used' : ''}`} />
+                ))}
+                <span className="vacation-counter-label">{vacationUsed}/3 {t('petVacationUsed')}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="modal-body">
+                <p>{t('petVacationModalDesc')}</p>
+                <ul className="vacation-rules-list">
+                  <li>{t('petVacationRule1')}</li>
+                  <li>{t('petVacationRule2')}</li>
+                  <li>{t('petVacationRule3')}</li>
+                  <li>{t('petVacationRule4')}</li>
+                </ul>
+                <div className="vacation-counter">
+                  {[0,1,2].map(i => (
+                    <span key={i} className={`vacation-dot${i < vacationUsed ? ' used' : ''}`} />
+                  ))}
+                  <span className="vacation-counter-label">{vacationUsed}/3 {t('petVacationUsed')}</span>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button className="modal-btn secondary" onClick={() => setShowVacationModal(false)}>
+                  {t('cancel')}
+                </button>
+                <button className="modal-btn primary" onClick={handleVacation} disabled={vacationLoading || !canVacation}
+                  title={!canVacation ? (petFrozen ? t('petFrozenBadge') : vacationUsed >= 3 ? t('petVacationLimit') : t('petAlreadyFed')) : undefined}>
+                  {vacationLoading ? '...' : t('petVacationConfirm')}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </>
+    )}
+    </>
   )
 }
 

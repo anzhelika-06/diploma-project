@@ -429,9 +429,42 @@ CREATE TABLE IF NOT EXISTS user_pets (
     last_fed_at TIMESTAMP DEFAULT NULL,
     hunger INTEGER DEFAULT 100 CHECK (hunger BETWEEN 0 AND 100),
     happiness INTEGER DEFAULT 100 CHECK (happiness BETWEEN 0 AND 100),
+    is_frozen BOOLEAN DEFAULT FALSE,
+    vacation_used_this_month INTEGER DEFAULT 0,
+    vacation_month INTEGER DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============ ПОСАДКА ДЕРЕВЬЕВ ============
+CREATE TABLE IF NOT EXISTS tree_requests (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coins_spent INTEGER NOT NULL DEFAULT 200,
+    trees_count INTEGER NOT NULL DEFAULT 1,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted', 'rejected')),
+    admin_id INTEGER REFERENCES users(id),
+    admin_note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tree_markers (
+    id SERIAL PRIMARY KEY,
+    request_id INTEGER NOT NULL REFERENCES tree_requests(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lat DECIMAL(10, 7) NOT NULL,
+    lng DECIMAL(10, 7) NOT NULL,
+    photo_url TEXT,
+    note TEXT,
+    planted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tree_requests_user ON tree_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_tree_requests_status ON tree_requests(status);
+CREATE INDEX IF NOT EXISTS idx_tree_markers_user ON tree_markers(user_id);
+CREATE INDEX IF NOT EXISTS idx_tree_markers_request ON tree_markers(request_id);
 -- ============ ИНДЕКСЫ ============
 
 -- Индекс для быстрого поиска расчетов по пользователю и дате

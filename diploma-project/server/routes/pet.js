@@ -16,11 +16,19 @@ pool.query(`
     last_fed_at TIMESTAMP DEFAULT NULL,
     hunger INTEGER DEFAULT 100,
     happiness INTEGER DEFAULT 100,
+    is_frozen BOOLEAN DEFAULT FALSE,
+    vacation_used_this_month INTEGER DEFAULT 0,
+    vacation_month INTEGER DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )
-`).then(() => console.log('✅ user_pets table ready'))
-  .catch(e => console.error('❌ user_pets table error:', e.message));
+`).then(async () => {
+  // Add new columns if upgrading existing table
+  await pool.query(`ALTER TABLE user_pets ADD COLUMN IF NOT EXISTS is_frozen BOOLEAN DEFAULT FALSE`).catch(() => {});
+  await pool.query(`ALTER TABLE user_pets ADD COLUMN IF NOT EXISTS vacation_used_this_month INTEGER DEFAULT 0`).catch(() => {});
+  await pool.query(`ALTER TABLE user_pets ADD COLUMN IF NOT EXISTS vacation_month INTEGER DEFAULT NULL`).catch(() => {});
+  console.log('✅ user_pets table ready');
+}).catch(e => console.error('❌ user_pets table error:', e.message));
 
 const XP_PER_FEED = 30;
 const COINS_PER_FEED = 10;
@@ -34,6 +42,8 @@ function xpForLevel(level) {
 
 function applyDecay(pet) {
   if (!pet.last_fed_at) return pet;
+  // Frozen pets don't decay
+  if (pet.is_frozen) return pet;
   const now = new Date();
   const lastFed = new Date(pet.last_fed_at);
   const daysPassed = Math.floor((now - lastFed) / (1000 * 60 * 60 * 24));
@@ -122,7 +132,7 @@ router.post('/feed', authenticateToken, async (req, res) => {
     const newHappiness = Math.min(100, pet.happiness + 30);
 
     await pool.query(
-      'UPDATE user_pets SET xp=$1, level=$2, xp_to_next_level=$3, hunger=$4, happiness=$5, last_fed_at=NOW(), updated_at=NOW() WHERE user_id=$6',
+      'UPDATE user_pets SET xp=$1, level=$2, xp_to_next_level=$3, hunger=$4, happiness=$5, last_fed_at=NOW(), is_frozen=FALSE, updated_at=NOW() WHERE user_id=$6',
       [newXp, newLevel, newXpToNext, newHunger, newHappiness, userId]
     );
 
@@ -162,6 +172,61 @@ router.patch('/name', authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, error: 'Server error' });
   }
 });
+
+// POST /api/pet/vacation — freeze pet for today (up to 3 times/month)
+router.post('/vacation', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const petResult = await pool.query('SELECT * FROM user_pets WHERE user_id=$1', [userId]);
+    if (petResult.rows.length === 0) return res.status(404).json({ success: false, error: 'No pet' });
+
+    let pet = petResult.rows[0];
+    const currentMonth = new Date().getMonth() + 1;
+
+    // Reset counter if new month
+    let vacationUsed = pet.vacation_used_this_month || 0;
+    if (pet.vacation_month !== currentMonth) {
+      vacationUsed = 0;
+    }
+
+    if (vacationUsed >= 3) {
+      return res.status(400).json({ success: false, error: 'vacation_limit_reached' });
+    }
+
+    if (pet.is_frozen) {
+      return res.status(400).json({ success: false, error: 'already_on_vacation' });
+    }
+
+    // Check if already fed today — can't go on vacation if already fed
+    if (pet.last_fed_at) {
+      const lastFed = new Date(pet.last_fed_at);
+      const now = new Date();
+      if (lastFed.toDateString() === now.toDateString()) {
+        return res.status(400).json({ success: false, error: 'already_fed_today' });
+      }
+    }
+
+    await pool.query(
+      `UPDATE user_pets SET is_frozen=TRUE, vacation_used_this_month=$1, vacation_month=$2,
+       last_fed_at=NOW(), updated_at=NOW() WHERE user_id=$3`,
+      [vacationUsed + 1, currentMonth, userId]
+    );
+
+    const updated = await pool.query('SELECT * FROM user_pets WHERE user_id=$1', [userId]);
+    res.json({
+      success: true,
+      pet: updated.rows[0],
+      vacation_used: vacationUsed + 1,
+      vacation_left: 3 - (vacationUsed + 1)
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// POST /api/pet/unfreeze — called on next feed to unfreeze
+// (unfreeze happens automatically when pet is fed)
 
 module.exports = router;
 

@@ -243,7 +243,7 @@
   text-decoration: none;
   color: var(--mobile-menu-text, #333);
   border-radius: 12px;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
   cursor: pointer;
   position: relative;
 }
@@ -256,6 +256,19 @@
 .mobile-menu-item:active {
   transform: translateX(4px) scale(0.98);
 }
+
+/* Eco vacation item in mobile menu */
+.mobile-menu-item.eco-vacation {
+  color: #ff6b6b;
+  transform: none !important;
+}
+.mobile-menu-item.eco-vacation:hover {
+  transform: translateX(4px) !important;
+}
+.mobile-menu-item.eco-vacation:active {
+  transform: translateX(4px) scale(0.98) !important;
+}
+[data-theme="dark"] .mobile-menu-item.eco-vacation { color: #ff6b6b; }
 
 /* Активные пункты меню - ЗЕЛЕНЫЕ */
 .mobile-menu-item.active {
@@ -475,3 +488,5 @@
 .mobile-menu[data-theme="dark"] .mobile-menu-item.active .mobile-menu-icon-svg {
   filter: brightness(0) saturate(100%) invert(58%) sepia(96%) saturate(464%) hue-rotate(81deg) brightness(97%) contrast(89%) !important;
 }
+
+

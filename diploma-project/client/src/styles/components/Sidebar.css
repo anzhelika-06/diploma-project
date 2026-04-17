@@ -267,3 +267,112 @@
 
 /* Убрано изменение цвета при активной вкладке в темной теме */
 /* [data-theme="dark"] .sidebar-item.active .admin-badge остается золотым */
+
+/* ── Vacation Modal ── */
+.vacation-modal {
+  background: #ffffff;
+}
+[data-theme="dark"] .vacation-modal {
+  background: #1e2a1e;
+}
+
+.vacation-modal .vacation-rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vacation-modal .vacation-rules-list li {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  padding: 8px 12px;
+  background: rgba(76, 175, 80, 0.08);
+  border-left: 3px solid #4caf50;
+  border-radius: 0 8px 8px 0;
+}
+[data-theme="dark"] .vacation-modal .vacation-rules-list li {
+  color: #ddd;
+  background: rgba(76, 175, 80, 0.1);
+  border-left-color: #66bb6a;
+}
+
+.vacation-counter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+.vacation-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  border: 2px solid #bbb;
+  transition: background 0.2s;
+}
+.vacation-dot.used {
+  background: #4caf50;
+  border-color: #2e7d32;
+}
+[data-theme="dark"] .vacation-dot { background: #444; border-color: #666; }
+[data-theme="dark"] .vacation-dot.used { background: #388e3c; border-color: #66bb6a; }
+
+.vacation-counter-label {
+  font-size: 12px;
+  color: #888;
+  margin-left: 2px;
+}
+
+.vacation-frozen-note {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #2e7d32;
+  font-weight: 500;
+}
+[data-theme="dark"] .vacation-frozen-note { color: #81c784; }
+
+.vacation-msg {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.vacation-msg.success { color: #2e7d32; background: rgba(76,175,80,0.1); }
+.vacation-msg.error   { color: #c62828; background: rgba(229,57,53,0.1); }
+[data-theme="dark"] .vacation-msg.success { color: #81c784; }
+[data-theme="dark"] .vacation-msg.error   { color: #ef9a9a; }
+
+/* ── Vacation success screen ── */
+.vacation-success-body {
+  text-align: center;
+  padding: 24px 16px 20px;
+}
+.vacation-success-icon {
+  font-size: 52px;
+  color: #4caf50;
+}
+.vacation-success-title {
+  margin: 10px 0 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+[data-theme="dark"] .vacation-success-title { color: #eee; }
+.vacation-success-desc {
+  font-size: 13px;
+  color: #666;
+  margin: 0 0 14px;
+}
+[data-theme="dark"] .vacation-success-desc { color: #aaa; }
+
+.vacation-blocked-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #e53935;
+  margin: 6px 20px 16px;
+}
+[data-theme="dark"] .vacation-blocked-hint { color: #ef9a9a; }
