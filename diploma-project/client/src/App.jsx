@@ -28,6 +28,7 @@ import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { getSavedTheme, applyTheme, syncTheme } from './utils/themeManager';
 import { isUserAdmin } from './utils/authUtils';
 import BannedModal from './components/BannedModal';
+import './styles/leaflet-dark.css';
 import './styles/variables.css';
 
 // Слушает socket событие бана пока пользователь онлайн

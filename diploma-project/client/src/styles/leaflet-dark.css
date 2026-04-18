@@ -1,0 +1,67 @@
+/* Dark theme for Leaflet maps */
+[data-theme="dark"] .leaflet-container {
+  background: #1a1a1a;
+}
+
+[data-theme="dark"] .leaflet-tile {
+  filter: brightness(0.7) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+[data-theme="dark"] .leaflet-control-zoom a {
+  background-color: #2d2d2d;
+  color: #fff;
+  border-color: #444;
+}
+
+[data-theme="dark"] .leaflet-control-zoom a:hover {
+  background-color: #3a3a3a;
+}
+
+[data-theme="dark"] .leaflet-control-attribution {
+  background-color: rgba(45, 45, 45, 0.8);
+  color: #aaa;
+}
+
+[data-theme="dark"] .leaflet-control-attribution a {
+  color: #81c784;
+}
+
+[data-theme="dark"] .leaflet-popup-content-wrapper {
+  background-color: #2d2d2d;
+  color: #fff;
+}
+
+[data-theme="dark"] .leaflet-popup-tip {
+  background-color: #2d2d2d;
+}
+
+[data-theme="dark"] .leaflet-popup-close-button {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .leaflet-popup-close-button:hover {
+  color: #81c784 !important;
+}
+
+[data-theme="dark"] .leaflet-bar {
+  border-color: #444;
+}
+
+[data-theme="dark"] .leaflet-bar a {
+  background-color: #2d2d2d;
+  border-color: #444;
+  color: #fff;
+}
+
+[data-theme="dark"] .leaflet-bar a:hover {
+  background-color: #3a3a3a;
+}
+
+[data-theme="dark"] .leaflet-control-layers {
+  background-color: #2d2d2d;
+  color: #fff;
+}
+
+[data-theme="dark"] .leaflet-control-layers-toggle {
+  background-color: #2d2d2d;
+}

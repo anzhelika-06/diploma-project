@@ -10,38 +10,87 @@
 
 /* ── Page header ── */
 .contribution-page-header {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
   flex-wrap: wrap;
+  gap: 12px;
 }
+
+.contribution-header-text {
+  text-align: center;
+}
+
 .contribution-page-header h1 {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   margin: 0 0 4px;
+  color: #1a1a1a;
 }
+
+[data-theme="dark"] .contribution-page-header h1 { color: #fff; }
+
 .contribution-page-header p {
-  font-size: 13px;
+  font-size: 14px;
   color: #666;
   margin: 0;
 }
+
 [data-theme="dark"] .contribution-page-header p { color: #aaa; }
+
+.contribution-balance-widget {
+  position: absolute !important;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+@media (max-width: 600px) {
+  .contribution-balance-widget {
+    position: static !important;
+    transform: none;
+  }
+}
 
 .contribution-balance {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #f1f8e9;
-  border: 1px solid #c8e6c9;
-  border-radius: 12px;
-  padding: 10px 16px;
+  gap: 12px;
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+  border: 1.5px solid #a5d6a7;
+  border-radius: 16px;
+  padding: 12px 20px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.15);
 }
-[data-theme="dark"] .contribution-balance { background: #1b3a1b; border-color: #2d4a2d; }
-.contribution-leaf { width: 28px; height: 28px; }
-.contribution-balance-val { font-size: 22px; font-weight: 700; color: #2e7d32; }
+[data-theme="dark"] .contribution-balance {
+  background: linear-gradient(135deg, #1b3a1b, #1e3a1e);
+  border-color: #2d5a2d;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.2);
+}
+.contribution-leaf { width: 32px; height: 32px; }
+.contribution-balance-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.contribution-balance-val {
+  font-size: 26px;
+  font-weight: 800;
+  color: #2e7d32;
+  line-height: 1;
+}
 [data-theme="dark"] .contribution-balance-val { color: #81c784; }
+.contribution-balance-label {
+  font-size: 11px;
+  color: #66bb6a;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+[data-theme="dark"] .contribution-balance-label { color: #4caf50; }
 
 /* ── Stats row ── */
 .contribution-stats-row {
@@ -200,6 +249,19 @@
 .contribution-history-item.planted { border-left-color: #4caf50; }
 .contribution-history-item.pending { border-left-color: #ff9800; }
 .contribution-history-item.rejected { border-left-color: #e53935; }
+
+.contribution-history-item.clickable {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.contribution-history-item.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+[data-theme="dark"] .contribution-history-item.clickable:hover {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
 .contribution-history-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .contribution-history-left { display: flex; gap: 12px; align-items: center; }
 .contribution-history-trees { font-size: 14px; font-weight: 600; }
@@ -214,6 +276,24 @@
 .contribution-history-date { font-size: 12px; color: #aaa; }
 .contribution-history-note { font-size: 12px; color: #666; margin: 6px 0 0; font-style: italic; }
 [data-theme="dark"] .contribution-history-note { color: #999; }
+
+.contribution-history-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #4caf50;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .contribution-history-hint {
+  color: #81c784;
+}
+
+.contribution-history-hint .material-icons {
+  font-size: 16px;
+}
 
 /* ── Empty ── */
 .contribution-empty {
@@ -240,3 +320,122 @@
 .contribution-tree-row { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #444; }
 [data-theme="dark"] .contribution-tree-row { color: #ccc; }
 .contribution-tree-row .material-icons { font-size: 18px; color: #4caf50; }
+
+/* ── Tree marker styles ── */
+.leaflet-marker-icon {
+  cursor: pointer;
+}
+
+.leaflet-marker-icon svg {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.leaflet-marker-icon:hover svg {
+  transform: scale(1.15) translateY(-3px);
+  filter: drop-shadow(0 4px 8px rgba(46, 125, 50, 0.4));
+}
+
+
+/* ── Dark theme fixes ── */
+[data-theme="dark"] .contribution-page {
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-stat-card {
+  background: #2d2d2d;
+  border-color: #444;
+}
+
+[data-theme="dark"] .contribution-card {
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-count-val {
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-cost-val {
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-history-item {
+  background: #2d2d2d;
+  border-color: #444;
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-history-trees {
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-empty {
+  color: #aaa;
+}
+
+[data-theme="dark"] .contribution-loading {
+  color: #aaa;
+}
+
+[data-theme="dark"] .modal {
+  background: #2d2d2d;
+  color: #fff;
+}
+
+[data-theme="dark"] .modal-header h3 {
+  color: #fff;
+}
+
+[data-theme="dark"] .modal-body {
+  color: #fff;
+}
+
+[data-theme="dark"] .contribution-tree-row {
+  color: #ccc;
+}
+
+/* ── Tree marker styles ── */
+.tree-marker-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.tree-marker-pin {
+  transition: transform 0.25s ease, filter 0.25s ease;
+  transform-origin: bottom center;
+  cursor: pointer;
+}
+
+.tree-marker-pin:hover {
+  transform: scale(1.2) translateY(-4px);
+  filter: drop-shadow(0 6px 12px rgba(27, 94, 32, 0.5));
+}
+
+.tree-marker-pin.pending:hover {
+  filter: drop-shadow(0 4px 8px rgba(139, 195, 74, 0.5));
+}
+
+/* Кластеры */
+.mc-cluster {
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4caf50, #1b5e20);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 3px 10px rgba(27, 94, 32, 0.45);
+  border: 3px solid rgba(255,255,255,0.6);
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.mc-cluster:hover {
+  transform: scale(1.1);
+}
+
+.mc-count {
+  font-size: 11px;
+  line-height: 1;
+  margin-top: 1px;
+}

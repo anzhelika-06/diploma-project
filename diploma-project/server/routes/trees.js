@@ -177,14 +177,41 @@ router.get('/admin/requests', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
-// POST /api/trees/admin/plant — admin places marker and confirms planting
+// POST /api/trees/admin/plant — admin places markers and confirms planting
+// Body: { request_id, markers: [{ lat, lng, photo_url, note }] }  (1–5 markers, photo required)
 router.post('/admin/plant', authenticateToken, isAdmin, async (req, res) => {
   try {
     const adminId = req.user.id;
-    const { request_id, lat, lng, photo_url, note } = req.body;
+    const { request_id, markers: markersInput, lat, lng, photo_url, note } = req.body;
 
-    if (!request_id || lat == null || lng == null) {
-      return res.status(400).json({ success: false, message: 'request_id, lat, lng required' });
+    if (!request_id) {
+      return res.status(400).json({ success: false, message: 'request_id required' });
+    }
+
+    // Support both old single-marker format and new array format
+    let markersArr = markersInput;
+    if (!markersArr) {
+      if (lat == null || lng == null) {
+        return res.status(400).json({ success: false, message: 'markers array or lat/lng required' });
+      }
+      markersArr = [{ lat, lng, photo_url, note }];
+    }
+
+    if (!Array.isArray(markersArr) || markersArr.length === 0) {
+      return res.status(400).json({ success: false, message: 'markers must be a non-empty array' });
+    }
+    if (markersArr.length > 5) {
+      return res.status(400).json({ success: false, message: 'Maximum 5 markers per request' });
+    }
+
+    // Validate each marker — photo required
+    for (const m of markersArr) {
+      if (m.lat == null || m.lng == null) {
+        return res.status(400).json({ success: false, message: 'Each marker must have lat and lng' });
+      }
+      if (!m.photo_url) {
+        return res.status(400).json({ success: false, message: 'Photo is required for each marker' });
+      }
     }
 
     const reqRes = await pool.query('SELECT * FROM tree_requests WHERE id = $1', [request_id]);
@@ -197,16 +224,19 @@ router.post('/admin/plant', authenticateToken, isAdmin, async (req, res) => {
     try {
       await client.query('BEGIN');
 
-      // Add marker
-      const markerRes = await client.query(
-        'INSERT INTO tree_markers (request_id, user_id, lat, lng, photo_url, note) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [request_id, request.user_id, lat, lng, photo_url || null, note || null]
-      );
+      const insertedMarkers = [];
+      for (const m of markersArr) {
+        const markerRes = await client.query(
+          'INSERT INTO tree_markers (request_id, user_id, lat, lng, photo_url, note) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+          [request_id, request.user_id, m.lat, m.lng, m.photo_url, m.note || null]
+        );
+        insertedMarkers.push(markerRes.rows[0]);
+      }
 
       // Update request status
       await client.query(
         'UPDATE tree_requests SET status = $1, admin_id = $2, admin_note = $3, updated_at = NOW() WHERE id = $4',
-        ['planted', adminId, note || null, request_id]
+        ['planted', adminId, markersArr[0].note || null, request_id]
       );
 
       // Update user trees_planted count
@@ -224,13 +254,12 @@ router.post('/admin/plant', authenticateToken, isAdmin, async (req, res) => {
           '🌳 Ваше дерево посажено!',
           `Администратор посадил ${request.trees_count} дерев(а) от вашего имени. Посмотрите на карте!`,
           '/contribution',
-          markerRes.rows[0].id
+          insertedMarkers[0].id
         ]
       );
 
       await client.query('COMMIT');
 
-      // Emit to user
       const io = req.app.get('io');
       if (io) {
         io.to(`user:${request.user_id}`).emit('notification:new', {
@@ -241,7 +270,7 @@ router.post('/admin/plant', authenticateToken, isAdmin, async (req, res) => {
         });
       }
 
-      res.json({ success: true, marker: markerRes.rows[0] });
+      res.json({ success: true, markers: insertedMarkers });
     } catch (e) {
       await client.query('ROLLBACK');
       throw e;
