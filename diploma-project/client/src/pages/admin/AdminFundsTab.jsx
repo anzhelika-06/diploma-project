@@ -16,28 +16,30 @@ L.Icon.Default.mergeOptions({
 
 const treeIcon = new L.DivIcon({
   html: `<div class="tree-marker-pin">
-    <svg viewBox="0 0 32 40" width="32" height="40" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 36 48" width="36" height="48" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="tg1" cx="38%" cy="32%"><stop offset="0%" stop-color="#b9f6ca"/><stop offset="100%" stop-color="#1b5e20"/></radialGradient>
-        <radialGradient id="tg2" cx="38%" cy="32%"><stop offset="0%" stop-color="#69f0ae"/><stop offset="100%" stop-color="#2e7d32"/></radialGradient>
-        <radialGradient id="tg3" cx="38%" cy="32%"><stop offset="0%" stop-color="#ccff90"/><stop offset="100%" stop-color="#558b2f"/></radialGradient>
-        <linearGradient id="tk" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#795548"/><stop offset="100%" stop-color="#3e2723"/></linearGradient>
-        <filter id="ts"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1b5e20" flood-opacity="0.4"/></filter>
+        <radialGradient id="tg1" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#a5d6a7"/><stop offset="100%" stop-color="#1b5e20"/></radialGradient>
+        <radialGradient id="tg2" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#c8e6c9"/><stop offset="100%" stop-color="#2e7d32"/></radialGradient>
+        <radialGradient id="tg3" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#e8f5e9"/><stop offset="100%" stop-color="#388e3c"/></radialGradient>
+        <linearGradient id="tk" x1="20%" y1="0%" x2="80%" y2="100%"><stop offset="0%" stop-color="#8d6e63"/><stop offset="100%" stop-color="#3e2723"/></linearGradient>
+        <filter id="ts" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#1b5e20" flood-opacity="0.45"/>
+        </filter>
       </defs>
       <g filter="url(#ts)">
-        <ellipse cx="16" cy="15" rx="13" ry="13" fill="url(#tg1)"/>
-        <ellipse cx="16" cy="11" rx="10" ry="10" fill="url(#tg2)"/>
-        <ellipse cx="16" cy="7"  rx="7"  ry="7"  fill="url(#tg3)"/>
-        <ellipse cx="11" cy="6"  rx="3"  ry="3"  fill="#f1f8e9" opacity="0.45"/>
-        <rect x="13" y="24" width="6" height="12" rx="2" fill="url(#tk)"/>
-        <ellipse cx="16" cy="36" rx="5" ry="2" fill="#3e2723" opacity="0.2"/>
+        <ellipse cx="18" cy="20" rx="15" ry="15" fill="url(#tg1)"/>
+        <ellipse cx="18" cy="15" rx="12" ry="12" fill="url(#tg2)"/>
+        <ellipse cx="18" cy="10" rx="9"  ry="9"  fill="url(#tg3)"/>
+        <ellipse cx="12" cy="8"  rx="4"  ry="4"  fill="#f1f8e9" opacity="0.5"/>
+        <rect x="15" y="30" width="6" height="14" rx="2.5" fill="url(#tk)"/>
+        <ellipse cx="18" cy="44" rx="6" ry="2" fill="#3e2723" opacity="0.18"/>
       </g>
     </svg>
   </div>`,
   className: 'tree-marker-wrap',
-  iconSize: [32, 40],
-  iconAnchor: [16, 40],
-  popupAnchor: [0, -40],
+  iconSize: [36, 48],
+  iconAnchor: [18, 48],
+  popupAnchor: [0, -48],
 });
 
 const pendingIcon = new L.DivIcon({
@@ -67,6 +69,31 @@ function FlyToMarker({ position }) {
   }, [map, position]);
   return null;
 }
+
+// Стабильная карта для модала — не пересоздаётся при изменении маркеров
+const StableModalMap = ({ selectedRequest, pendingMarkers, activeMarkerIdx, treeIcon, pendingIcon, onMapClick, onZoomPhoto }) => {
+  return (
+    <LocalizedMap center={[53.9, 27.5]} zoom={5}
+      style={{ height: 360, borderRadius: 10, marginBottom: 12 }}>
+      {selectedRequest.status === 'pending' && (
+        <MapClickHandler onPick={onMapClick} />
+      )}
+      {(selectedRequest.markers || []).map(m => (
+        <Marker key={m.id} position={[parseFloat(m.lat), parseFloat(m.lng)]} icon={treeIcon}>
+          <Popup>
+            {m.note && <p style={{margin:'0 0 6px'}}>{m.note}</p>}
+            {m.photo_url && <img src={m.photo_url} alt="tree" style={{width:'100%',borderRadius:6,cursor:'pointer'}} onClick={() => onZoomPhoto(m.photo_url)} />}
+          </Popup>
+        </Marker>
+      ))}
+      {pendingMarkers.map((m, i) => (
+        <Marker key={`new-${i}`} position={[m.lat, m.lng]} icon={i === activeMarkerIdx ? treeIcon : pendingIcon}>
+          <Popup>{m.lat.toFixed(5)}, {m.lng.toFixed(5)}</Popup>
+        </Marker>
+      ))}
+    </LocalizedMap>
+  );
+};
 
 function MapClickHandler({ onPick }) {
   useMapEvents({ click: e => onPick(e.latlng) });
@@ -176,22 +203,33 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
   });
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setPendingMarkers(prev => prev.map((m, i) =>
-        i === activeMarkerIdx ? { ...m, photo_url: ev.target.result, photoPreview: ev.target.result } : m
-      ));
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        setPendingMarkers(prev => prev.map((m, i) => {
+          if (i !== activeMarkerIdx) return m;
+          const photos = m.photos || [];
+          if (photos.length >= 5) return m; // max 5
+          return { ...m, photos: [...photos, ev.target.result] };
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
     e.target.value = '';
+  };
+
+  const removePhoto = (markerIdx, photoIdx) => {
+    setPendingMarkers(prev => prev.map((m, i) =>
+      i === markerIdx ? { ...m, photos: (m.photos || []).filter((_, pi) => pi !== photoIdx) } : m
+    ));
   };
 
   const handleMapClick = (latlng) => {
     if (!selectedRequest || selectedRequest.status !== 'pending') return;
-    if (pendingMarkers.length >= 5) return;
-    setPendingMarkers(prev => [...prev, { lat: latlng.lat, lng: latlng.lng, photo_url: null, photoPreview: null, note: '' }]);
+    if (pendingMarkers.length >= selectedRequest.trees_count) return; // Limit by trees_count
+    setPendingMarkers(prev => [...prev, { lat: latlng.lat, lng: latlng.lng, photos: [], note: '' }]);
     setActiveMarkerIdx(pendingMarkers.length);
   };
 
@@ -202,8 +240,8 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
 
   const handlePlant = async () => {
     if (!selectedRequest || pendingMarkers.length === 0) return;
-    // Validate all have photos
-    const missing = pendingMarkers.findIndex(m => !m.photo_url);
+    // Validate all have at least 1 photo
+    const missing = pendingMarkers.findIndex(m => !m.photos?.length);
     if (missing !== -1) {
       setMsg({ text: t('fundsPhotoRequired') || 'Прикрепите фото для каждой метки', type: 'error' });
       setActiveMarkerIdx(missing);
@@ -217,7 +255,13 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
         headers: { ...authHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
           request_id: selectedRequest.id,
-          markers: pendingMarkers.map(m => ({ lat: m.lat, lng: m.lng, photo_url: m.photo_url, note: m.note || null })),
+          markers: pendingMarkers.map(m => ({
+            lat: m.lat,
+            lng: m.lng,
+            photo_url: m.photos[0],           // first photo as main
+            extra_photos: m.photos.slice(1),  // rest
+            note: m.note || null,
+          })),
         })
       });
       const data = await res.json();
@@ -376,13 +420,13 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
               <table className="funds-table">
                 <thead>
                   <tr>
-                    <th style={{width:'60px'}}>ID</th>
-                    <th>{t('user') || 'Пользователь'}</th>
-                    <th style={{width:'90px'}}>{t('treesPlanted') || 'Деревья'}</th>
-                    <th style={{width:'90px'}}>{t('ecoCoinsShort') || 'Экоины'}</th>
-                    <th style={{width:'130px'}}>{t('date') || 'Дата'}</th>
-                    <th style={{width:'110px'}}>{t('status') || 'Статус'}</th>
-                    <th style={{width:'70px'}}>{t('actions') || 'Действия'}</th>
+                    <th style={{width:'50px'}}>ID</th>
+                    <th style={{width:'180px'}}>{t('user') || 'Пользователь'}</th>
+                    <th style={{width:'80px'}}>{t('treesPlanted') || 'Деревья'}</th>
+                    <th style={{width:'80px'}}>{t('ecoCoinsShort') || 'Экоины'}</th>
+                    <th style={{width:'110px'}}>{t('date') || 'Дата'}</th>
+                    <th style={{width:'100px'}}>{t('status') || 'Статус'}</th>
+                    <th style={{width:'80px'}}>{t('actions') || 'Действия'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -441,33 +485,21 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                 <div className="modal-body">
                   {selectedRequest.status === 'pending' && (
                     <p className="modal-hint">
-                      {pendingMarkers.length < 5
-                        ? (t('fundsClickMap') || 'Кликните на карте, чтобы добавить метку') + ` (${pendingMarkers.length}/5)`
-                        : t('fundsMaxMarkers') || 'Максимум 5 меток'}
+                      {pendingMarkers.length < selectedRequest.trees_count
+                        ? (t('fundsClickMap') || 'Кликните на карте, чтобы добавить метку') + ` (${pendingMarkers.length}/${selectedRequest.trees_count})`
+                        : `✓ ${t('fundsAllMarkersPlaced') || 'Все метки расставлены'}`}
                     </p>
                   )}
 
-                  <LocalizedMap center={[53.9, 27.5]} zoom={5}
-                    style={{ height: 360, borderRadius: 10, marginBottom: 12 }}>
-                    {selectedRequest.status === 'pending' && (
-                      <MapClickHandler onPick={handleMapClick} />
-                    )}
-                    {/* Existing planted markers */}
-                    {(selectedRequest.markers || []).map(m => (
-                      <Marker key={m.id} position={[parseFloat(m.lat), parseFloat(m.lng)]} icon={treeIcon}>
-                        <Popup>
-                          {m.note && <p style={{margin:'0 0 6px'}}>{m.note}</p>}
-                          {m.photo_url && <img src={m.photo_url} alt="tree" style={{width:'100%',borderRadius:6,cursor:'pointer'}} onClick={() => setZoomedPhoto(m.photo_url)} />}
-                        </Popup>
-                      </Marker>
-                    ))}
-                    {/* New pending markers */}
-                    {pendingMarkers.map((m, i) => (
-                      <Marker key={`new-${i}`} position={[m.lat, m.lng]} icon={i === activeMarkerIdx ? treeIcon : pendingIcon}>
-                        <Popup>{m.lat.toFixed(5)}, {m.lng.toFixed(5)}</Popup>
-                      </Marker>
-                    ))}
-                  </LocalizedMap>
+                  <StableModalMap
+                    selectedRequest={selectedRequest}
+                    pendingMarkers={pendingMarkers}
+                    activeMarkerIdx={activeMarkerIdx}
+                    treeIcon={treeIcon}
+                    pendingIcon={pendingIcon}
+                    onMapClick={handleMapClick}
+                    onZoomPhoto={setZoomedPhoto}
+                  />
 
                   {/* Markers list with photo upload */}
                   {selectedRequest.status === 'pending' && pendingMarkers.length > 0 && (
@@ -483,16 +515,30 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                           </div>
                           {i === activeMarkerIdx && (
                             <div className="marker-item-body">
-                              <input type="file" accept="image/*" ref={fileInputRef} style={{display:'none'}} onChange={handleFileChange} />
-                              <div className="photo-upload-row">
-                                <button className={`upload-button${!m.photo_url ? ' required' : ''}`} onClick={() => fileInputRef.current?.click()}>
-                                  <span className="material-icons">photo_camera</span>
-                                  {m.photoPreview ? t('fundsChangePhoto') || 'Изменить фото' : t('fundsPhotoUrl') || 'Фото (обязательно)'}
-                                </button>
-                                {m.photoPreview && (
-                                  <img src={m.photoPreview} alt="preview" className="photo-preview" onClick={() => setZoomedPhoto(m.photoPreview)} />
+                              <input type="file" accept="image/*" multiple ref={fileInputRef} style={{display:'none'}} onChange={handleFileChange} />
+                              
+                              {/* Photos grid */}
+                              <div className="marker-photos-grid">
+                                {(m.photos || []).map((photo, pi) => (
+                                  <div key={pi} className="marker-photo-thumb">
+                                    <img src={photo} alt={`фото ${pi+1}`} onClick={() => setZoomedPhoto(photo)} />
+                                    <button className="marker-photo-remove" onClick={(e) => { e.stopPropagation(); removePhoto(i, pi); }}>
+                                      <span className="material-icons">close</span>
+                                    </button>
+                                  </div>
+                                ))}
+                                {(m.photos || []).length < 5 && (
+                                  <button className={`marker-photo-add${!(m.photos?.length) ? ' required' : ''}`} onClick={() => fileInputRef.current?.click()}>
+                                    <span className="material-icons">add_photo_alternate</span>
+                                    <span>{(m.photos || []).length === 0 ? t('fundsPhotoUrl') || 'Фото' : t('fundsAddPhoto') || 'Ещё'}</span>
+                                  </button>
                                 )}
                               </div>
+                              <p className="photo-hint">
+                                <span className="material-icons" style={{fontSize:13,verticalAlign:'middle'}}>info</span>
+                                {' '}{t('fundsPhotoHint') || 'Фото обязательно'} · {(m.photos || []).length}/5
+                              </p>
+
                               <input className="form-input" placeholder={t('fundsNote') || 'Заметка (необязательно)'}
                                 value={m.note}
                                 onChange={e => setPendingMarkers(prev => prev.map((pm, pi) => pi === i ? { ...pm, note: e.target.value } : pm))}
@@ -502,7 +548,7 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                         </div>
                       ))}
 
-                      <button className="submit-button primary" onClick={handlePlant} disabled={planting || pendingMarkers.some(m => !m.photo_url)}>
+                      <button className="submit-button primary" onClick={handlePlant} disabled={planting || pendingMarkers.some(m => !m.photos?.length)}>
                         {planting ? '...' : `${t('fundsConfirmPlant') || 'Подтвердить посадку'} (${pendingMarkers.length})`}
                       </button>
                     </div>
@@ -527,10 +573,19 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                 popupHtml: `<div class="tree-popup">
                   <div class="popup-header"><b>${m.avatar_emoji || ''} ${m.nickname || ''}</b></div>
                   ${m.note ? `<p class="popup-note">${m.note}</p>` : ''}
-                  ${m.photo_url ? `<img src="${m.photo_url}" class="popup-photo" style="width:100%;border-radius:6px;margin-top:6px;cursor:pointer"/>` : ''}
+                  ${m.photo_url ? `<img src="${m.photo_url}" class="popup-photo" data-photo-url="${m.photo_url}" style="width:100%;border-radius:6px;margin-top:6px;cursor:pointer"/>` : ''}
                   <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>
                 </div>`,
               }))}
+              onMarkerClick={(m) => {
+                // Handle photo click in popup
+                setTimeout(() => {
+                  const imgs = document.querySelectorAll('.popup-photo[data-photo-url]');
+                  imgs.forEach(img => {
+                    img.onclick = () => setZoomedPhoto(img.getAttribute('data-photo-url'));
+                  });
+                }, 100);
+              }}
             />
           </LocalizedMap>
         </div>

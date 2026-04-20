@@ -5,6 +5,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { translateStoryContent, detectTextLanguage } from '../utils/translations'
 import ecoinsImage from '../assets/images/ecoins.png'
 import { useEventTracker } from '../hooks/useEventTracker'
+import { pluralizeEcoins } from '../utils/pluralUtils'
 
 const AchievementsPage = () => {
   const { currentLanguage, t } = useLanguage()
@@ -781,7 +782,7 @@ const AchievementsPage = () => {
               className="eco-coins-icon"
             />
             <span className="eco-coins-amount">{ecoCoins}</span>
-            <span className="eco-coins-label">{t('ecoCoins')}</span>
+            <span className="eco-coins-label">{pluralizeEcoins(ecoCoins, currentLanguage)}</span>
           </div>
         </div>
 

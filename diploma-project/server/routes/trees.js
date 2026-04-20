@@ -2,8 +2,35 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
 const { authenticateToken, isAdmin } = require('../middleware/authMiddleware');
+const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
 
-const TREE_COST = 1; // eco coins per tree (1 for testing)
+const TREE_COST = 200; // eco coins per tree
+
+// Auto-insert tree achievements if not exist
+pool.query(`
+  INSERT INTO achievements (code, name, description, icon, points, is_active, event_type, requirement_type, requirement_value)
+  VALUES
+    ('tree_planter_1',  'Первое дерево',    'Посадите своё первое дерево',       '🌱', 50,  true, 'tree_planted', 'count', 1),
+    ('tree_planter_5',  'Садовник',         'Посадите 5 деревьев',               '🌿', 100, true, 'tree_planted', 'count', 5),
+    ('tree_planter_10', 'Лесник',           'Посадите 10 деревьев',              '🌳', 200, true, 'tree_planted', 'count', 10),
+    ('tree_planter_25', 'Хранитель леса',   'Посадите 25 деревьев',              '🌲', 500, true, 'tree_planted', 'count', 25)
+  ON CONFLICT (code) DO NOTHING
+`).catch(() => {});
+
+// Helper: award tree achievement if not already awarded
+async function awardTreeAchievement(client, userId, code, io) {
+  try {
+    const ach = await client.query('SELECT id, name, icon FROM achievements WHERE code = $1', [code]);
+    if (!ach.rows.length) return;
+    const { id: achId, name, icon } = ach.rows[0];
+    const exists = await client.query('SELECT id FROM user_achievements WHERE user_id = $1 AND achievement_id = $2', [userId, achId]);
+    if (exists.rows.length) return;
+    await client.query('INSERT INTO user_achievements (user_id, achievement_id, progress, completed) VALUES ($1, $2, 1, true)', [userId, achId]);
+    await notifyUserAboutAchievement(userId, name, icon || '🌳', achId, io);
+  } catch (e) {
+    console.error('awardTreeAchievement error:', e.message);
+  }
+}
 
 // Auto-create tables if upgrading
 pool.query(`
@@ -261,6 +288,24 @@ router.post('/admin/plant', authenticateToken, isAdmin, async (req, res) => {
       await client.query('COMMIT');
 
       const io = req.app.get('io');
+
+      // Award tree planting achievements based on total trees planted
+      const totalRes = await pool.query('SELECT trees_planted FROM users WHERE id = $1', [request.user_id]);
+      const planted = totalRes.rows[0]?.trees_planted || 0;
+      const achClient = await pool.connect();
+      try {
+        await achClient.query('BEGIN');
+        if (planted >= 1)  await awardTreeAchievement(achClient, request.user_id, 'tree_planter_1', io);
+        if (planted >= 5)  await awardTreeAchievement(achClient, request.user_id, 'tree_planter_5', io);
+        if (planted >= 10) await awardTreeAchievement(achClient, request.user_id, 'tree_planter_10', io);
+        if (planted >= 25) await awardTreeAchievement(achClient, request.user_id, 'tree_planter_25', io);
+        await achClient.query('COMMIT');
+      } catch (e) {
+        await achClient.query('ROLLBACK');
+      } finally {
+        achClient.release();
+      }
+
       if (io) {
         io.to(`user:${request.user_id}`).emit('notification:new', {
           type: 'system',

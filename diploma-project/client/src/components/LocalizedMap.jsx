@@ -27,11 +27,9 @@ const LocalizedMap = ({ children, ...props }) => {
   const { currentLanguage } = useLanguage();
 
   return (
-    // key на MapContainer — полное перемонтирование при смене языка
-    <MapContainer key={currentLanguage} {...props} attributionControl={true}>
+    <MapContainer key={currentLanguage} {...props} attributionControl={false}>
       <TileLayer
         url={getTileUrl(currentLanguage)}
-        attribution={getAttribution(currentLanguage)}
         maxZoom={19}
       />
       {children}

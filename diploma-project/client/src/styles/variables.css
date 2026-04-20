@@ -121,6 +121,11 @@
   --border-color-hover: var(--primary-green);
   --border-color-focus: var(--secondary-green);
   
+  /* Текст (переопределяем для тёмной темы) */
+  --text-primary: #ffffff;
+  --text-secondary: #cccccc;
+  --text-muted: #aaaaaa;
+  
   /* Кнопки */
   --button-primary-bg: var(--primary-green);
   --button-primary-hover: var(--primary-green-dark);

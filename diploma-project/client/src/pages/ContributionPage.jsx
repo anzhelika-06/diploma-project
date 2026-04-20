@@ -8,6 +8,7 @@ import { getCurrentUser } from '../utils/authUtils';
 import ecoinsImage from '../assets/images/ecoins.png';
 import LocalizedMap from '../components/LocalizedMap';
 import MarkerCluster from '../components/MarkerCluster';
+import { pluralizeEcoins, pluralizeTrees } from '../utils/pluralUtils';
 import '../styles/pages/ContributionPage.css';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -33,31 +34,33 @@ function FlyToMarker({ position, onDone }) {
 
 const treeIcon = new L.DivIcon({
   html: `<div class="tree-marker-pin">
-    <svg viewBox="0 0 32 40" width="32" height="40" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 36 48" width="36" height="48" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="ctg1" cx="38%" cy="32%"><stop offset="0%" stop-color="#b9f6ca"/><stop offset="100%" stop-color="#1b5e20"/></radialGradient>
-        <radialGradient id="ctg2" cx="38%" cy="32%"><stop offset="0%" stop-color="#69f0ae"/><stop offset="100%" stop-color="#2e7d32"/></radialGradient>
-        <radialGradient id="ctg3" cx="38%" cy="32%"><stop offset="0%" stop-color="#ccff90"/><stop offset="100%" stop-color="#558b2f"/></radialGradient>
-        <linearGradient id="ctk" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#795548"/><stop offset="100%" stop-color="#3e2723"/></linearGradient>
-        <filter id="cts"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#1b5e20" flood-opacity="0.4"/></filter>
+        <radialGradient id="ctg1" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#a5d6a7"/><stop offset="100%" stop-color="#1b5e20"/></radialGradient>
+        <radialGradient id="ctg2" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#c8e6c9"/><stop offset="100%" stop-color="#2e7d32"/></radialGradient>
+        <radialGradient id="ctg3" cx="35%" cy="30%" r="65%"><stop offset="0%" stop-color="#e8f5e9"/><stop offset="100%" stop-color="#388e3c"/></radialGradient>
+        <linearGradient id="ctk" x1="20%" y1="0%" x2="80%" y2="100%"><stop offset="0%" stop-color="#8d6e63"/><stop offset="100%" stop-color="#3e2723"/></linearGradient>
+        <filter id="cts" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#1b5e20" flood-opacity="0.45"/>
+        </filter>
       </defs>
       <g filter="url(#cts)">
-        <ellipse cx="16" cy="15" rx="13" ry="13" fill="url(#ctg1)"/>
-        <ellipse cx="16" cy="11" rx="10" ry="10" fill="url(#ctg2)"/>
-        <ellipse cx="16" cy="7"  rx="7"  ry="7"  fill="url(#ctg3)"/>
-        <ellipse cx="11" cy="6"  rx="3"  ry="3"  fill="#f1f8e9" opacity="0.45"/>
-        <rect x="13" y="24" width="6" height="12" rx="2" fill="url(#ctk)"/>
-        <ellipse cx="16" cy="36" rx="5" ry="2" fill="#3e2723" opacity="0.2"/>
+        <ellipse cx="18" cy="20" rx="15" ry="15" fill="url(#ctg1)"/>
+        <ellipse cx="18" cy="15" rx="12" ry="12" fill="url(#ctg2)"/>
+        <ellipse cx="18" cy="10" rx="9"  ry="9"  fill="url(#ctg3)"/>
+        <ellipse cx="12" cy="8"  rx="4"  ry="4"  fill="#f1f8e9" opacity="0.5"/>
+        <rect x="15" y="30" width="6" height="14" rx="2.5" fill="url(#ctk)"/>
+        <ellipse cx="18" cy="44" rx="6" ry="2" fill="#3e2723" opacity="0.18"/>
       </g>
     </svg>
   </div>`,
   className: 'tree-marker-wrap',
-  iconSize: [32, 40],
-  iconAnchor: [16, 40],
-  popupAnchor: [0, -40],
+  iconSize: [36, 48],
+  iconAnchor: [18, 48],
+  popupAnchor: [0, -48],
 });
 
-const TREE_COST = 1;
+const TREE_COST = 200;
 const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const ContributionPage = () => {
@@ -132,18 +135,7 @@ const ContributionPage = () => {
   };
 
   // Склонение деревьев (RU/BE)
-  const treesWord = (n, lang) => {
-    if (lang === 'EN') return n === 1 ? 'tree' : 'trees';
-    const forms = lang === 'BE'
-      ? ['дрэва', 'дрэвы', 'дрэў']
-      : ['дерево', 'дерева', 'деревьев'];
-    const abs = Math.abs(n) % 100;
-    const r = abs % 10;
-    if (abs > 10 && abs < 20) return forms[2];
-    if (r === 1) return forms[0];
-    if (r >= 2 && r <= 4) return forms[1];
-    return forms[2];
-  };
+  const treesWord = (n, lang) => pluralizeTrees(n, lang);
 
   const formatDate = d => d ? new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 
@@ -163,7 +155,7 @@ const ContributionPage = () => {
         <div className="eco-coins-balance contribution-balance-widget">
           <img src={ecoinsImage} alt="" className="eco-coins-icon" />
           <span className="eco-coins-amount">{ecoCoins}</span>
-          <span className="eco-coins-label">{t('ecoCoinsShort') || 'экоинов'}</span>
+          <span className="eco-coins-label">{pluralizeEcoins(ecoCoins, currentLanguage)}</span>
         </div>
       </div>
 
