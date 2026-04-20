@@ -27,6 +27,7 @@ const petRouter = require('./routes/pet');
 const messagesRouter = require('./routes/messages');
 const treesRouter = require('./routes/trees');
 const streakRouter = require('./routes/streak');
+const globalStatsRouter = require('./routes/global-stats');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -329,6 +330,7 @@ app.use('/api/messages', messagesRouter);
 app.use('/api/pet', petRouter);
 app.use('/api/trees', treesRouter);
 app.use('/api/streak', streakRouter);
+app.use('/api/global-stats', globalStatsRouter);
 // Временный роут для эко-советов - исправленная версия
 app.get('/api/eco-tips/daily', (req, res) => {
   console.log('GET /api/eco-tips/daily');

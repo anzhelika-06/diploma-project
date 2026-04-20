@@ -4,6 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useSocket } from '../contexts/SocketContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { translateStoryContent, detectTextLanguage } from '../utils/translations';
+import GlobalStatsWidget from '../components/GlobalStatsWidget';
 import '../styles/pages/FeedPage.css';
 
 const FeedPage = () => {
@@ -805,6 +806,9 @@ const FeedPage = () => {
         <div className="feed-header">
           <h1>{t('feed') || 'Лента новостей'}</h1>
         </div>
+
+        {/* Глобальная статистика */}
+        <GlobalStatsWidget />
 
         {/* Форма создания поста */}
         <div className="create-post">
