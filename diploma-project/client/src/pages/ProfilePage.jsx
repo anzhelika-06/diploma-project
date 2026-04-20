@@ -6,6 +6,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
 import { useEventTracker } from '../hooks/useEventTracker';
 import { translateStoryContent, detectTextLanguage, translateEcoLevel } from '../utils/translations';
+import StreakWidget from '../components/StreakWidget';
 
 const ProfilePage = () => {
   const { t, currentLanguage } = useLanguage();
@@ -1361,14 +1362,17 @@ const ProfilePage = () => {
             <span className="avatar-emoji">{profileData.avatar_emoji || '🌱'}</span>
           </div>
           <div className="profile-info">
-            <h1 className="profile-nickname">
-              {profileData.nickname}
-              {!isOwnProfile && profileData.mutual_friends_count > 0 && (
-                <span className="mutual-friends-badge">
-                  ({profileData.mutual_friends_count} {t('mutualFriends') || 'общих друзей'})
-                </span>
-              )}
-            </h1>
+            <div className="profile-name-row">
+              <h1 className="profile-nickname">
+                {profileData.nickname}
+                {!isOwnProfile && profileData.mutual_friends_count > 0 && (
+                  <span className="mutual-friends-badge">
+                    ({profileData.mutual_friends_count} {t('mutualFriends') || 'общих друзей'})
+                  </span>
+                )}
+              </h1>
+              {isOwnProfile && <StreakWidget />}
+            </div>
             <p className="profile-email">{profileData.email}</p>
           </div>
           

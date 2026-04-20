@@ -275,6 +275,40 @@ CREATE TABLE IF NOT EXISTS achievement_events (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============ СТРИК ПОЛЬЗОВАТЕЛЕЙ ============
+CREATE TABLE IF NOT EXISTS user_streaks (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    current_streak INTEGER DEFAULT 0,
+    max_streak INTEGER DEFAULT 0,
+    last_visit_date DATE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============ ЗАПРОСЫ НА ПОСАДКУ ДЕРЕВЬЕВ ============
+CREATE TABLE IF NOT EXISTS tree_requests (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    coins_spent INTEGER NOT NULL DEFAULT 200,
+    trees_count INTEGER NOT NULL DEFAULT 1,
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted', 'rejected')),
+    admin_id INTEGER REFERENCES users(id),
+    admin_note TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS tree_markers (
+    id SERIAL PRIMARY KEY,
+    request_id INTEGER NOT NULL REFERENCES tree_requests(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lat DECIMAL(10, 7) NOT NULL,
+    lng DECIMAL(10, 7) NOT NULL,
+    photo_url TEXT,
+    note TEXT,
+    planted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ============ ВОПРОСЫ В ПОДДЕРЖКУ ============
 CREATE TABLE IF NOT EXISTS support_tickets (
     id SERIAL PRIMARY KEY,
@@ -1467,7 +1501,16 @@ INSERT INTO achievements (
     ('team_goal_1000', 'Командный триумф', 'Команда достигла цели в 1000 кг CO₂', 'teams', '🌟', 'team_goal_reached', 'value', 1000, 400, 'legendary', false, 76),
     ('story_deleted', 'Переосмысление', 'Удалите свою историю', 'special', '🗑️', 'story_deleted', 'count', 1, 25, 'rare', true, 100),
     ('like_own_story', 'Самолюбование', 'Поставьте лайк своей истории', 'special', '😊', 'like_own_story', 'boolean', 1, 10, 'common', true, 101),
-    ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', true, 102)
+    ('story_published', 'Одобрено', 'Ваша история опубликована модератором', 'special', '✅', 'story_published', 'boolean', 1, 50, 'rare', true, 102),
+    -- Деревья
+    ('tree_planter_1',  'Первое дерево',    'Посадите своё первое дерево',       'trees', '🌱', 'tree_planted', 'count', 1,  50,  'common',    false, 80),
+    ('tree_planter_5',  'Садовник',         'Посадите 5 деревьев',               'trees', '🌿', 'tree_planted', 'count', 5,  100, 'rare',      false, 81),
+    ('tree_planter_10', 'Лесник',           'Посадите 10 деревьев',              'trees', '🌳', 'tree_planted', 'count', 10, 200, 'epic',      false, 82),
+    ('tree_planter_25', 'Хранитель леса',   'Посадите 25 деревьев',              'trees', '🌲', 'tree_planted', 'count', 25, 500, 'legendary', false, 83),
+    -- Стрик
+    ('streak_7',   '7 дней подряд',   'Заходите в приложение 7 дней подряд',   'streak', '🔥', 'streak', 'count', 7,   50,  'common',    false, 90),
+    ('streak_30',  '30 дней подряд',  'Заходите в приложение 30 дней подряд',  'streak', '🔥', 'streak', 'count', 30,  150, 'rare',      false, 91),
+    ('streak_100', '100 дней подряд', 'Заходите в приложение 100 дней подряд', 'streak', '🏆', 'streak', 'count', 100, 500, 'legendary', false, 92)
 ON CONFLICT (code) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,

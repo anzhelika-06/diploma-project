@@ -1,0 +1,53 @@
+.streak-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(255, 152, 0, 0.12);
+  border: 1.5px solid rgba(255, 152, 0, 0.3);
+  border-radius: 20px;
+  cursor: default;
+  transition: transform 0.2s;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.streak-widget:hover {
+  transform: scale(1.05);
+}
+
+.streak-widget.streak-new {
+  animation: streakPop 0.5s ease-out;
+  background: rgba(255, 152, 0, 0.2);
+  border-color: rgba(255, 152, 0, 0.5);
+}
+
+@keyframes streakPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.25); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.streak-fire {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.streak-count {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e65100;
+  line-height: 1;
+}
+
+[data-theme="dark"] .streak-widget {
+  background: rgba(255, 152, 0, 0.15);
+  border-color: rgba(255, 152, 0, 0.35);
+}
+
+[data-theme="dark"] .streak-count {
+  color: #ffb74d;
+}
+
+/* Inline in profile — no fixed positioning needed */

@@ -2037,3 +2037,11 @@
 [data-theme="light"] .profile-error p {
   color: #000000;
 }
+
+/* ── Streak widget in profile ── */
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

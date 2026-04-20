@@ -8,12 +8,12 @@ const TREE_COST = 200; // eco coins per tree
 
 // Auto-insert tree achievements if not exist
 pool.query(`
-  INSERT INTO achievements (code, name, description, icon, points, is_active, event_type, requirement_type, requirement_value)
+  INSERT INTO achievements (code, name, description, category, icon, points, is_active, event_type, requirement_type, requirement_value)
   VALUES
-    ('tree_planter_1',  'Первое дерево',    'Посадите своё первое дерево',       '🌱', 50,  true, 'tree_planted', 'count', 1),
-    ('tree_planter_5',  'Садовник',         'Посадите 5 деревьев',               '🌿', 100, true, 'tree_planted', 'count', 5),
-    ('tree_planter_10', 'Лесник',           'Посадите 10 деревьев',              '🌳', 200, true, 'tree_planted', 'count', 10),
-    ('tree_planter_25', 'Хранитель леса',   'Посадите 25 деревьев',              '🌲', 500, true, 'tree_planted', 'count', 25)
+    ('tree_planter_1',  'Первое дерево',    'Посадите своё первое дерево',       'trees', '🌱', 50,  true, 'tree_planted', 'count', 1),
+    ('tree_planter_5',  'Садовник',         'Посадите 5 деревьев',               'trees', '🌿', 100, true, 'tree_planted', 'count', 5),
+    ('tree_planter_10', 'Лесник',           'Посадите 10 деревьев',              'trees', '🌳', 200, true, 'tree_planted', 'count', 10),
+    ('tree_planter_25', 'Хранитель леса',   'Посадите 25 деревьев',              'trees', '🌲', 500, true, 'tree_planted', 'count', 25)
   ON CONFLICT (code) DO NOTHING
 `).catch(() => {});
 

@@ -7,10 +7,10 @@ export const pluralizeEcoins = (n, lang) => {
   const r = abs % 10;
   
   if (lang === 'BE') {
-    if (abs > 10 && abs < 20) return 'экаінаў';
-    if (r === 1) return 'экаін';
-    if (r >= 2 && r <= 4) return 'экаіны';
-    return 'экаінаў';
+    if (abs > 10 && abs < 20) return 'экоінаў';
+    if (r === 1) return 'экоін';
+    if (r >= 2 && r <= 4) return 'экоіны';
+    return 'экоінаў';
   }
   
   // RU
