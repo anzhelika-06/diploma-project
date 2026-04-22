@@ -78,17 +78,45 @@ const StableModalMap = ({ selectedRequest, pendingMarkers, activeMarkerIdx, tree
       {selectedRequest.status === 'pending' && (
         <MapClickHandler onPick={onMapClick} />
       )}
-      {(selectedRequest.markers || []).map(m => (
+      {/* Existing planted markers with clustering */}
+      {selectedRequest.status === 'planted' && (selectedRequest.markers || []).length > 0 && (
+        <MarkerCluster
+          markers={(selectedRequest.markers || []).map(m => ({
+            ...m,
+            icon: treeIcon,
+            popupHtml: `<div class="tree-popup">
+              <p class="popup-coords" style="margin:0 0 6px;font-size:12px;color:#666;font-family:monospace">📍 ${parseFloat(m.lat).toFixed(5)}, ${parseFloat(m.lng).toFixed(5)}</p>
+              ${m.note ? `<p class="popup-note" style="margin:6px 0">${m.note}</p>` : ''}
+              ${m.photo_url ? `<img src="${m.photo_url}" class="popup-photo" data-photo-url="${m.photo_url}" style="width:100%;border-radius:6px;margin-top:6px;cursor:pointer"/>` : ''}
+              <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>
+            </div>`,
+          }))}
+          onMarkerClick={(m) => {
+            setTimeout(() => {
+              const imgs = document.querySelectorAll('.popup-photo[data-photo-url]');
+              imgs.forEach(img => {
+                img.onclick = () => onZoomPhoto(img.getAttribute('data-photo-url'));
+              });
+            }, 100);
+          }}
+        />
+      )}
+      {/* Non-clustered markers for pending status */}
+      {selectedRequest.status === 'pending' && (selectedRequest.markers || []).map(m => (
         <Marker key={m.id} position={[parseFloat(m.lat), parseFloat(m.lng)]} icon={treeIcon}>
           <Popup>
+            <p style={{margin:'0 0 6px',fontSize:'12px',color:'#666',fontFamily:'monospace'}}>📍 {parseFloat(m.lat).toFixed(5)}, {parseFloat(m.lng).toFixed(5)}</p>
             {m.note && <p style={{margin:'0 0 6px'}}>{m.note}</p>}
             {m.photo_url && <img src={m.photo_url} alt="tree" style={{width:'100%',borderRadius:6,cursor:'pointer'}} onClick={() => onZoomPhoto(m.photo_url)} />}
+            <p style={{margin:'6px 0 0',fontSize:'11px',color:'#888'}}>{new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>
           </Popup>
         </Marker>
       ))}
       {pendingMarkers.map((m, i) => (
         <Marker key={`new-${i}`} position={[m.lat, m.lng]} icon={i === activeMarkerIdx ? treeIcon : pendingIcon}>
-          <Popup>{m.lat.toFixed(5)}, {m.lng.toFixed(5)}</Popup>
+          <Popup>
+            <p style={{margin:0,fontSize:'12px',fontFamily:'monospace'}}>📍 {m.lat.toFixed(5)}, {m.lng.toFixed(5)}</p>
+          </Popup>
         </Marker>
       ))}
     </LocalizedMap>

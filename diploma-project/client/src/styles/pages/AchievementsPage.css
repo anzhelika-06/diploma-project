@@ -1297,18 +1297,20 @@
   .achievements-header {
     flex-direction: column;
     gap: 16px;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
   }
   
   .achievements-title {
     font-size: 24px;
+    order: 1;
   }
   
   .eco-coins-balance {
     width: 100%;
     justify-content: center;
     position: relative;
-    z-index: 1;
+    order: 2;
   }
   
   .achievements-stats {

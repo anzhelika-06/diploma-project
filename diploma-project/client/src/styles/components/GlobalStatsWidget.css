@@ -23,7 +23,7 @@
 
 .global-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
 }
 
@@ -66,8 +66,56 @@
   opacity: 0.8;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .global-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .global-stat-item {
+    padding: 12px 8px;
+  }
+  
+  .global-stat-icon {
+    font-size: 24px;
+  }
+  
+  .global-stat-value {
+    font-size: 20px;
+  }
+  
+  .global-stat-label {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .global-stats-widget {
+    padding: 16px;
+  }
+  
+  .global-stats-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .global-stats-grid {
+    gap: 8px;
+  }
+  
+  .global-stat-item {
+    padding: 10px 6px;
+  }
+  
+  .global-stat-icon {
+    font-size: 22px;
+  }
+  
+  .global-stat-value {
+    font-size: 18px;
+  }
+  
+  .global-stat-label {
+    font-size: 9px;
   }
 }

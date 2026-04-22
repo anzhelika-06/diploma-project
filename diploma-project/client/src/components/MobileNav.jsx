@@ -142,22 +142,22 @@ const MobileNav = () => {
 
   // Базовые пункты меню
   const menuItems = [
-    { id: 'pet', label: 'Питомец', path: '/pet', icon: petIcon },
-    { id: 'teams', label: 'Команды', path: '/teams', icon: teamIcon },
-    { id: 'friends', label: 'Друзья', path: '/friends', icon: friendsIcon },
-    { id: 'achievements', label: 'Достижения', path: '/achievements', icon: achievementsIcon },
-    { id: 'statistics', label: 'Статистика', path: '/statistics', icon: statisticIcon },
-    { id: 'leaderboard', label: 'Рейтинг', path: '/leaderboard', icon: leaderboardIcon },
-    { id: 'contribution', label: 'Вклад', path: '/contribution', icon: contributionIcon },
-    { id: 'reviews', label: 'Отзывы', path: '/reviews', icon: reviewsIcon },
-    { id: 'settings', label: 'Настройки', path: '/settings', icon: settingsIcon },
+    { id: 'pet', label: t('menuPet') || 'Питомец', path: '/pet', icon: petIcon },
+    { id: 'teams', label: t('menuTeams') || 'Команды', path: '/teams', icon: teamIcon },
+    { id: 'friends', label: t('menuFriends') || 'Друзья', path: '/friends', icon: friendsIcon },
+    { id: 'achievements', label: t('menuAchievements') || 'Достижения', path: '/achievements', icon: achievementsIcon },
+    { id: 'statistics', label: t('menuStatistics') || 'Статистика', path: '/statistics', icon: statisticIcon },
+    { id: 'leaderboard', label: t('menuLeaderboard') || 'Рейтинг', path: '/leaderboard', icon: leaderboardIcon },
+    { id: 'contribution', label: t('menuContribution') || 'Вклад', path: '/contribution', icon: contributionIcon },
+    { id: 'reviews', label: t('menuReviews') || 'Истории', path: '/reviews', icon: reviewsIcon },
+    { id: 'settings', label: t('menuSettings') || 'Настройки', path: '/settings', icon: settingsIcon },
   ]
 
   // Добавляем админский пункт, если пользователь админ
   const adminMenuItem = user?.isAdmin ? [
     { 
       id: 'admin', 
-      label: 'Управление', 
+      label: t('menuAdmin') || 'Управление', 
       path: '/admin', 
       icon: adminIcon,
       isAdmin: true 
@@ -211,7 +211,7 @@ const MobileNav = () => {
           <div className="mobile-menu-overlay" onClick={() => setShowMenu(false)} />
           <div className="mobile-menu" data-theme={currentTheme}>
             <div className="mobile-menu-header">
-              <h3>Меню</h3>
+              <h3>{t('menu') || 'Меню'}</h3>
               <button className="mobile-menu-close" onClick={() => setShowMenu(false)}>✕</button>
             </div>
             <div className="mobile-menu-items">
@@ -240,9 +240,9 @@ const MobileNav = () => {
                   <img src={user.avatar} alt={user.name} className="mobile-user-avatar" />
                 )}
                 <div className="mobile-user-details">
-                  <span className="mobile-user-name">{user?.name || 'Пользователь'}</span>
+                  <span className="mobile-user-name">{user?.name || t('user') || 'Пользователь'}</span>
                   <span className="mobile-user-role">
-                    {user?.isAdmin ? 'Администратор' : 'Пользователь'}
+                    {user?.isAdmin ? (t('administrator') || 'Администратор') : (t('user') || 'Пользователь')}
                   </span>
                 </div>
               </div>

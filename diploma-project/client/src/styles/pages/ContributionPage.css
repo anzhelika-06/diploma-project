@@ -47,10 +47,29 @@
   transform: translateY(-50%) !important;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .contribution-page-header {
+    flex-direction: column;
+    gap: 16px;
+    min-height: auto;
+  }
+  
+  .contribution-header-text {
+    order: 1;
+  }
+  
   .contribution-balance-widget {
     position: static !important;
-    transform: none;
+    transform: none !important;
+    order: 2;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .contribution-balance {
+    width: 100%;
+    justify-content: center;
   }
 }
 

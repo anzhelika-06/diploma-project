@@ -513,46 +513,53 @@
 /* Кастомный скроллбар для таблиц */
 .users-table-container::-webkit-scrollbar,
 .support-tickets-container::-webkit-scrollbar,
-.stories-table-container::-webkit-scrollbar {
+.stories-table-container::-webkit-scrollbar,
+.funds-table-container::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .users-table-container::-webkit-scrollbar-track,
 .support-tickets-container::-webkit-scrollbar-track,
-.stories-table-container::-webkit-scrollbar-track {
+.stories-table-container::-webkit-scrollbar-track,
+.funds-table-container::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 10px;
 }
 
 .users-table-container::-webkit-scrollbar-thumb,
 .support-tickets-container::-webkit-scrollbar-thumb,
-.stories-table-container::-webkit-scrollbar-thumb {
+.stories-table-container::-webkit-scrollbar-thumb,
+.funds-table-container::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 10px;
 }
 
 .users-table-container::-webkit-scrollbar-thumb:hover,
 .support-tickets-container::-webkit-scrollbar-thumb:hover,
-.stories-table-container::-webkit-scrollbar-thumb:hover {
+.stories-table-container::-webkit-scrollbar-thumb:hover,
+.funds-table-container::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
 
 [data-theme="dark"] .users-table-container::-webkit-scrollbar-track,
 [data-theme="dark"] .support-tickets-container::-webkit-scrollbar-track,
-[data-theme="dark"] .stories-table-container::-webkit-scrollbar-track {
+[data-theme="dark"] .stories-table-container::-webkit-scrollbar-track,
+[data-theme="dark"] .funds-table-container::-webkit-scrollbar-track {
   background: var(--bg-secondary);
 }
 
 [data-theme="dark"] .users-table-container::-webkit-scrollbar-thumb,
 [data-theme="dark"] .support-tickets-container::-webkit-scrollbar-thumb,
-[data-theme="dark"] .stories-table-container::-webkit-scrollbar-thumb {
+[data-theme="dark"] .stories-table-container::-webkit-scrollbar-thumb,
+[data-theme="dark"] .funds-table-container::-webkit-scrollbar-thumb {
   background: #555;
 }
 
 [data-theme="dark"] .users-table-container::-webkit-scrollbar-thumb:hover,
 [data-theme="dark"] .support-tickets-container::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] .stories-table-container::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] .stories-table-container::-webkit-scrollbar-thumb:hover,
+[data-theme="dark"] .funds-table-container::-webkit-scrollbar-thumb:hover {
   background: #777;
 }
 
@@ -6217,7 +6224,8 @@
 /* ── reports-table-container border-radius fix ── */
 .reports-table-container {
   border-radius: var(--radius-lg) !important;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Green active/selected buttons — white text in dark theme ── */
@@ -6572,4 +6580,132 @@
 [data-theme="dark"] .marker-photo-add.required {
   border-color: #ef5350;
   color: #ef5350;
+}
+
+
+/* ── Responsive: Funds table on mobile ── */
+@media (max-width: 768px) {
+  .funds-table {
+    min-width: 700px;
+  }
+  
+  .funds-table th,
+  .funds-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .funds-table {
+    min-width: 650px;
+  }
+  
+  .funds-table th,
+  .funds-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+  
+  .funds-table th {
+    white-space: nowrap;
+  }
+}
+
+
+/* ── Responsive: Reports table on mobile ── */
+@media (max-width: 768px) {
+  .reports-table {
+    min-width: 800px;
+  }
+  
+  .reports-table th,
+  .reports-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reports-table {
+    min-width: 700px;
+  }
+  
+  .reports-table th,
+  .reports-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+
+/* ── Responsive: Stories/Reviews table on mobile ── */
+@media (max-width: 768px) {
+  .stories-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .stories-table {
+    min-width: 700px;
+  }
+  
+  .stories-table th,
+  .stories-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stories-table {
+    min-width: 650px;
+  }
+  
+  .stories-table th,
+  .stories-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+
+/* ── Add scrollbar to reports-table-container ── */
+.reports-table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.reports-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.reports-table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 10px;
+}
+
+.reports-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+[data-theme="dark"] .reports-table-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+[data-theme="dark"] .reports-table-container::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+[data-theme="dark"] .reports-table-container::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+
+/* ── Center action button in funds table ── */
+.funds-table td:last-child {
+  text-align: center;
+}
+
+.funds-table td:last-child .report-action-btn {
+  margin: 0 auto;
 }
