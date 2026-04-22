@@ -48,6 +48,16 @@ const AboutPage = () => {
   const isFirstRender = useRef(true)
   const isInitialized = useRef(false)
 
+  // Функция форматирования CO2
+  const formatCO2 = (n) => {
+    const num = parseFloat(n) || 0;
+    // Если больше 1000, показываем в тысячах с запятой
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace('.', ',') + ' ' + (t('statsThousand') || 'тыс.');
+    }
+    return Math.round(num * 10) / 10;
+  };
+
   // Синхронизация состояния с URL
   useEffect(() => {
     const params = {}
@@ -703,7 +713,7 @@ const AboutPage = () => {
                     <div className="stat-label">{t('aboutActiveUsers')}</div>
                   </div>
                   <div className="stat-card">
-                    <div className="stat-number">{formatCarbonFootprint(stats.co2Saved, currentLanguage)}</div>
+                    <div className="stat-number">{formatCO2(stats.co2Saved)}</div>
                     <div className="stat-label">{t('aboutCO2Saved')}</div>
                   </div>
                   <div className="stat-card">

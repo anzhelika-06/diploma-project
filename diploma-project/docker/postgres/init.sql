@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS teams (
     goal_target INTEGER,
     goal_current INTEGER DEFAULT 0,
     goal_category VARCHAR(50) DEFAULT NULL,
+    base_carbon_saved INTEGER DEFAULT 0,
     carbon_saved INTEGER DEFAULT 0,
     member_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1342,20 +1343,19 @@ WHERE u.email IN ('emma.earth@test.com', 'david.solar@test.com')
 ON CONFLICT DO NOTHING;
 
 -- Создаем команды
-INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target, goal_current, carbon_saved, member_count) VALUES 
-('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000, 23400, 23400, 8),
-('Эко-студенты МГКЦТ', 'Студенты за экологию', '🎓', 'Перейти на велосипеды и общественный транспорт', 25000, 18900, 18900, 6),
-('Велосипедисты Гомеля', 'Велосипед вместо автомобиля', '🚴', 'Проехать 5000 км на велосипедах', 20000, 15600, 15600, 4),
-('Солнечная энергия', 'Возобновляемые источники энергии', '☀️', 'Установить солнечные панели в 10 домах', 15000, 12300, 12300, 3),
-('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000, 11800, 11800, 4)
+INSERT INTO teams (name, description, avatar_emoji, goal_description, goal_target) VALUES 
+('Зеленые Минска', 'Экологическое сообщество столицы', '🌱', 'Сэкономить 30 тонн CO₂ за год', 30000),
+('Эко-студенты МГКЦТ', 'Студенты за экологию', '🎓', 'Перейти на велосипеды и общественный транспорт', 25000),
+('Велосипедисты Гомеля', 'Велосипед вместо автомобиля', '🚴', 'Проехать 5000 км на велосипедах', 20000),
+('Солнечная энергия', 'Возобновляемые источники энергии', '☀️', 'Установить солнечные панели в 10 домах', 15000),
+('Ноль отходов', 'Минимизация отходов', '♻️', 'Сортировать мусор 100% времени', 15000)
 ON CONFLICT (name) DO UPDATE SET
     description = EXCLUDED.description,
-    goal_current = EXCLUDED.goal_current,
-    carbon_saved = EXCLUDED.carbon_saved,
     updated_at = CURRENT_TIMESTAMP;
 
--- Создаем участников команд
+-- Создаем участников команд (добавляем больше людей в каждую команду)
 INSERT INTO team_members (team_id, user_id, role) VALUES 
+-- Команда 1: Зеленые Минска (12 участников)
 (1, 1, 'admin'),
 (1, 2, 'member'),
 (1, 3, 'member'),
@@ -1364,27 +1364,49 @@ INSERT INTO team_members (team_id, user_id, role) VALUES
 (1, 6, 'member'),
 (1, 7, 'member'),
 (1, 8, 'member'),
+(1, 9, 'member'),
+(1, 10, 'member'),
+(1, 11, 'member'),
+(1, 12, 'member'),
 
-(2, 9, 'admin'),
-(2, 10, 'member'),
-(2, 11, 'member'),
-(2, 12, 'member'),
-(2, 13, 'member'),
+-- Команда 2: Эко-студенты МГКЦТ (10 участников)
+(2, 13, 'admin'),
 (2, 14, 'member'),
+(2, 15, 'member'),
+(2, 16, 'member'),
+(2, 17, 'member'),
+(2, 18, 'member'),
+(2, 19, 'member'),
+(2, 20, 'member'),
+(2, 21, 'member'),
+(2, 22, 'member'),
 
-(3, 15, 'admin'),
-(3, 16, 'member'),
-(3, 17, 'member'),
-(3, 18, 'member'),
+-- Команда 3: Велосипедисты Гомеля (8 участников)
+(3, 23, 'admin'),
+(3, 24, 'member'),
+(3, 25, 'member'),
+(3, 26, 'member'),
+(3, 27, 'member'),
+(3, 28, 'member'),
+(3, 29, 'member'),
+(3, 30, 'member'),
 
-(4, 19, 'admin'),
-(4, 20, 'member'),
-(4, 21, 'member'),
+-- Команда 4: Солнечная энергия (6 участников)
+(4, 31, 'admin'),
+(4, 32, 'member'),
+(4, 33, 'member'),
+(4, 2, 'member'),
+(4, 3, 'member'),
+(4, 4, 'member'),
 
-(5, 22, 'admin'),
-(5, 23, 'member'),
-(5, 24, 'member'),
-(5, 25, 'member')
+-- Команда 5: Ноль отходов (7 участников)
+(5, 34, 'admin'),
+(5, 35, 'member'),
+(5, 5, 'member'),
+(5, 6, 'member'),
+(5, 7, 'member'),
+(5, 8, 'member'),
+(5, 9, 'member')
 ON CONFLICT (team_id, user_id) DO UPDATE SET
     role = EXCLUDED.role,
     joined_at = CASE WHEN EXCLUDED.role != team_members.role THEN CURRENT_TIMESTAMP ELSE team_members.joined_at END;
@@ -1393,6 +1415,43 @@ ON CONFLICT (team_id, user_id) DO UPDATE SET
 UPDATE teams SET member_count = (
     SELECT COUNT(*) FROM team_members WHERE team_id = teams.id
 );
+
+-- Обновляем carbon_saved и goal_current для всех команд на основе участников
+UPDATE teams t
+SET
+    carbon_saved = GREATEST(0, (
+        SELECT COALESCE(SUM(GREATEST(0, u.carbon_saved)), 0)
+        FROM team_members tm
+        JOIN users u ON tm.user_id = u.id
+        WHERE tm.team_id = t.id
+    )),
+    goal_current = GREATEST(0, (
+        CASE
+            WHEN t.goal_category IS NOT NULL THEN (
+                SELECT COALESCE(SUM(
+                    cc.co2_saved *
+                    CASE WHEN cc.total_footprint > 0 THEN
+                        CASE t.goal_category
+                            WHEN 'transport' THEN COALESCE((cc.categories->>'transport')::DECIMAL, 0)
+                            WHEN 'food'      THEN COALESCE((cc.categories->>'food')::DECIMAL, 0)
+                            WHEN 'energy'    THEN COALESCE((cc.categories->>'housing')::DECIMAL, 0)
+                            WHEN 'waste'     THEN COALESCE((cc.categories->>'waste')::DECIMAL, 0)
+                            ELSE 0
+                        END / cc.total_footprint
+                    ELSE 0 END
+                ), 0)
+                FROM team_members tm
+                JOIN carbon_calculations cc ON cc.user_id = tm.user_id AND cc.is_baseline = FALSE
+                WHERE tm.team_id = t.id
+            )
+            ELSE (
+                SELECT COALESCE(SUM(GREATEST(0, u.carbon_saved)), 0)
+                FROM team_members tm
+                JOIN users u ON tm.user_id = u.id
+                WHERE tm.team_id = t.id
+            )
+        END
+    ));
 
 -- Создаем тестовые посты для админа и друзей
 INSERT INTO user_posts (user_id, content, likes_count, comments_count, created_at)
@@ -1723,6 +1782,37 @@ WHERE user_id = 3;
 UPDATE user_settings SET 
     theme = 'dark'
 WHERE user_id = 4;
+
+-- ============ ТЕСТОВЫЕ ЖАЛОБЫ ============
+INSERT INTO user_reports (reporter_id, reported_user_id, reason, description, status, created_at) VALUES
+    (3, 5, 'Спам', 'Пользователь постоянно отправляет спам-сообщения в командном чате', 'pending', NOW() - INTERVAL '2 hours'),
+    (4, 6, 'Оскорбления', 'Использует нецензурную лексику и оскорбляет других участников команды', 'pending', NOW() - INTERVAL '5 hours'),
+    (7, 8, 'Неприемлемый контент', 'Публикует истории с недостоверной информацией', 'reviewing', NOW() - INTERVAL '1 day'),
+    (2, 9, 'Спам', 'Массовая рассылка рекламных сообщений', 'resolved', NOW() - INTERVAL '3 days'),
+    (10, 11, 'Оскорбления', 'Агрессивное поведение в комментариях', 'pending', NOW() - INTERVAL '6 hours'),
+    (12, 13, 'Мошенничество', 'Пытается обмануть пользователей, предлагая фальшивые экологические проекты', 'reviewing', NOW() - INTERVAL '12 hours'),
+    (5, 14, 'Неприемлемый контент', 'Публикует оскорбительные изображения', 'rejected', NOW() - INTERVAL '5 days'),
+    (15, 16, 'Спам', 'Создает множество бесполезных команд', 'pending', NOW() - INTERVAL '8 hours');
+
+-- Добавляем admin_notes и reviewed_by для обработанных жалоб
+UPDATE user_reports SET 
+    admin_notes = 'Пользователь предупрежден. Повторное нарушение приведет к бану.',
+    admin_response = 'Спасибо за обращение. Мы рассмотрели вашу жалобу и приняли меры.',
+    reviewed_by = 1,
+    reviewed_at = NOW() - INTERVAL '2 days'
+WHERE status = 'resolved';
+
+UPDATE user_reports SET 
+    admin_notes = 'Недостаточно доказательств нарушения.',
+    admin_response = 'После проверки мы не обнаружили нарушений правил сообщества.',
+    reviewed_by = 1,
+    reviewed_at = NOW() - INTERVAL '4 days'
+WHERE status = 'rejected';
+
+UPDATE user_reports SET 
+    reviewed_by = 1,
+    reviewed_at = NOW() - INTERVAL '6 hours'
+WHERE status = 'reviewing';
 
 -- Выводим информацию о созданных данных
 DO $$

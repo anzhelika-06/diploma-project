@@ -22,6 +22,15 @@ const GlobalStatsWidget = () => {
     return num.toLocaleString();
   };
 
+  const formatCO2 = (n) => {
+    const num = parseInt(n) || 0;
+    // Если больше 1000, показываем в тысячах с запятой
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace('.', ',') + ' ' + (t('statsThousand') || 'тыс.');
+    }
+    return num.toLocaleString();
+  };
+
   return (
     <div className="global-stats-widget">
       <div className="global-stats-title">
@@ -30,7 +39,7 @@ const GlobalStatsWidget = () => {
       <div className="global-stats-grid">
         <div className="global-stat-item">
           <span className="global-stat-icon">♻️</span>
-          <span className="global-stat-value">{formatNum(stats.total_carbon_saved)}</span>
+          <span className="global-stat-value">{formatCO2(stats.total_carbon_saved)}</span>
           <span className="global-stat-label">{t('globalStatsCO2') || 'кг CO₂ сэкономлено'}</span>
         </div>
         <div className="global-stat-item">

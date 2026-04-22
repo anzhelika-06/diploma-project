@@ -128,7 +128,7 @@ const TeamInfoPanel = ({ chat, teamDetail, currentUserId, onlineUsers, onClose, 
 
         {team.goal_description && (
           <div className="msg-info-goal">
-            <p className="msg-info-goal-label">{t('teamGoalLabel')} {team.goal_description}</p>
+            <p className="msg-info-goal-label">{t('teamGoalIcon')} {team.goal_description}</p>
             <div className="msg-info-progress-bar">
               <div className="msg-info-progress-fill" style={{ width: progress + '%' }} />
             </div>

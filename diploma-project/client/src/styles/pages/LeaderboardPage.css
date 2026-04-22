@@ -239,24 +239,26 @@
 
 /* Ячейка ранга */
 .rank-cell {
-  text-align: center;
-  width: 100px;
+  text-align: left;
+  width: 60px;
+  padding-left: 16px;
+  padding-right: 8px;
 }
 
 .rank-badge {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 4px;
 }
 
 .rank-medal {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .rank-number {
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 /* Медали для топ-3 */
@@ -274,17 +276,25 @@
 
 /* Ячейка пользователя */
 .user-cell {
-  min-width: 250px;
+  width: 200px;
+  text-align: left !important;
+  padding-left: 12px !important;
 }
 
-.user-info {
+.leaderboard-table tbody .user-cell {
+  text-align: left !important;
+}
+
+.leaderboard-table .user-info {
   display: flex;
+  gap: 10px;
   align-items: center;
-  gap: 12px;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .user-avatar {
-  font-size: 28px;
+  font-size: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,7 +326,7 @@
 .team-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .team-avatar {

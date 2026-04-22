@@ -408,14 +408,11 @@ app.get('/api/stats', async (req, res) => {
     const result = await pool.query(statsQuery);
     const stats = result.rows[0];
     
-    // Форматируем CO2 в удобный вид (тонны)
-    const co2InTons = Math.round(stats.total_co2_saved / 1000 * 10) / 10;
-    
     res.json({
       success: true,
       stats: {
         activeUsers: parseInt(stats.active_users),
-        co2Saved: co2InTons,
+        co2Saved: parseFloat(stats.total_co2_saved) || 0,
         ecoTeams: parseInt(stats.eco_teams),
         successStories: parseInt(stats.success_stories)
       }
