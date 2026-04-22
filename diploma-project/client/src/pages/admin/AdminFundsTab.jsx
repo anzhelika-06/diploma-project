@@ -110,6 +110,7 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
   const [requests, setRequests] = useState([]);
   const [allMarkers, setAllMarkers] = useState([]);
   const [filters, setFilters] = useState({ search: '', status: 'pending' });
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
   const [loading, setLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   // Multiple markers: [{ lat, lng, photo_url, photoPreview, note }]
@@ -191,16 +192,42 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
     return option ? option.label : viewOptions[0].label;
   };
 
-  // Filter requests by search
-  const filteredRequests = requests.filter(req => {
-    if (!filters.search) return true;
-    const searchLower = filters.search.toLowerCase();
-    return (
-      req.nickname?.toLowerCase().includes(searchLower) ||
-      req.email?.toLowerCase().includes(searchLower) ||
-      req.id?.toString().includes(searchLower)
-    );
-  });
+  // Filter and sort requests
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  };
+
+  const filteredRequests = requests
+    .filter(req => {
+      if (!filters.search) return true;
+      const searchLower = filters.search.toLowerCase();
+      return (
+        req.nickname?.toLowerCase().includes(searchLower) ||
+        req.email?.toLowerCase().includes(searchLower) ||
+        req.id?.toString().includes(searchLower)
+      );
+    })
+    .sort((a, b) => {
+      const { key, direction } = sortConfig;
+      let aVal = a[key];
+      let bVal = b[key];
+      
+      // Handle different data types
+      if (key === 'created_at') {
+        aVal = new Date(aVal).getTime();
+        bVal = new Date(bVal).getTime();
+      } else if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+      
+      if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -420,19 +447,31 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
               <table className="funds-table">
                 <thead>
                   <tr>
-                    <th style={{width:'50px'}}>ID</th>
-                    <th style={{width:'180px'}}>{t('user') || 'Пользователь'}</th>
-                    <th style={{width:'80px'}}>{t('treesPlanted') || 'Деревья'}</th>
-                    <th style={{width:'80px'}}>{t('ecoCoinsShort') || 'Экоины'}</th>
-                    <th style={{width:'110px'}}>{t('date') || 'Дата'}</th>
-                    <th style={{width:'100px'}}>{t('status') || 'Статус'}</th>
+                    <th style={{width:'50px',cursor:'pointer'}} onClick={() => handleSort('id')}>
+                      ID {sortConfig.key === 'id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th style={{width:'180px',cursor:'pointer'}} onClick={() => handleSort('nickname')}>
+                      {t('user') || 'Пользователь'} {sortConfig.key === 'nickname' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th style={{width:'80px',cursor:'pointer'}} onClick={() => handleSort('trees_count')}>
+                      {t('treesPlanted') || 'Деревья'} {sortConfig.key === 'trees_count' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th style={{width:'80px',cursor:'pointer'}} onClick={() => handleSort('coins_spent')}>
+                      {t('ecoCoinsShort') || 'Экоины'} {sortConfig.key === 'coins_spent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th style={{width:'110px',cursor:'pointer'}} onClick={() => handleSort('created_at')}>
+                      {t('date') || 'Дата'} {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
+                    <th style={{width:'100px',cursor:'pointer'}} onClick={() => handleSort('status')}>
+                      {t('status') || 'Статус'} {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    </th>
                     <th style={{width:'80px'}}>{t('actions') || 'Действия'}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRequests.map(req => (
+                  {filteredRequests.map((req, index) => (
                     <tr key={req.id}>
-                      <td style={{fontFamily:'monospace',color:'#6c757d',fontSize:'13px'}}>#{req.id}</td>
+                      <td style={{fontFamily:'monospace',color:'#6c757d',fontSize:'13px'}}>#{index + 1}</td>
                       <td>
                         <div style={{display:'flex',alignItems:'center',gap:8}}>
                           <span style={{fontSize:'18px'}}>{req.avatar_emoji}</span>
@@ -507,7 +546,7 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                       {pendingMarkers.map((m, i) => (
                         <div key={i} className={`marker-item${i === activeMarkerIdx ? ' active' : ''}`} onClick={() => setActiveMarkerIdx(i)}>
                           <div className="marker-item-header">
-                            <span className="marker-num">🌳 Метка {i + 1}</span>
+                            <span className="marker-num">🌳 {t('fundsMarker') || 'Метка'} {i + 1}</span>
                             <span className="marker-coords">{m.lat.toFixed(4)}, {m.lng.toFixed(4)}</span>
                             <button className="marker-remove" onClick={(e) => { e.stopPropagation(); removeMarker(i); }}>
                               <span className="material-icons">close</span>
@@ -572,6 +611,7 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                 icon: treeIcon,
                 popupHtml: `<div class="tree-popup">
                   <div class="popup-header"><b>${m.avatar_emoji || ''} ${m.nickname || ''}</b></div>
+                  <p class="popup-coords" style="margin:4px 0;font-size:12px;color:#666;font-family:monospace">📍 ${parseFloat(m.lat).toFixed(5)}, ${parseFloat(m.lng).toFixed(5)}</p>
                   ${m.note ? `<p class="popup-note">${m.note}</p>` : ''}
                   ${m.photo_url ? `<img src="${m.photo_url}" class="popup-photo" data-photo-url="${m.photo_url}" style="width:100%;border-radius:6px;margin-top:6px;cursor:pointer"/>` : ''}
                   <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>

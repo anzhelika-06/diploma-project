@@ -3953,9 +3953,9 @@
 }
 
 .status-select.status-reviewing {
-  background: rgba(33, 150, 243, 0.1);
-  border-color: #2196f3;
-  color: #1565c0;
+  background: rgba(33, 150, 243, 0.08);
+  border-color: rgba(33, 150, 243, 0.3);
+  color: #1976d2;
   font-weight: 600;
 }
 
@@ -4661,9 +4661,9 @@
 }
 
 .report-status-badge.status-reviewing {
-  background: #2196f3;
-  color: white;
-  border: 1px solid #2196f3;
+  background: rgba(33, 150, 243, 0.1);
+  color: #1976d2;
+  border: 1px solid rgba(33, 150, 243, 0.3);
   font-weight: 600;
 }
 

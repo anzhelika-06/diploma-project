@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS tree_requests (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     coins_spent INTEGER NOT NULL DEFAULT 200,
     trees_count INTEGER NOT NULL DEFAULT 1,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted', 'rejected')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted')),
     admin_id INTEGER REFERENCES users(id),
     admin_note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -469,31 +469,6 @@ CREATE TABLE IF NOT EXISTS user_pets (
     vacation_month INTEGER DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- ============ ПОСАДКА ДЕРЕВЬЕВ ============
-CREATE TABLE IF NOT EXISTS tree_requests (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    coins_spent INTEGER NOT NULL DEFAULT 200,
-    trees_count INTEGER NOT NULL DEFAULT 1,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted', 'rejected')),
-    admin_id INTEGER REFERENCES users(id),
-    admin_note TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS tree_markers (
-    id SERIAL PRIMARY KEY,
-    request_id INTEGER NOT NULL REFERENCES tree_requests(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    lat DECIMAL(10, 7) NOT NULL,
-    lng DECIMAL(10, 7) NOT NULL,
-    photo_url TEXT,
-    note TEXT,
-    planted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_tree_requests_user ON tree_requests(user_id);
@@ -1566,6 +1541,11 @@ INSERT INTO achievements (
     ('tree_planter_5',  'Садовник',         'Посадите 5 деревьев',               'trees', '🌿', 'tree_planted', 'count', 5,  100, 'rare',      false, 81),
     ('tree_planter_10', 'Лесник',           'Посадите 10 деревьев',              'trees', '🌳', 'tree_planted', 'count', 10, 200, 'epic',      false, 82),
     ('tree_planter_25', 'Хранитель леса',   'Посадите 25 деревьев',              'trees', '🌲', 'tree_planted', 'count', 25, 500, 'legendary', false, 83),
+    -- Питомец
+    ('pet_level_5',  'Заботливый хозяин',     'Прокачайте питомца до 5 уровня',    'pet', '🐾', 'pet_level', 'count', 5,  50,  'common',    false, 84),
+    ('pet_level_10', 'Опытный дрессировщик',  'Прокачайте питомца до 10 уровня',   'pet', '🎓', 'pet_level', 'count', 10, 100, 'rare',      false, 85),
+    ('pet_level_20', 'Мастер питомцев',       'Прокачайте питомца до 20 уровня',   'pet', '⭐', 'pet_level', 'count', 20, 200, 'epic',      false, 86),
+    ('pet_max_level', 'Легендарный питомец',  'Достигните максимального уровня',   'pet', '👑', 'pet_level', 'count', 30, 500, 'legendary', false, 87),
     -- Стрик
     ('streak_7',   '7 дней подряд',   'Заходите в приложение 7 дней подряд',   'streak', '🔥', 'streak', 'count', 7,   50,  'common',    false, 90),
     ('streak_30',  '30 дней подряд',  'Заходите в приложение 30 дней подряд',  'streak', '🔥', 'streak', 'count', 30,  150, 'rare',      false, 91),
@@ -1813,6 +1793,40 @@ UPDATE user_reports SET
     reviewed_by = 1,
     reviewed_at = NOW() - INTERVAL '6 hours'
 WHERE status = 'reviewing';
+
+-- ============ ТЕСТОВЫЕ ЗАПРОСЫ НА ПОСАДКУ ДЕРЕВЬЕВ ============
+INSERT INTO tree_requests (user_id, coins_spent, trees_count, status, admin_id, admin_note, created_at, updated_at) VALUES
+    (2, 200, 1, 'pending', NULL, NULL, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours'),
+    (3, 400, 2, 'pending', NULL, NULL, NOW() - INTERVAL '5 hours', NOW() - INTERVAL '5 hours'),
+    (4, 200, 1, 'planted', 1, 'Дерево успешно посажено в парке. Спасибо за вклад!', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
+    (5, 600, 3, 'pending', NULL, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+    (6, 200, 1, 'planted', 1, 'Посажено возле школы. Отличное место!', NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days'),
+    (7, 400, 2, 'planted', 1, 'Два дерева посажены в городском парке.', NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days'),
+    (8, 200, 1, 'pending', NULL, NULL, NOW() - INTERVAL '8 hours', NOW() - INTERVAL '8 hours'),
+    (9, 800, 4, 'planted', 1, 'Четыре дерева посажены вдоль аллеи. Прекрасная работа!', NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'),
+    (10, 200, 1, 'pending', NULL, NULL, NOW() - INTERVAL '12 hours', NOW() - INTERVAL '12 hours'),
+    (11, 400, 2, 'pending', NULL, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days');
+
+-- ============ ТЕСТОВЫЕ МАРКЕРЫ ПОСАЖЕННЫХ ДЕРЕВЬЕВ ============
+-- Маркеры для запроса #3 (user_id=4, 1 дерево) - Минск, парк Горького
+INSERT INTO tree_markers (request_id, user_id, lat, lng, photo_url, note, planted_at) VALUES
+    (3, 4, 53.9168, 27.5574, 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=800', 'Посажено в парке Горького, Минск', NOW() - INTERVAL '1 day');
+
+-- Маркеры для запроса #5 (user_id=6, 1 дерево) - Минск, возле школы
+INSERT INTO tree_markers (request_id, user_id, lat, lng, photo_url, note, planted_at) VALUES
+    (5, 6, 53.9045, 27.5615, 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=800', 'Посажено возле школы №25', NOW() - INTERVAL '3 days');
+
+-- Маркеры для запроса #6 (user_id=7, 2 дерева) - Минск, парк Челюскинцев
+INSERT INTO tree_markers (request_id, user_id, lat, lng, photo_url, note, planted_at) VALUES
+    (6, 7, 53.9356, 27.6289, 'https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=800', 'Первое дерево в парке Челюскинцев', NOW() - INTERVAL '5 days'),
+    (6, 7, 53.9362, 27.6295, 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=800', 'Второе дерево рядом с первым', NOW() - INTERVAL '5 days');
+
+-- Маркеры для запроса #8 (user_id=9, 4 дерева) - Минск, аллея
+INSERT INTO tree_markers (request_id, user_id, lat, lng, photo_url, note, planted_at) VALUES
+    (8, 9, 53.8978, 27.5467, 'https://images.unsplash.com/photo-1511497584788-876760111969?w=800', 'Дерево 1 на аллее', NOW() - INTERVAL '2 days'),
+    (8, 9, 53.8985, 27.5472, 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=800', 'Дерево 2 на аллее', NOW() - INTERVAL '2 days'),
+    (8, 9, 53.8992, 27.5477, 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=800', 'Дерево 3 на аллее', NOW() - INTERVAL '2 days'),
+    (8, 9, 53.8999, 27.5482, 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=800', 'Дерево 4 на аллее', NOW() - INTERVAL '2 days');
 
 -- Выводим информацию о созданных данных
 DO $$
