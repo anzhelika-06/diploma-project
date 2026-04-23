@@ -467,8 +467,10 @@ export default function PetPage() {
   const displayName = pet.name || petDef?.name[lang] || 'Питомец';
   const stageLabel = getStageLabel(pet.level, lang);
   const stageIndex = getStageIndex(pet.level);
-  const xpPct = Math.min(100, Math.round((pet.xp / pet.xp_to_next_level) * 100));
   const canFeed = canFeedToday(pet.last_fed_at);
+  // Процент ОСТАВШИЙСЯ до уровня (100% - пройденный процент)
+  const xpPct = Math.min(100, Math.round((pet.xp / pet.xp_to_next_level) * 100));
+  const feedProgress = 100 - xpPct; // Сколько осталось до уровня
   const minStat = Math.min(pet.hunger, pet.happiness);
   const isDead = pet.hunger === 0 && pet.happiness === 0;
   const mood = isDead ? 'dead' : minStat < 30 ? 'sad' : minStat < 70 ? 'neutral' : 'happy';
@@ -482,8 +484,18 @@ export default function PetPage() {
     stageIndex === 3 ? 'anim-sage' :
     'anim-legend';
 
+  // Расчет календарных дней с момента создания питомца
   const daysWithPet = pet.created_at
-    ? Math.max(1, Math.floor((Date.now() - new Date(pet.created_at)) / 86400000))
+    ? (() => {
+        const createdDate = new Date(pet.created_at);
+        const today = new Date();
+        // Сбрасываем время до начала дня для корректного подсчета календарных дней
+        createdDate.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+        const diffTime = today - createdDate;
+        const diffDays = Math.floor(diffTime / 86400000);
+        return Math.max(1, diffDays + 1); // +1 потому что день создания тоже считается
+      })()
     : 1;
 
   const moodMsg = {
@@ -524,7 +536,7 @@ export default function PetPage() {
                 <span className="pet-stat-label">{t('petStage') || 'Стадия'}</span>
               </div>
               <div className="pet-stat-item">
-                <span className="pet-stat-val">{xpPct}%</span>
+                <span className="pet-stat-val">{feedProgress}%</span>
                 <span className="pet-stat-label">{t('petXpProgress') || 'До уровня'}</span>
               </div>
             </div>
