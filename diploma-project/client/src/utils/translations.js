@@ -1518,6 +1518,9 @@ achievements: "достижений",
     globalStatsUsers: "участников",
     globalStatsTeams: "команд",
     
+    // StreakWidget
+    streakTitle: "Серия активных дней",
+    
     // MessagesPage
     messagesTitle: "Сообщения",
     friendsTab: "Друзья",
@@ -3104,6 +3107,9 @@ achievements: "achievements",
     globalStatsTrees: "trees planted",
     globalStatsUsers: "participants",
     globalStatsTeams: "teams",
+    
+    // StreakWidget
+    streakTitle: "Active days streak",
     
     // MessagesPage
     messagesTitle: "Messages",
@@ -4693,6 +4699,9 @@ editResponse: "Рэдагаваць адказ",
     globalStatsTrees: "дрэў пасаджана",
     globalStatsUsers: "удзельнікаў",
     globalStatsTeams: "каманд",
+    
+    // StreakWidget
+    streakTitle: "Серыя актыўных дзён",
     
     // MessagesPage
     messagesTitle: "Паведамленні",
