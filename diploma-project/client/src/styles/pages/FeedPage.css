@@ -233,22 +233,30 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 180px;
   z-index: 100;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
 }
 
 .post-menu-dropdown button {
   width: 100%;
+  min-height: 44px;
   padding: 12px 16px;
   background: transparent;
   border: none;
   color: var(--text-primary);
   font-size: 14px;
+  line-height: 1.2;
   cursor: pointer;
-  display: flex;
+  display: grid;
+  grid-template-columns: 18px 1fr;
   align-items: center;
   gap: 10px;
   transition: background 0.3s ease;
   text-align: left;
+  border-radius: 6px;
+  flex: 0 0 auto;
 }
 
 .post-menu-dropdown button:hover {
