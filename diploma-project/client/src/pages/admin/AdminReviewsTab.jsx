@@ -23,6 +23,7 @@ const AdminReviewsTab = ({
   const [selectedStory, setSelectedStory] = useState(null);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [translatedContent, setTranslatedContent] = useState({ title: '', content: '', isTranslating: false });
+  const [storySortConfig, setStorySortConfig] = useState({ key: 'date', direction: 'desc' });
 
   const storyStatusOptions = useMemo(() => [
     { id: 'all', label: t('allStatuses') || 'Все статусы', value: 'all' },
@@ -256,6 +257,24 @@ const AdminReviewsTab = ({
     setTranslatedContent({ title: '', content: '', isTranslating: false });
   };
 
+  const handleStorySort = (key) => {
+    setStorySortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
+  };
+
+  const sortedStories = [...stories].sort((a, b) => {
+    if (storySortConfig.key === 'date') {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return storySortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    if (storySortConfig.key === 'carbon') {
+      const carbonA = a.carbon_saved || 0;
+      const carbonB = b.carbon_saved || 0;
+      return storySortConfig.direction === 'asc' ? carbonA - carbonB : carbonB - carbonA;
+    }
+    return 0;
+  });
+
   // Load on mount
   useEffect(() => {
     loadStoriesData();
@@ -407,14 +426,18 @@ const AdminReviewsTab = ({
                   <th>{t('title') || 'Заголовок'}</th>
                   <th>{t('author') || 'Автор'}</th>
                   <th>{t('category') || 'Категория'}</th>
-                  <th>{t('carbonSaved') || 'CO₂ сохранено'}</th>
+                  <th onClick={() => handleStorySort('carbon')} className="sortable">
+                    {t('carbonSaved') || 'CO₂ сохранено'} {storySortConfig.key === 'carbon' && <span className="sort-icon">{storySortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                  </th>
                   <th>{t('status') || 'Статус'}</th>
-                  <th>{t('createdAt') || 'Дата'}</th>
+                  <th onClick={() => handleStorySort('date')} className="sortable">
+                    {t('createdAt') || 'Дата'} {storySortConfig.key === 'date' && <span className="sort-icon">{storySortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                  </th>
                   <th>{t('actions') || 'Действия'}</th>
                 </tr>
               </thead>
               <tbody>
-                {stories.map(story => (
+                {sortedStories.map(story => (
                   <tr key={story.id} className={`story-row ${story.status}`}>
                     <td className="story-title" title={story.title}>{story.title}</td>
                     <td className="story-author">

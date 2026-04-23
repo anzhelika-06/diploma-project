@@ -475,23 +475,23 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
               <table className="funds-table">
                 <thead>
                   <tr>
-                    <th style={{width:'50px',cursor:'pointer'}} onClick={() => handleSort('id')}>
-                      ID {sortConfig.key === 'id' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th style={{width:'50px'}} onClick={() => handleSort('id')} className="sortable">
+                      ID {sortConfig.key === 'id' && <span className="sort-icon">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                     </th>
-                    <th style={{width:'180px',cursor:'pointer'}} onClick={() => handleSort('nickname')}>
-                      {t('user') || 'Пользователь'} {sortConfig.key === 'nickname' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th style={{width:'180px'}} onClick={() => handleSort('nickname')} className="sortable">
+                      {t('user') || 'Пользователь'} {sortConfig.key === 'nickname' && <span className="sort-icon">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                     </th>
-                    <th style={{width:'80px',cursor:'pointer'}} onClick={() => handleSort('trees_count')}>
-                      {t('treesPlanted') || 'Деревья'} {sortConfig.key === 'trees_count' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th style={{width:'80px'}} onClick={() => handleSort('trees_count')} className="sortable">
+                      {t('treesPlanted') || 'Деревья'} {sortConfig.key === 'trees_count' && <span className="sort-icon">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                     </th>
-                    <th style={{width:'80px',cursor:'pointer'}} onClick={() => handleSort('coins_spent')}>
-                      {t('ecoCoinsShort') || 'Экоины'} {sortConfig.key === 'coins_spent' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th style={{width:'80px'}} onClick={() => handleSort('coins_spent')} className="sortable">
+                      {t('ecoCoinsShort') || 'Экоины'} {sortConfig.key === 'coins_spent' && <span className="sort-icon">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                     </th>
-                    <th style={{width:'110px',cursor:'pointer'}} onClick={() => handleSort('created_at')}>
-                      {t('date') || 'Дата'} {sortConfig.key === 'created_at' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th style={{width:'110px'}} onClick={() => handleSort('created_at')} className="sortable">
+                      {t('date') || 'Дата'} {sortConfig.key === 'created_at' && <span className="sort-icon">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                     </th>
-                    <th style={{width:'100px',cursor:'pointer'}} onClick={() => handleSort('status')}>
-                      {t('status') || 'Статус'} {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                    <th style={{width:'100px'}} onClick={() => handleSort('status')} className="sortable">
+                      {t('status') || 'Статус'} {sortConfig.key === 'status' && <span className="sort-icon">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                     </th>
                     <th style={{width:'80px'}}>{t('actions') || 'Действия'}</th>
                   </tr>

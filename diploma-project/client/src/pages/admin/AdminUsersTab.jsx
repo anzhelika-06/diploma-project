@@ -453,7 +453,7 @@ const AdminUsersTab = ({
     const direction = sortConfig.direction;
     if (sortable) {
       return (
-        <th onClick={() => handleSort(key)} className={`sortable ${isSorted ? 'sorted' : ''}`} style={{ cursor: 'pointer' }}>
+        <th onClick={() => handleSort(key)} className={`sortable ${isSorted ? 'sorted' : ''}`}>
           {t(label) || label}
           {isSorted && <span className="sort-icon">{direction === 'asc' ? '↑' : '↓'}</span>}
         </th>

@@ -25,6 +25,7 @@ const AdminSupportTab = ({
   const [supportPagination, setSupportPagination] = useState({
     page: 1, limit: 20, total: 0, totalPages: 1,
   });
+  const [supportSortConfig, setSupportSortConfig] = useState({ key: 'date', direction: 'desc' });
 
   const [responseModal, setResponseModal] = useState({
     isOpen: false, ticketId: null, ticketNumber: '', userId: null,
@@ -213,6 +214,19 @@ const AdminSupportTab = ({
     return () => { if (supportSearchDebounceTimer.current) clearTimeout(supportSearchDebounceTimer.current); };
   }, []);
 
+  const handleSupportSort = (key) => {
+    setSupportSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
+  };
+
+  const sortedSupportTickets = [...(translatedSupportTickets.length > 0 ? translatedSupportTickets : supportTickets)].sort((a, b) => {
+    if (supportSortConfig.key === 'date') {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return supportSortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    return 0;
+  });
+
   const renderSupportPagination = () => {
     if (supportPagination.totalPages <= 1) return null;
     const pages = [];
@@ -330,12 +344,14 @@ const AdminSupportTab = ({
                   <th>{t('user') || 'Пользователь'}</th>
                   <th>{t('subject') || 'Тема'}</th>
                   <th>{t('status') || 'Статус'}</th>
-                  <th>{t('createdAt') || 'Дата'}</th>
+                  <th onClick={() => handleSupportSort('date')} className="sortable">
+                    {t('createdAt') || 'Дата'} {supportSortConfig.key === 'date' && <span className="sort-icon">{supportSortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                  </th>
                   <th>{t('actions') || 'Действия'}</th>
                 </tr>
               </thead>
               <tbody>
-                {(translatedSupportTickets.length > 0 ? translatedSupportTickets : supportTickets).map(ticket => (
+                {sortedSupportTickets.map(ticket => (
                   <tr key={ticket.id} className={`ticket-row ${ticket.status}`}>
                     <td className="ticket-number"><strong>{ticket.ticket_number}</strong></td>
                     <td className="ticket-user">

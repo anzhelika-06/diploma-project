@@ -587,20 +587,30 @@
   cursor: default;
 }
 
-.users-table th.sortable {
+.users-table th.sortable,
+.stories-table th.sortable,
+.reports-table th.sortable,
+.support-tickets-table th.sortable,
+.funds-table th.sortable {
   cursor: pointer;
   user-select: none;
   transition: color 0.2s ease;
 }
 
-.users-table th.sortable:hover {
+.users-table th.sortable:hover,
+.stories-table th.sortable:hover,
+.reports-table th.sortable:hover,
+.support-tickets-table th.sortable:hover,
+.funds-table th.sortable:hover {
   color: #4caf50;
-  background: #f0f0f0;
 }
 
-.users-table th.sorted {
-  color: #4caf50;
-  background: #f0f0f0;
+[data-theme="dark"] .users-table th.sortable:hover,
+[data-theme="dark"] .stories-table th.sortable:hover,
+[data-theme="dark"] .reports-table th.sortable:hover,
+[data-theme="dark"] .support-tickets-table th.sortable:hover,
+[data-theme="dark"] .funds-table th.sortable:hover {
+  color: var(--primary-color);
 }
 
 .sort-icon {
@@ -1866,14 +1876,20 @@
   border-bottom-color: var(--border-color);
 }
 
-[data-theme="dark"] .users-table th.sortable:hover {
+[data-theme="dark"] .users-table th.sortable:hover,
+[data-theme="dark"] .stories-table th.sortable:hover,
+[data-theme="dark"] .reports-table th.sortable:hover,
+[data-theme="dark"] .support-tickets-table th.sortable:hover,
+[data-theme="dark"] .funds-table th.sortable:hover {
   color: var(--primary-color);
-  background: var(--bg-secondary);
 }
 
-[data-theme="dark"] .users-table th.sorted {
+[data-theme="dark"] .users-table th.sorted,
+[data-theme="dark"] .stories-table th.sorted,
+[data-theme="dark"] .reports-table th.sorted,
+[data-theme="dark"] .support-tickets-table th.sorted,
+[data-theme="dark"] .funds-table th.sorted {
   color: var(--primary-color);
-  background: var(--bg-secondary);
 }
 
 [data-theme="dark"] .users-table tbody tr {

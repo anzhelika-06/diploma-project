@@ -42,7 +42,14 @@ const AdminReportsTab = ({
   };
 
   const sortedReports = [...reports].sort((a, b) => {
-    if (reportsSortConfig.key === 'id') return reportsSortConfig.direction === 'asc' ? a.id - b.id : b.id - a.id;
+    if (reportsSortConfig.key === 'id') {
+      return reportsSortConfig.direction === 'asc' ? a.id - b.id : b.id - a.id;
+    }
+    if (reportsSortConfig.key === 'date') {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return reportsSortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+    }
     return 0;
   });
 
@@ -197,14 +204,16 @@ const AdminReportsTab = ({
             <table className="reports-table">
               <thead>
                 <tr>
-                  <th style={{ width: '60px', cursor: 'pointer' }} onClick={() => handleSort('id')} className="sortable">
+                  <th style={{ width: '60px' }} onClick={() => handleSort('id')} className="sortable">
                     ID {reportsSortConfig.key === 'id' && <span className="sort-icon">{reportsSortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
                   </th>
                   <th style={{ width: '200px' }}>{t('reporter') || 'Отправитель'}</th>
                   <th style={{ width: '200px' }}>{t('reportedUser') || 'На пользователя'}</th>
                   <th style={{ width: '250px' }}>{t('reason') || 'Причина'}</th>
                   <th style={{ width: '150px' }}>{t('status') || 'Статус'}</th>
-                  <th style={{ width: '120px' }}>{t('date') || 'Дата'}</th>
+                  <th style={{ width: '120px' }} onClick={() => handleSort('date')} className="sortable">
+                    {t('date') || 'Дата'} {reportsSortConfig.key === 'date' && <span className="sort-icon">{reportsSortConfig.direction === 'asc' ? '↑' : '↓'}</span>}
+                  </th>
                   <th style={{ width: '120px' }}>{t('actions') || 'Действия'}</th>
                 </tr>
               </thead>
