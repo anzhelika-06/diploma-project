@@ -87,10 +87,6 @@ export const SocketProvider = ({ children }) => {
       console.log('   timestamp:', data.timestamp);
     });
 
-    newSocket.on('test:notification', (data) => {
-      console.log('🧪 SocketProvider: Получено тестовое уведомление:', data);
-    });
-
     newSocket.on('user:banned', (data) => {
       console.log('🚫 SocketProvider: Получено событие бана:', data);
       if (onBannedRef.current) {

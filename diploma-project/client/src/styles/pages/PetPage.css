@@ -463,31 +463,6 @@
 /* Loading */
 .pet-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 80px 0; color: var(--text-secondary); font-size: 14px; }
 
-/* Debug */
-.pet-debug-card { border: 1.5px dashed #f44336 !important; }
-.pet-debug-card h4 { color: #f44336; margin-bottom: 10px; }
-.pet-debug-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.pet-debug-btn {
-  padding: 5px 10px; font-size: 11px; font-weight: 600;
-  background: #fff3f3; border: 1px solid #f44336; color: #c62828;
-  border-radius: 8px; cursor: pointer; font-family: inherit; transition: background .15s;
-}
-.pet-debug-btn:hover { background: #ffebee; }
-[data-theme="dark"] .pet-debug-btn { background: #2d1a1a; color: #ef9a9a; border-color: #ef5350; }
-[data-theme="dark"] .pet-debug-btn:hover { background: #3d2020; }
-
-.pet-debug-stages { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.pet-debug-stage-label { font-size: 11px; font-weight: 700; color: #f44336; margin-right: 2px; }
-.pet-debug-stage-btn {
-  padding: 5px 10px; font-size: 11px; font-weight: 600;
-  background: #f3f3ff; border: 1px solid #7c4dff; color: #4527a0;
-  border-radius: 8px; cursor: pointer; font-family: inherit; transition: background .15s;
-}
-.pet-debug-stage-btn:hover { background: #ede7f6; }
-.pet-debug-stage-btn.active { background: #7c4dff; color: #fff; border-color: #7c4dff; }
-[data-theme="dark"] .pet-debug-stage-btn { background: #1a1a2d; color: #b39ddb; border-color: #7c4dff; }
-[data-theme="dark"] .pet-debug-stage-btn.active { background: #7c4dff; color: #fff; }
-
 /* Responsive */
 @media (max-width: 720px) {
   .pet-page { padding: 16px 16px 48px; }

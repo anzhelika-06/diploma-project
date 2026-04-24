@@ -242,33 +242,6 @@ router.delete('/', authenticateToken, async (req, res) => {
   }
 });
 
-// PATCH /api/pet/debug — set hunger/happiness/xp/level for testing (dev only)
-router.patch('/debug', authenticateToken, async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(403).json({ success: false, error: 'Not available in production' });
-  }
-  try {
-    const userId = req.user.id;
-    const { hunger, happiness, xp, level, last_fed_at } = req.body;
-    const fields = [];
-    const values = [];
-    let i = 1;
-    if (hunger !== undefined)      { fields.push(`hunger=$${i++}`);      values.push(Math.max(0, Math.min(100, hunger))); }
-    if (happiness !== undefined)   { fields.push(`happiness=$${i++}`);   values.push(Math.max(0, Math.min(100, happiness))); }
-    if (xp !== undefined)          { fields.push(`xp=$${i++}`);          values.push(xp); }
-    if (level !== undefined)       { fields.push(`level=$${i++}`);       values.push(level); }
-    if (last_fed_at !== undefined) { fields.push(`last_fed_at=$${i++}`); values.push(last_fed_at); }
-    if (!fields.length) return res.status(400).json({ success: false, error: 'No fields' });
-    values.push(userId);
-    await pool.query(`UPDATE user_pets SET ${fields.join(',')} WHERE user_id=$${i}`, values);
-    const result = await pool.query('SELECT * FROM user_pets WHERE user_id=$1', [userId]);
-    res.json({ success: true, pet: result.rows[0] });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-});
-
 // POST /api/pet/revive — revive pet at 0 stats for 50 eco coins
 router.post('/revive', authenticateToken, async (req, res) => {
   try {

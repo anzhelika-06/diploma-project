@@ -119,15 +119,6 @@ io.on('connection', (socket) => {
     
     console.log('✅ Отправлено подтверждение аутентификации');
     
-    // Тестовое событие для проверки WebSocket
-    setTimeout(() => {
-      socket.emit('test:message', {
-        message: 'WebSocket работает!',
-        timestamp: new Date().toISOString()
-      });
-      console.log('🧪 Отправлено тестовое сообщение пользователю', userId);
-    }, 1000);
-    
     // Уведомляем всех о новом пользователе онлайн
     io.emit('user:online', {
       userId,
@@ -148,14 +139,6 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     });
     
-    // Тестовое уведомление для проверки
-    setTimeout(() => {
-      io.to(roomId).emit('test:notification', {
-        message: `Тестовое уведомление для комнаты ${roomId}`,
-        timestamp: new Date().toISOString()
-      });
-      console.log(`🧪 Отправлено тестовое уведомление в комнату ${roomId}`);
-    }, 2000);
   });
 
   // Присоединение к командному чату
@@ -331,7 +314,7 @@ app.use('/api/pet', petRouter);
 app.use('/api/trees', treesRouter);
 app.use('/api/streak', streakRouter);
 app.use('/api/global-stats', globalStatsRouter);
-// Временный роут для эко-советов - исправленная версия
+// Роуты для эко-советов
 app.get('/api/eco-tips/daily', (req, res) => {
   console.log('GET /api/eco-tips/daily');
   
@@ -339,7 +322,7 @@ app.get('/api/eco-tips/daily', (req, res) => {
     const today = new Date();
     const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
     
-    const testTip = {
+    const dailyTip = {
       id: 1,
       title: 'Замените лампочки на LED',
       content: 'LED-лампы потребляют на 80% меньше энергии и служат в 25 раз дольше обычных. Одна замена экономит до 40 кг CO₂ в год.',
@@ -350,7 +333,7 @@ app.get('/api/eco-tips/daily', (req, res) => {
       date: today.toISOString()
     };
     
-    res.json(testTip);
+    res.json(dailyTip);
   } catch (error) {
     console.error('Ошибка в /api/eco-tips/daily:', error);
     res.status(500).json({
@@ -362,7 +345,7 @@ app.get('/api/eco-tips/daily', (req, res) => {
 });
 
 app.get('/api/eco-tips/random', (req, res) => {
-  const testTips = [
+  const tips = [
     {
       id: 1,
       title: 'Замените лампочки на LED',
@@ -380,7 +363,7 @@ app.get('/api/eco-tips/random', (req, res) => {
       co2_impact: 5000
     }
   ];
-  const randomTip = testTips[Math.floor(Math.random() * testTips.length)];
+  const randomTip = tips[Math.floor(Math.random() * tips.length)];
   res.json(randomTip);
 });
 
@@ -494,44 +477,6 @@ app.get('/api/online-users', async (req, res) => {
     success: true,
     users: onlineUsers,
     total: onlineUsers.length
-  });
-});
-
-// Тестовый маршрут для поддержки
-app.post('/api/support/debug', (req, res) => {
-  console.log('=== DEBUG SUPPORT REQUEST ===');
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  console.log('============================');
-  
-  res.json({
-    success: true,
-    message: 'Тестовый запрос получен',
-    headers: req.headers,
-    body: req.body,
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.get('/api/support/my-questions/debug', (req, res) => {
-  console.log('=== DEBUG GET MY QUESTIONS ===');
-  console.log('Headers:', req.headers);
-  console.log('==============================');
-  
-  res.json({
-    success: true,
-    message: 'Тестовый запрос на получение вопросов',
-    headers: req.headers,
-    tickets: [
-      {
-        id: 1,
-        ticket_number: 'TEST-001',
-        subject: 'Тестовый вопрос',
-        message: 'Это тестовое сообщение',
-        status: 'pending',
-        created_at: new Date().toISOString()
-      }
-    ]
   });
 });
 

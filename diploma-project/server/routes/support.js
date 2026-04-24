@@ -51,63 +51,6 @@ const requireAuth = (req, res, next) => {
   next();
 };
 
-// 1. Проверка таблицы поддержки
-router.get('/check-table', async (req, res) => {
-  console.log('GET /api/support/check-table');
-  
-  try {
-    // Проверяем структуру таблицы
-    const tableInfo = await pool.query(`
-      SELECT 
-        column_name, 
-        data_type, 
-        is_nullable,
-        column_default
-      FROM information_schema.columns 
-      WHERE table_name = 'support_tickets'
-      ORDER BY ordinal_position;
-    `);
-    
-    // Проверяем наличие данных
-    const countResult = await pool.query('SELECT COUNT(*) as count FROM support_tickets');
-    
-    // Получаем несколько примеров
-    const sampleResult = await pool.query('SELECT * FROM support_tickets ORDER BY created_at DESC LIMIT 5');
-    
-    res.json({
-      success: true,
-      table_exists: tableInfo.rows.length > 0,
-      columns: tableInfo.rows,
-      total_records: parseInt(countResult.rows[0].count),
-      sample_records: sampleResult.rows.map(row => ({
-        ...row,
-        created_at: row.created_at ? row.created_at.toISOString() : null,
-        updated_at: row.updated_at ? row.updated_at.toISOString() : null,
-        responded_at: row.responded_at ? row.responded_at.toISOString() : null
-      })),
-      timestamp: new Date().toISOString()
-    });
-    
-  } catch (error) {
-    console.error('Ошибка проверки таблицы:', error);
-    
-    if (error.code === '42P01') { // table does not exist
-      return res.json({
-        success: true,
-        table_exists: false,
-        message: 'Таблица support_tickets не существует',
-        timestamp: new Date().toISOString()
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Ошибка при проверке таблицы'
-    });
-  }
-});
-
 // 2. Создать новый вопрос в поддержку - УПРОЩЕННАЯ ВЕРСИЯ
 router.post('/', requireAuth, async (req, res) => {
   console.log('\n=== POST /api/support ===');
@@ -361,67 +304,6 @@ router.get('/my-questions', requireAuth, async (req, res) => {
       total: 0,
       error: 'DATABASE_ERROR',
       message: 'Ошибка при получении вопросов из базы данных'
-    });
-  }
-});
-
-// 4. Тестовый endpoint для проверки подключения
-router.get('/test', async (req, res) => {
-  console.log('GET /api/support/test');
-  
-  try {
-    // Проверяем подключение к БД
-    await pool.query('SELECT 1');
-    
-    // Проверяем существование таблицы support_tickets
-    const tableExists = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'support_tickets'
-      );
-    `);
-    
-    res.json({
-      success: true,
-      message: 'Support API работает',
-      database: 'connected',
-      table_exists: tableExists.rows[0].exists,
-      timestamp: new Date().toISOString(),
-      version: '1.0.0'
-    });
-  } catch (error) {
-    console.error('Test endpoint error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Ошибка подключения к базе данных',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// 5. Проверка пользователя
-router.get('/check-user/:id', async (req, res) => {
-  const userId = parseInt(req.params.id);
-  console.log(`GET /api/support/check-user/${userId}`);
-  
-  try {
-    const userQuery = await pool.query('SELECT id, email, nickname FROM users WHERE id = $1', [userId]);
-    const supportQuery = await pool.query('SELECT COUNT(*) as count FROM support_tickets WHERE user_id = $1', [userId]);
-    
-    res.json({
-      success: true,
-      user_exists: userQuery.rows.length > 0,
-      user: userQuery.rows[0],
-      support_tickets_count: parseInt(supportQuery.rows[0].count),
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('Check user error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
     });
   }
 });

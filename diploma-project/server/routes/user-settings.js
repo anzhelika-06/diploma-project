@@ -436,24 +436,6 @@ router.post('/reset', requireAuth, async (req, res) => {
   }
 });
 
-// Проверка авторизации (без получения настроек)
-router.get('/check-auth', requireAuth, async (req, res) => {
-  try {
-    console.log(`✅ Auth check successful for user ${req.userId}`);
-    res.json({
-      success: true,
-      message: 'Авторизация успешна',
-      userId: req.userId
-    });
-  } catch (error) {
-    console.error('❌ Error checking auth:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'Ошибка сервера при проверке авторизации'
-    });
-  }
-});
 router.delete('/account', requireAuth, async (req, res) => {
   console.log('\n=== DELETE ACCOUNT ===');
   console.log(`🗑️  Запрос на удаление аккаунта для пользователя ${req.userId}`);
