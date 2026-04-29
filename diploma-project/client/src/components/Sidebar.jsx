@@ -222,6 +222,7 @@ const Sidebar = ({ isExpanded, setIsExpanded }) => {
                   <li>{t('petVacationRule2')}</li>
                   <li>{t('petVacationRule3')}</li>
                   <li>{t('petVacationRule4')}</li>
+                  <li>{t('petVacationRule5')}</li>
                 </ul>
                 <div className="vacation-counter">
                   {[0,1,2].map(i => (

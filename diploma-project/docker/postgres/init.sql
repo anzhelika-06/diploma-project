@@ -1,4 +1,4 @@
-﻿-- ============================================
+-- ============================================
 -- БАЗА ДАННЫХ ДЛЯ ПРОЕКТА EcoSteps
 -- ============================================
 
@@ -462,6 +462,7 @@ CREATE TABLE IF NOT EXISTS user_pets (
     xp INTEGER DEFAULT 0,
     xp_to_next_level INTEGER DEFAULT 100,
     last_fed_at TIMESTAMP DEFAULT NULL,
+    last_decay_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     hunger INTEGER DEFAULT 100 CHECK (hunger BETWEEN 0 AND 100),
     happiness INTEGER DEFAULT 100 CHECK (happiness BETWEEN 0 AND 100),
     is_frozen BOOLEAN DEFAULT FALSE,
@@ -1082,10 +1083,26 @@ BEGIN
                         cc.co2_saved *
                         CASE WHEN cc.total_footprint > 0 THEN
                             CASE t.goal_category
-                                WHEN 'transport' THEN COALESCE((cc.categories->>'transport')::DECIMAL, 0)
-                                WHEN 'food'      THEN COALESCE((cc.categories->>'food')::DECIMAL, 0)
-                                WHEN 'energy'    THEN COALESCE((cc.categories->>'housing')::DECIMAL, 0)
-                                WHEN 'waste'     THEN COALESCE((cc.categories->>'waste')::DECIMAL, 0)
+                                WHEN 'transport' THEN COALESCE(
+                                    CASE WHEN jsonb_typeof(cc.categories->'transport') = 'object'
+                                        THEN (cc.categories->'transport'->>'value')::DECIMAL
+                                        ELSE (cc.categories->>'transport')::DECIMAL
+                                    END, 0)
+                                WHEN 'food' THEN COALESCE(
+                                    CASE WHEN jsonb_typeof(cc.categories->'food') = 'object'
+                                        THEN (cc.categories->'food'->>'value')::DECIMAL
+                                        ELSE (cc.categories->>'food')::DECIMAL
+                                    END, 0)
+                                WHEN 'energy' THEN COALESCE(
+                                    CASE WHEN jsonb_typeof(cc.categories->'housing') = 'object'
+                                        THEN (cc.categories->'housing'->>'value')::DECIMAL
+                                        ELSE (cc.categories->>'housing')::DECIMAL
+                                    END, 0)
+                                WHEN 'waste' THEN COALESCE(
+                                    CASE WHEN jsonb_typeof(cc.categories->'waste') = 'object'
+                                        THEN (cc.categories->'waste'->>'value')::DECIMAL
+                                        ELSE (cc.categories->>'waste')::DECIMAL
+                                    END, 0)
                                 ELSE 0
                             END / cc.total_footprint
                         ELSE 0 END
@@ -1407,10 +1424,26 @@ SET
                     cc.co2_saved *
                     CASE WHEN cc.total_footprint > 0 THEN
                         CASE t.goal_category
-                            WHEN 'transport' THEN COALESCE((cc.categories->>'transport')::DECIMAL, 0)
-                            WHEN 'food'      THEN COALESCE((cc.categories->>'food')::DECIMAL, 0)
-                            WHEN 'energy'    THEN COALESCE((cc.categories->>'housing')::DECIMAL, 0)
-                            WHEN 'waste'     THEN COALESCE((cc.categories->>'waste')::DECIMAL, 0)
+                            WHEN 'transport' THEN COALESCE(
+                                CASE WHEN jsonb_typeof(cc.categories->'transport') = 'object'
+                                    THEN (cc.categories->'transport'->>'value')::DECIMAL
+                                    ELSE (cc.categories->>'transport')::DECIMAL
+                                END, 0)
+                            WHEN 'food' THEN COALESCE(
+                                CASE WHEN jsonb_typeof(cc.categories->'food') = 'object'
+                                    THEN (cc.categories->'food'->>'value')::DECIMAL
+                                    ELSE (cc.categories->>'food')::DECIMAL
+                                END, 0)
+                            WHEN 'energy' THEN COALESCE(
+                                CASE WHEN jsonb_typeof(cc.categories->'housing') = 'object'
+                                    THEN (cc.categories->'housing'->>'value')::DECIMAL
+                                    ELSE (cc.categories->>'housing')::DECIMAL
+                                END, 0)
+                            WHEN 'waste' THEN COALESCE(
+                                CASE WHEN jsonb_typeof(cc.categories->'waste') = 'object'
+                                    THEN (cc.categories->'waste'->>'value')::DECIMAL
+                                    ELSE (cc.categories->>'waste')::DECIMAL
+                                END, 0)
                             ELSE 0
                         END / cc.total_footprint
                     ELSE 0 END
@@ -1868,43 +1901,7 @@ BEGIN
 END $$;
 
 
--- ============ МИГРАЦИИ ============
--- Таблица виртуальных питомцев
-DO $$ BEGIN
-  CREATE TABLE IF NOT EXISTS user_pets (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    pet_type VARCHAR(20) NOT NULL CHECK (pet_type IN ('cat', 'fox', 'turtle')),
-    name VARCHAR(30) DEFAULT NULL,
-    level INTEGER DEFAULT 1,
-    xp INTEGER DEFAULT 0,
-    xp_to_next_level INTEGER DEFAULT 100,
-    last_fed_at TIMESTAMP DEFAULT NULL,
-    hunger INTEGER DEFAULT 100 CHECK (hunger BETWEEN 0 AND 100),
-    happiness INTEGER DEFAULT 100 CHECK (happiness BETWEEN 0 AND 100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  );
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'user_pets already exists or error: %', SQLERRM;
-END $$;
 
--- ============ МИГРАЦИИ ============
--- Обновление ограничения типов уведомлений
-DO $$ 
-BEGIN
-    -- Удаляем старое ограничение
-    ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
-    
-    -- Добавляем новое ограничение с дополнительными типами
-    ALTER TABLE notifications ADD CONSTRAINT notifications_type_check 
-        CHECK (type IN ('report_response', 'new_report', 'friend_request', 'achievement', 'story_approved', 'story_rejected', 'eco_tip', 'system', 'team_member_joined', 'achievement_unlocked', 'support_ticket', 'support_response'));
-    
-    RAISE NOTICE 'Ограничение notifications_type_check обновлено';
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE NOTICE 'Ошибка обновления ограничения: %', SQLERRM;
-END $$;
 
 
 

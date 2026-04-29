@@ -71,7 +71,7 @@ function FlyToMarker({ position }) {
 }
 
 // Стабильная карта для модала — не пересоздаётся при изменении маркеров
-const StableModalMap = ({ selectedRequest, pendingMarkers, activeMarkerIdx, treeIcon, pendingIcon, onMapClick, onZoomPhoto }) => {
+const StableModalMap = ({ selectedRequest, pendingMarkers, activeMarkerIdx, treeIcon, pendingIcon, onMapClick, onZoomPhoto, formatDateShort }) => {
   return (
     <LocalizedMap center={[53.9, 27.5]} zoom={5}
       style={{ height: 360, borderRadius: 10, marginBottom: 12 }}>
@@ -88,7 +88,7 @@ const StableModalMap = ({ selectedRequest, pendingMarkers, activeMarkerIdx, tree
               <p class="popup-coords" style="margin:0 0 6px;font-size:12px;color:#666;font-family:monospace">📍 ${parseFloat(m.lat).toFixed(5)}, ${parseFloat(m.lng).toFixed(5)}</p>
               ${m.note ? `<p class="popup-note" style="margin:6px 0">${m.note}</p>` : ''}
               ${m.photo_url ? `<img src="${m.photo_url}" class="popup-photo" data-photo-url="${m.photo_url}" style="width:100%;border-radius:6px;margin-top:6px;cursor:pointer"/>` : ''}
-              <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>
+              <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${formatDateShort(m.planted_at)}</p>
             </div>`,
           }))}
           onMarkerClick={(m) => {
@@ -108,7 +108,7 @@ const StableModalMap = ({ selectedRequest, pendingMarkers, activeMarkerIdx, tree
             <p style={{margin:'0 0 6px',fontSize:'12px',color:'#666',fontFamily:'monospace'}}>📍 {parseFloat(m.lat).toFixed(5)}, {parseFloat(m.lng).toFixed(5)}</p>
             {m.note && <p style={{margin:'0 0 6px'}}>{m.note}</p>}
             {m.photo_url && <img src={m.photo_url} alt="tree" style={{width:'100%',borderRadius:6,cursor:'pointer'}} onClick={() => onZoomPhoto(m.photo_url)} />}
-            <p style={{margin:'6px 0 0',fontSize:'11px',color:'#888'}}>{new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>
+            <p style={{margin:'6px 0 0',fontSize:'11px',color:'#888'}}>{formatDateShort(m.planted_at)}</p>
           </Popup>
         </Marker>
       ))}
@@ -334,9 +334,19 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
     setTimeout(() => setMsg(null), 4000);
   };
 
-  const formatDate = d => d ? new Date(d).toLocaleDateString('ru-RU', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  }) : '—';
+  const formatDate = d => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru-RU', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  };
+
+  const formatDateShort = d => {
+    if (!d) return '—';
+    const date = new Date(d);
+    return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru-RU');
+  };
 
   return (
     <div className="admin-section">
@@ -566,6 +576,7 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                     pendingIcon={pendingIcon}
                     onMapClick={handleMapClick}
                     onZoomPhoto={setZoomedPhoto}
+                    formatDateShort={formatDateShort}
                   />
 
                   {/* Markers list with photo upload */}
@@ -642,7 +653,7 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                   <p class="popup-coords" style="margin:4px 0;font-size:12px;color:#666;font-family:monospace">📍 ${parseFloat(m.lat).toFixed(5)}, ${parseFloat(m.lng).toFixed(5)}</p>
                   ${m.note ? `<p class="popup-note">${m.note}</p>` : ''}
                   ${m.photo_url ? `<img src="${m.photo_url}" class="popup-photo" data-photo-url="${m.photo_url}" style="width:100%;border-radius:6px;margin-top:6px;cursor:pointer"/>` : ''}
-                  <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${new Date(m.planted_at).toLocaleDateString('ru-RU')}</p>
+                  <p class="popup-date" style="margin:6px 0 0;font-size:11px;color:#888">${formatDateShort(m.planted_at)}</p>
                 </div>`,
               }))}
               onMarkerClick={(m) => {

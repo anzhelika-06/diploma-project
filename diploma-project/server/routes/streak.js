@@ -4,17 +4,6 @@ const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
 
-// Auto-create streak table
-pool.query(`
-  CREATE TABLE IF NOT EXISTS user_streaks (
-    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-    current_streak INTEGER DEFAULT 0,
-    max_streak INTEGER DEFAULT 0,
-    last_visit_date DATE,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`).catch(() => {});
-
 // Auto-insert streak achievements
 pool.query(`
   INSERT INTO achievements (code, name, description, category, icon, points, is_active, event_type, requirement_type, requirement_value)

@@ -6,17 +6,6 @@ const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
 
 const TREE_COST = 200; // eco coins per tree
 
-// Auto-insert tree achievements if not exist
-pool.query(`
-  INSERT INTO achievements (code, name, description, category, icon, points, is_active, event_type, requirement_type, requirement_value)
-  VALUES
-    ('tree_planter_1',  'Первое дерево',    'Посадите своё первое дерево',       'trees', '🌱', 50,  true, 'tree_planted', 'count', 1),
-    ('tree_planter_5',  'Садовник',         'Посадите 5 деревьев',               'trees', '🌿', 100, true, 'tree_planted', 'count', 5),
-    ('tree_planter_10', 'Лесник',           'Посадите 10 деревьев',              'trees', '🌳', 200, true, 'tree_planted', 'count', 10),
-    ('tree_planter_25', 'Хранитель леса',   'Посадите 25 деревьев',              'trees', '🌲', 500, true, 'tree_planted', 'count', 25)
-  ON CONFLICT (code) DO NOTHING
-`).catch(() => {});
-
 // Helper: award tree achievement if not already awarded
 async function awardTreeAchievement(client, userId, code, io) {
   try {
@@ -31,35 +20,6 @@ async function awardTreeAchievement(client, userId, code, io) {
     console.error('awardTreeAchievement error:', e.message);
   }
 }
-
-// Auto-create tables if upgrading
-pool.query(`
-  CREATE TABLE IF NOT EXISTS tree_requests (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    coins_spent INTEGER NOT NULL DEFAULT 200,
-    trees_count INTEGER NOT NULL DEFAULT 1,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted', 'rejected')),
-    admin_id INTEGER REFERENCES users(id),
-    admin_note TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`).catch(() => {});
-
-pool.query(`
-  CREATE TABLE IF NOT EXISTS tree_markers (
-    id SERIAL PRIMARY KEY,
-    request_id INTEGER NOT NULL REFERENCES tree_requests(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    lat DECIMAL(10, 7) NOT NULL,
-    lng DECIMAL(10, 7) NOT NULL,
-    photo_url TEXT,
-    note TEXT,
-    planted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`).catch(() => {});
 
 // POST /api/trees/redeem — user exchanges eco coins for tree planting
 router.post('/redeem', authenticateToken, async (req, res) => {

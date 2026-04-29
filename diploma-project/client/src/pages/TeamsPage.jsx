@@ -63,6 +63,7 @@ const TeamsPage = () => {
     description: '',
     avatar_emoji: teamAvatars[0].emoji,
     goal_description: '',
+    goal_category: '',
     goal_target: 1000
   });
   const [createError, setCreateError] = useState('');
@@ -316,6 +317,7 @@ const TeamsPage = () => {
       description: '', 
       avatar_emoji: teamAvatars[0].emoji,
       goal_description: '',
+      goal_category: '',
       goal_target: 1000
     });
   };
@@ -957,14 +959,19 @@ const TeamsPage = () => {
               
               <div className="teams-form-group">
                 <label>{t('teamGoalLabel')} <span style={{color: 'var(--error-color)'}} title={t('requiredFieldTooltip')}>*</span></label>
-                <input
-                  type="text"
-                  value={createForm.goal_description}
-                  onChange={(e) => setCreateForm({...createForm, goal_description: e.target.value})}
-                  placeholder={t('teamGoalPlaceholder')}
-                  maxLength={100}
-                  className={fieldErrors.goal_description ? 'error' : ''}
-                />
+                <div className="teams-goal-pills">
+                  {(t('teamGoalPresets') || []).map(({ category, label }) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className={`teams-goal-pill ${createForm.goal_description === label ? 'selected' : ''} ${fieldErrors.goal_description && !createForm.goal_description ? 'error' : ''}`}
+                      onClick={() => setCreateForm({ ...createForm, goal_category: category, goal_description: label })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <small className="teams-form-hint">{t('teamGoalCategoryHint')}</small>
               </div>
               
               <div className="teams-form-group">

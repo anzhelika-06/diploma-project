@@ -764,22 +764,6 @@ router.post('/users/:userId/ban', authenticateToken, isAdmin, async (req, res) =
     
     // Записываем в историю банов
     try {
-      // Проверяем существование таблицы ban_history
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS ban_history (
-          id SERIAL PRIMARY KEY,
-          user_id INTEGER NOT NULL REFERENCES users(id),
-          reason TEXT NOT NULL,
-          duration_hours INTEGER,
-          is_permanent BOOLEAN DEFAULT false,
-          created_by INTEGER NOT NULL REFERENCES users(id),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          unbanned_at TIMESTAMP,
-          unbanned_by INTEGER REFERENCES users(id),
-          unban_reason TEXT
-        )
-      `);
-      
       // Вставляем запись в историю
       await client.query(
         `INSERT INTO ban_history 

@@ -3,55 +3,44 @@ const router = express.Router();
 const { pool } = require('../config/database');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
-// Auto-create table if not exists
-pool.query(`
-  CREATE TABLE IF NOT EXISTS user_pets (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    pet_type VARCHAR(20) NOT NULL,
-    name VARCHAR(30) DEFAULT NULL,
-    level INTEGER DEFAULT 1,
-    xp INTEGER DEFAULT 0,
-    xp_to_next_level INTEGER DEFAULT 100,
-    last_fed_at TIMESTAMP DEFAULT NULL,
-    hunger INTEGER DEFAULT 100,
-    happiness INTEGER DEFAULT 100,
-    is_frozen BOOLEAN DEFAULT FALSE,
-    vacation_used_this_month INTEGER DEFAULT 0,
-    vacation_month INTEGER DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )
-`).then(async () => {
-  // Add new columns if upgrading existing table
-  await pool.query(`ALTER TABLE user_pets ADD COLUMN IF NOT EXISTS is_frozen BOOLEAN DEFAULT FALSE`).catch(() => {});
-  await pool.query(`ALTER TABLE user_pets ADD COLUMN IF NOT EXISTS vacation_used_this_month INTEGER DEFAULT 0`).catch(() => {});
-  await pool.query(`ALTER TABLE user_pets ADD COLUMN IF NOT EXISTS vacation_month INTEGER DEFAULT NULL`).catch(() => {});
-  console.log('✅ user_pets table ready');
-}).catch(e => console.error('❌ user_pets table error:', e.message));
-
 const XP_PER_FEED = 30;
 const COINS_PER_FEED = 10;
 const XP_BASE = 100;
 const HUNGER_DECAY_PER_DAY = 20;
 const HAPPINESS_DECAY_PER_DAY = 15;
+const XP_DECAY_PER_DAY = 5;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 function xpForLevel(level) {
   return Math.floor(XP_BASE * Math.pow(1.4, level - 1));
 }
 
 function applyDecay(pet) {
-  if (!pet.last_fed_at) return pet;
   // Frozen pets don't decay
   if (pet.is_frozen) return pet;
+
+  const decayStart = pet.last_decay_at || pet.last_fed_at || pet.created_at;
+  if (!decayStart) return pet;
+
   const now = new Date();
-  const lastFed = new Date(pet.last_fed_at);
-  const daysPassed = Math.floor((now - lastFed) / (1000 * 60 * 60 * 24));
-  if (daysPassed <= 0) return pet;
-  const hunger = Math.max(0, pet.hunger - daysPassed * HUNGER_DECAY_PER_DAY);
-  const happiness = Math.max(0, pet.happiness - daysPassed * HAPPINESS_DECAY_PER_DAY);
-  const xpLoss = Math.min(pet.xp, daysPassed * 5);
-  return { ...pet, hunger, happiness, xp: pet.xp - xpLoss };
+  const elapsedMs = now - new Date(decayStart);
+  if (elapsedMs <= 0) return pet;
+
+  const hungerLoss = Math.floor((elapsedMs / MS_PER_DAY) * HUNGER_DECAY_PER_DAY);
+  const happinessLoss = Math.floor((elapsedMs / MS_PER_DAY) * HAPPINESS_DECAY_PER_DAY);
+  const xpLoss = Math.floor((elapsedMs / MS_PER_DAY) * XP_DECAY_PER_DAY);
+
+  if (hungerLoss <= 0 && happinessLoss <= 0 && xpLoss <= 0) {
+    return pet;
+  }
+
+  return {
+    ...pet,
+    hunger: Math.max(0, pet.hunger - hungerLoss),
+    happiness: Math.max(0, pet.happiness - happinessLoss),
+    xp: Math.max(0, pet.xp - xpLoss),
+    last_decay_at: now.toISOString()
+  };
 }
 
 // GET /api/pet
@@ -60,11 +49,34 @@ router.get('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     const result = await pool.query('SELECT * FROM user_pets WHERE user_id = $1', [userId]);
     if (result.rows.length === 0) return res.json({ success: true, pet: null });
-    const pet = applyDecay(result.rows[0]);
-    await pool.query(
-      'UPDATE user_pets SET hunger=$1, happiness=$2, xp=$3, updated_at=NOW() WHERE user_id=$4',
-      [pet.hunger, pet.happiness, pet.xp, userId]
-    );
+
+    let petRow = result.rows[0];
+
+    // Auto-unfreeze if vacation day has passed
+    if (petRow.is_frozen && petRow.last_fed_at) {
+      const vacationDate = new Date(petRow.last_fed_at).toDateString();
+      const today = new Date().toDateString();
+      if (vacationDate !== today) {
+        // Vacation day is over — unfreeze and reset decay timer
+        await pool.query(
+          'UPDATE user_pets SET is_frozen=FALSE, last_decay_at=NOW(), updated_at=NOW() WHERE user_id=$1',
+          [userId]
+        );
+        petRow = { ...petRow, is_frozen: false, last_decay_at: new Date().toISOString() };
+      }
+    }
+
+    const pet = applyDecay(petRow);
+    if (
+      pet.hunger !== petRow.hunger ||
+      pet.happiness !== petRow.happiness ||
+      pet.xp !== petRow.xp
+    ) {
+      await pool.query(
+        'UPDATE user_pets SET hunger=$1, happiness=$2, xp=$3, last_decay_at=$4, updated_at=NOW() WHERE user_id=$5',
+        [pet.hunger, pet.happiness, pet.xp, pet.last_decay_at, userId]
+      );
+    }
     res.json({ success: true, pet });
   } catch (e) {
     console.error(e);
@@ -132,7 +144,7 @@ router.post('/feed', authenticateToken, async (req, res) => {
     const newHappiness = Math.min(100, pet.happiness + 30);
 
     await pool.query(
-      'UPDATE user_pets SET xp=$1, level=$2, xp_to_next_level=$3, hunger=$4, happiness=$5, last_fed_at=NOW(), is_frozen=FALSE, updated_at=NOW() WHERE user_id=$6',
+      'UPDATE user_pets SET xp=$1, level=$2, xp_to_next_level=$3, hunger=$4, happiness=$5, last_fed_at=NOW(), last_decay_at=NOW(), is_frozen=FALSE, updated_at=NOW() WHERE user_id=$6',
       [newXp, newLevel, newXpToNext, newHunger, newHappiness, userId]
     );
 
@@ -181,6 +193,20 @@ router.post('/vacation', authenticateToken, async (req, res) => {
     if (petResult.rows.length === 0) return res.status(404).json({ success: false, error: 'No pet' });
 
     let pet = petResult.rows[0];
+
+    // Auto-unfreeze if vacation day has passed (same logic as GET)
+    if (pet.is_frozen && pet.last_fed_at) {
+      const vacationDate = new Date(pet.last_fed_at).toDateString();
+      const today = new Date().toDateString();
+      if (vacationDate !== today) {
+        await pool.query(
+          'UPDATE user_pets SET is_frozen=FALSE, last_decay_at=NOW(), updated_at=NOW() WHERE user_id=$1',
+          [userId]
+        );
+        pet = { ...pet, is_frozen: false };
+      }
+    }
+
     const currentMonth = new Date().getMonth() + 1;
 
     // Reset counter if new month
@@ -197,6 +223,15 @@ router.post('/vacation', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: 'already_on_vacation' });
     }
 
+    // Check if vacation was already used today
+    if (pet.vacation_date) {
+      const vacDate = new Date(pet.vacation_date).toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0];
+      if (vacDate === today) {
+        return res.status(400).json({ success: false, error: 'already_on_vacation' });
+      }
+    }
+
     // Check if already fed today — can't go on vacation if already fed
     if (pet.last_fed_at) {
       const lastFed = new Date(pet.last_fed_at);
@@ -208,9 +243,36 @@ router.post('/vacation', authenticateToken, async (req, res) => {
 
     await pool.query(
       `UPDATE user_pets SET is_frozen=TRUE, vacation_used_this_month=$1, vacation_month=$2,
-       last_fed_at=NOW(), updated_at=NOW() WHERE user_id=$3`,
+       last_fed_at=NOW(), last_decay_at=NOW(), updated_at=NOW() WHERE user_id=$3`,
       [vacationUsed + 1, currentMonth, userId]
     );
+
+    // Сохраняем стрик — засчитываем день как посещённый
+    const today = new Date().toISOString().split('T')[0];
+    const streakResult = await pool.query(
+      'SELECT current_streak, max_streak, last_visit_date FROM user_streaks WHERE user_id=$1',
+      [userId]
+    );
+    if (streakResult.rows.length > 0) {
+      const row = streakResult.rows[0];
+      const lastDate = row.last_visit_date ? new Date(row.last_visit_date).toISOString().split('T')[0] : null;
+      if (lastDate !== today) {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        const newStreak = lastDate === yesterdayStr ? row.current_streak + 1 : 1;
+        const newMax = Math.max(newStreak, row.max_streak || 0);
+        await pool.query(
+          'UPDATE user_streaks SET current_streak=$1, max_streak=$2, last_visit_date=$3, updated_at=NOW() WHERE user_id=$4',
+          [newStreak, newMax, today, userId]
+        );
+      }
+    } else {
+      await pool.query(
+        'INSERT INTO user_streaks (user_id, current_streak, max_streak, last_visit_date) VALUES ($1, 1, 1, $2)',
+        [userId, today]
+      );
+    }
 
     const updated = await pool.query('SELECT * FROM user_pets WHERE user_id=$1', [userId]);
     res.json({
@@ -258,7 +320,7 @@ router.post('/revive', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: 'not_enough_coins' });
     }
     await pool.query(
-      'UPDATE user_pets SET hunger=60, happiness=60, updated_at=NOW() WHERE user_id=$1', [userId]
+      'UPDATE user_pets SET hunger=60, happiness=60, last_decay_at=NOW(), updated_at=NOW() WHERE user_id=$1', [userId]
     );
     await pool.query('UPDATE users SET eco_coins = eco_coins - $1 WHERE id=$2', [REVIVE_COST, userId]);
     await pool.query(
