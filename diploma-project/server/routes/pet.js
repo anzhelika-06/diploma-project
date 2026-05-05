@@ -290,6 +290,89 @@ router.post('/vacation', authenticateToken, async (req, res) => {
 // POST /api/pet/unfreeze — called on next feed to unfreeze
 // (unfreeze happens automatically when pet is fed)
 
+// POST /api/pet/game/score — save game score, reward coins once per day
+router.post('/game/score', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { score } = req.body;
+    if (!score || score < 0) return res.status(400).json({ success: false, error: 'Invalid score' });
+
+    const petResult = await pool.query('SELECT * FROM user_pets WHERE user_id=$1', [userId]);
+    if (!petResult.rows.length) return res.status(404).json({ success: false, error: 'No pet' });
+
+    const pet = petResult.rows[0];
+    const today = new Date().toISOString().split('T')[0];
+    const lastRewardDate = pet.last_game_reward_date
+      ? new Date(pet.last_game_reward_date).toISOString().split('T')[0]
+      : null;
+
+    // 1 coin per 100 points, only once per day
+    const coinsEarned = lastRewardDate !== today ? Math.floor(score / 100) : 0;
+    const newBest = Math.max(pet.best_game_score || 0, score);
+
+    await pool.query(
+      `UPDATE user_pets SET best_game_score=$1, last_game_reward_date=$2, updated_at=NOW() WHERE user_id=$3`,
+      [newBest, today, userId]
+    );
+
+    await pool.query(
+      'INSERT INTO pet_game_scores (user_id, score, coins_earned) VALUES ($1, $2, $3)',
+      [userId, score, coinsEarned]
+    );
+
+    if (coinsEarned > 0) {
+      await pool.query('UPDATE users SET eco_coins = eco_coins + $1 WHERE id=$2', [coinsEarned, userId]);
+      await pool.query(
+        "INSERT INTO eco_coins_history (user_id, type, amount, description) VALUES ($1, 'earned', $2, $3)",
+        [userId, coinsEarned, `Игра с питомцем (${score} очков)`]
+      );
+    }
+
+    const newCoins = await pool.query('SELECT eco_coins FROM users WHERE id=$1', [userId]);
+
+    res.json({
+      success: true,
+      score,
+      best_score: newBest,
+      coins_earned: coinsEarned,
+      eco_coins: newCoins.rows[0].eco_coins,
+      already_rewarded_today: lastRewardDate === today
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// GET /api/pet/game/leaderboard — top 10 scores today
+router.get('/game/leaderboard', authenticateToken, async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const result = await pool.query(
+      `SELECT DISTINCT ON (pgs.user_id)
+         pgs.user_id, pgs.score, pgs.played_at,
+         u.nickname, u.avatar_emoji,
+         up.pet_type, up.name as pet_name, up.level as pet_level
+       FROM pet_game_scores pgs
+       JOIN users u ON u.id = pgs.user_id
+       LEFT JOIN user_pets up ON up.user_id = pgs.user_id
+       WHERE pgs.played_at::date = $1
+       ORDER BY pgs.user_id, pgs.score DESC`,
+      [today]
+    );
+
+    // Sort by best score and take top 10
+    const top10 = result.rows
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+
+    res.json({ success: true, leaderboard: top10, date: today });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
 module.exports = router;
 
 // DELETE /api/pet — delete pet

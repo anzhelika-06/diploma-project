@@ -224,7 +224,7 @@
 }
 
 .msg-avatar--team {
-  border-radius: 10px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
 }
 

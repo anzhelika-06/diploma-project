@@ -1,0 +1,204 @@
+.pet-game-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pet-game-canvas {
+  border-radius: 12px;
+  cursor: pointer;
+  display: block;
+  max-width: 100%;
+  border: 2px solid var(--border-color);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.pet-game-saving {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Game modal */
+.pet-game-modal {
+  max-width: 640px;
+  width: 95%;
+  transition: none !important;
+  animation: none !important;
+}
+
+.pet-game-modal .modal-body {
+  padding: 16px;
+}
+
+/* Leaderboard modal */
+.pet-leaderboard-modal {
+  max-width: 420px;
+  width: 95%;
+  transition: none !important;
+  animation: none !important;
+}
+
+.pet-leaderboard-modal .modal-overlay {
+  transition: none !important;
+  animation: none !important;
+}
+
+.pet-game-modal .modal-overlay {
+  transition: none !important;
+  animation: none !important;
+}
+
+.pet-lb-loading {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+  color: var(--primary-color);
+}
+
+.pet-lb-loading .spinning {
+  animation: spin 1s linear infinite;
+  font-size: 32px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pet-lb-loading .spinning {
+  animation: spin 1s linear infinite;
+  font-size: 32px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pet-lb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.pet-lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pet-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--bg-secondary, rgba(0,0,0,0.03));
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.pet-lb-row:hover {
+  border-color: rgba(76, 175, 80, 0.5);
+  background: rgba(76, 175, 80, 0.05);
+}
+
+.pet-lb-row.top {
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.pet-lb-row.current-user {
+  background: rgba(255, 235, 59, 0.12);
+  border: 2px solid #fbc02d;
+}
+
+.pet-lb-row.current-user:hover {
+  border-color: #f9a825;
+  background: rgba(255, 235, 59, 0.18);
+}
+
+.pet-lb-rank {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.pet-lb-avatar {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.pet-lb-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pet-lb-nick {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pet-lb-pet {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.pet-lb-score {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+
+/* Buttons row */
+.pet-game-btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.pet-game-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pet-game-btn.play {
+  background: var(--primary-color);
+  color: white;
+}
+
+.pet-game-btn.play:hover { 
+  opacity: 0.9; 
+}
+
+.pet-game-btn.trophy {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.pet-game-btn.trophy:hover {
+  border-color: #fbc02d;
+  color: #f9a825;
+  background: rgba(255, 235, 59, 0.08);
+}

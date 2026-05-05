@@ -398,8 +398,8 @@ const NotificationsPage = () => {
                   <span className="material-icons">{getNotificationIcon(notification.type)}</span>
                 </div>
                 <div className="notification-content">
-                  <h3>{notification.title}</h3>
-                  <p>{notification.message}</p>
+                  <span className="notification-title">{notification.title}</span>
+                  <span className="notification-desc">{notification.message}</span>
                 </div>
                 <span className="notification-time">{formatTime(notification.created_at)}</span>
                 <button

@@ -2,6 +2,8 @@
 import { useLanguage } from '../contexts/LanguageContext';
 import { getCurrentUser } from '../utils/authUtils';
 import ecoinsImage from '../assets/images/ecoins.png';
+import PetGame from '../components/PetGame';
+import PetGameLeaderboard from '../components/PetGameLeaderboard';
 import '../styles/pages/PetPage.css';
 
 const API = '/api/pet';
@@ -371,6 +373,8 @@ export default function PetPage() {
   const [renameVal, setRenameVal] = useState('');
   const [showRename, setShowRename] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showGame, setShowGame] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const lvlTimer = useRef(null);
   const msgTimer = useRef(null);
 
@@ -657,6 +661,16 @@ export default function PetPage() {
                 {!canFeed && <span className="pet-hint">{t('petNextFeed') || 'Следующее кормление завтра'}</span>}
               </>
             )}
+
+            {/* Game buttons */}
+            <div className="pet-game-btn-row" style={{ marginTop: 16 }}>
+              <button className="pet-game-btn play" onClick={() => setShowGame(true)}>
+                🎮 {t('petPlayBtn') || 'Поиграть'}
+              </button>
+              <button className="pet-game-btn trophy" onClick={() => setShowLeaderboard(true)}>
+                🏆 {t('petGameLeaderboard') || 'Рейтинг'}
+              </button>
+            </div>
           </div>
 
           {/* Tips — right column */}
@@ -690,6 +704,34 @@ export default function PetPage() {
 
         </div>
       </div>
+
+      {/* Game modal */}
+      {showGame && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowGame(false)} />
+          <div className="modal pet-game-modal">
+            <div className="modal-header">
+              <h3>🎮 {t('petPlayBtn') || 'Поиграть'}</h3>
+              <button className="modal-close" onClick={() => setShowGame(false)}>
+                <span className="material-icons">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <PetGame
+                petType={pet.pet_type}
+                onClose={() => setShowGame(false)}
+                onScoreSaved={(newCoins) => setEcoCoins(newCoins)}
+                t={t}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Leaderboard modal */}
+      {showLeaderboard && (
+        <PetGameLeaderboard onClose={() => setShowLeaderboard(false)} t={t} />
+      )}
     </div>
   );
 }

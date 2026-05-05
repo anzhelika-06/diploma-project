@@ -25,7 +25,7 @@ const NotificationBell = () => {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/notifications/${currentUser.id}?limit=10`);
+      const response = await fetch(`/api/notifications/${currentUser.id}?limit=20`);
       const data = await response.json();
       
       if (data.success) {

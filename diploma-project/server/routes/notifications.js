@@ -8,11 +8,17 @@ router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
 
+    // Always include all unread + recent read ones, sorted by date
     const result = await pool.query(
-      `SELECT * FROM notifications 
-       WHERE user_id = $1 
-       ORDER BY created_at DESC 
-       LIMIT $2 OFFSET $3`,
+      `SELECT * FROM notifications
+       WHERE user_id = $1
+         AND (is_read = false OR id IN (
+           SELECT id FROM notifications
+           WHERE user_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2 OFFSET $3
+         ))
+       ORDER BY created_at DESC`,
       [userId, limit, offset]
     );
 

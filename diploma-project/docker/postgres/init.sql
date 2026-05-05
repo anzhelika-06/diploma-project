@@ -468,9 +468,23 @@ CREATE TABLE IF NOT EXISTS user_pets (
     is_frozen BOOLEAN DEFAULT FALSE,
     vacation_used_this_month INTEGER DEFAULT 0,
     vacation_month INTEGER DEFAULT NULL,
+    best_game_score INTEGER DEFAULT 0,
+    last_game_reward_date DATE DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============ ИГРОВЫЕ ОЧКИ ПИТОМЦА ============
+CREATE TABLE IF NOT EXISTS pet_game_scores (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    score INTEGER NOT NULL,
+    coins_earned INTEGER DEFAULT 0,
+    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pet_game_scores_user ON pet_game_scores(user_id);
+CREATE INDEX IF NOT EXISTS idx_pet_game_scores_date ON pet_game_scores(played_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_tree_requests_user ON tree_requests(user_id);
 CREATE INDEX IF NOT EXISTS idx_tree_requests_status ON tree_requests(status);

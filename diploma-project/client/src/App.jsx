@@ -96,6 +96,12 @@ function App() {
               if (payload.userId) {
                 setIsAuthenticated(true);
                 
+                // Ping streak on app open
+                fetch('/api/streak/ping', {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${token}` }
+                }).catch(() => {});
+
                 // Проверяем бан через verify
                 try {
                   const verifyRes = await fetch('/api/auth/verify', {
