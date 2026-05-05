@@ -710,12 +710,9 @@ export default function PetPage() {
         <>
           <div className="modal-overlay" onClick={() => setShowGame(false)} />
           <div className="modal pet-game-modal">
-            <div className="modal-header">
-              <h3>🎮 {t('petPlayBtn') || 'Поиграть'}</h3>
-              <button className="modal-close" onClick={() => setShowGame(false)}>
-                <span className="material-icons">close</span>
-              </button>
-            </div>
+            <button className="modal-close" onClick={() => setShowGame(false)} style={{ position: 'absolute', top: '12px', right: '12px', zIndex: 10 }}>
+              <span className="material-icons">close</span>
+            </button>
             <div className="modal-body">
               <PetGame
                 petType={pet.pet_type}

@@ -10,15 +10,15 @@ const PET_W = 48;
 const PET_H = 48;
 const GRAVITY = 1.2;
 const JUMP_V = -11.5;
-const INITIAL_SPEED = 9;
+const INITIAL_SPEED = 6;
 const W = 620;
 const H = 270;
 
-// Obstacle definitions - trees, rocks, stumps, bushes
+// Obstacle definitions - trees, rocks, flowers, bushes
 const OBS_TYPES = [
   { type: 'tree', w: 32, h: 40 },
   { type: 'rock', w: 36, h: 26 },
-  { type: 'stump', w: 28, h: 32 },
+  { type: 'flower', w: 30, h: 28 },
   { type: 'bush', w: 38, h: 28 },
 ];
 
@@ -76,53 +76,68 @@ function drawRock(ctx, x) {
   ctx.fill();
 }
 
-function drawStump(ctx, x) {
-  const h = 32;
-  // main trunk with gradient effect
-  ctx.fillStyle = '#6d4c41';
-  ctx.fillRect(x + 6, GROUND_Y - h, 16, h);
-  // darker sides for depth
+function drawFlower(ctx, x) {
+  const h = 28;
+  // Стебель
+  ctx.strokeStyle = '#558b2f';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x + 15, GROUND_Y);
+  ctx.quadraticCurveTo(x + 13, GROUND_Y - h * 0.5, x + 15, GROUND_Y - h + 6);
+  ctx.stroke();
+  
+  // Листья
+  ctx.fillStyle = '#7cb342';
+  ctx.beginPath();
+  ctx.ellipse(x + 8, GROUND_Y - h * 0.4, 6, 3, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + 20, GROUND_Y - h * 0.6, 6, 3, 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Центр цветка
   ctx.fillStyle = '#5d4037';
-  ctx.fillRect(x + 6, GROUND_Y - h, 3, h);
-  ctx.fillRect(x + 19, GROUND_Y - h, 3, h);
-  // top surface
-  ctx.fillStyle = '#8d6e63';
   ctx.beginPath();
-  ctx.ellipse(x + 14, GROUND_Y - h, 14, 7, 0, 0, Math.PI * 2);
+  ctx.arc(x + 15, GROUND_Y - h + 6, 5, 0, Math.PI * 2);
   ctx.fill();
-  // moss patches
-  ctx.fillStyle = '#a5d6a7';
-  ctx.beginPath();
-  ctx.ellipse(x + 14, GROUND_Y - h, 9, 4, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#81c784';
-  ctx.beginPath();
-  ctx.ellipse(x + 10, GROUND_Y - h + 1, 4, 2, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // tree rings
-  ctx.strokeStyle = '#5d4037';
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.ellipse(x + 14, GROUND_Y - h, 6, 2.5, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(x + 14, GROUND_Y - h, 3.5, 1.5, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  // bark texture
-  ctx.strokeStyle = '#5d4037';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x + 8, GROUND_Y - h + 8);
-  ctx.lineTo(x + 7, GROUND_Y - h + 14);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x + 18, GROUND_Y - h + 6);
-  ctx.lineTo(x + 19, GROUND_Y - h + 12);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x + 12, GROUND_Y - h + 18);
-  ctx.lineTo(x + 11, GROUND_Y - h + 24);
-  ctx.stroke();
+  
+  // Семечки в центре
+  ctx.fillStyle = '#3e2723';
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const px = x + 15 + Math.cos(angle) * 2.5;
+    const py = GROUND_Y - h + 6 + Math.sin(angle) * 2.5;
+    ctx.beginPath();
+    ctx.arc(px, py, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // Лепестки подсолнуха (8 лепестков)
+  ctx.fillStyle = '#ffd54f';
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    ctx.save();
+    ctx.translate(x + 15, GROUND_Y - h + 6);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.ellipse(0, -7.5, 3.5, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  
+  // Светлые блики на лепестках
+  ctx.fillStyle = '#ffeb3b';
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    ctx.save();
+    ctx.translate(x + 15, GROUND_Y - h + 6);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.ellipse(0, -7.5, 1.8, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawBush(ctx, x) {
@@ -491,7 +506,7 @@ export default function PetGame({ petType, onClose, onScoreSaved, t }) {
   const drawObs = useCallback((ctx, obs) => {
     if (obs.type === 'tree') drawTree(ctx, obs.x);
     else if (obs.type === 'rock') drawRock(ctx, obs.x);
-    else if (obs.type === 'stump') drawStump(ctx, obs.x);
+    else if (obs.type === 'flower') drawFlower(ctx, obs.x);
     else drawBush(ctx, obs.x);
   }, []);
 
@@ -548,10 +563,10 @@ export default function PetGame({ petType, onClose, onScoreSaved, t }) {
 
       if (p === 'playing') {
         s.frame++;
-        // score grows faster over time
-        s.score += 0.18 * (s.speed / INITIAL_SPEED);
-        // speed increases more aggressively
-        s.speed = INITIAL_SPEED + Math.floor(s.score / 5) * 0.35;
+        // score grows over time
+        s.score += 0.15 * (s.speed / INITIAL_SPEED);
+        // speed increases gradually
+        s.speed = INITIAL_SPEED + Math.floor(s.score / 15) * 0.25;
         setScore(Math.floor(s.score));
 
         // clouds scroll

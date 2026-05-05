@@ -595,7 +595,12 @@
   display: flex;
   gap: 15px;
   justify-content: space-between;
-  margin-top: clamp(10px, 1.5vw, 20px);
+  margin-top: 55px !important;
+}
+
+.button-group .auth-submit-button,
+.button-group .auth-back-button {
+  margin-top: 0 !important;
 }
 
 .button-group .auth-submit-button:only-child {
@@ -657,7 +662,7 @@
   transition: all 0.15s ease;
   font-family: 'Libre Caslon Text', serif;
   min-width: clamp(130px, 12vw, 160px);
-  margin-top: clamp(-25px, 0vw, -15px);
+  margin-top: 55px !important;
   box-shadow: 0 4px 15px rgba(124, 179, 66, 0.3);
   position: relative;
   overflow: hidden;
@@ -1024,6 +1029,12 @@
   
   .button-group {
     gap: 10px;
+    margin-top: 15px !important;
+  }
+  
+  .button-group .auth-submit-button,
+  .button-group .auth-back-button {
+    margin-top: 0 !important;
   }
 
   .auth-register-link {
@@ -1134,6 +1145,12 @@
   
   .button-group {
     gap: 8px;
+    margin-top: 12px !important;
+  }
+  
+  .button-group .auth-submit-button,
+  .button-group .auth-back-button {
+    margin-top: 0 !important;
   }
 
   .auth-register-link {
@@ -1165,12 +1182,24 @@
 @media (max-width: 768px) {
   .button-group {
     gap: 10px;
+    margin-top: 8px !important;
+  }
+  
+  .button-group .auth-submit-button,
+  .button-group .auth-back-button {
+    margin-top: 0 !important;
   }
 }
 
 @media (max-width: 480px) {
   .button-group {
     gap: 8px;
+    margin-top: 8px !important;
+  }
+  
+  .button-group .auth-submit-button,
+  .button-group .auth-back-button {
+    margin-top: 0 !important;
   }
 }
 
