@@ -10,7 +10,7 @@ const API = '/api/pet';
 const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 // ── Realistic SVG Animals ──
-function CatSVG({ className = '' }) {
+function BearSVG({ className = '' }) {
   return (
     <svg className={`pet-svg ${className}`} viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
       {/* Shadow */}
@@ -121,7 +121,7 @@ function FoxSVG({ className = '' }) {
   );
 }
 
-function TurtleSVG({ className = '' }) {
+function RabbitSVG({ className = '' }) {
   return (
     <svg className={`pet-svg ${className}`} viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
       {/* Shadow */}
@@ -193,12 +193,12 @@ function TurtleSVG({ className = '' }) {
   );
 }
 
-const PET_COMPONENTS = { cat: CatSVG, fox: FoxSVG, turtle: TurtleSVG };
+const PET_COMPONENTS = { bear: BearSVG, fox: FoxSVG, rabbit: RabbitSVG };
 
 const PET_TYPES = [
-  { id: 'cat',    name: { RU: 'Медвежонок', EN: 'Bear Cub', BY: 'Мядзведзяня' }, desc: { RU: 'Пушистый эко-медведь, хранитель лесов',        EN: 'A fluffy eco-bear, guardian of forests',     BY: 'Пухнаты эка-мядзведзь, ахоўнік лясоў'       } },
+  { id: 'bear',   name: { RU: 'Медвежонок', EN: 'Bear Cub', BY: 'Мядзведзяня' }, desc: { RU: 'Пушистый эко-медведь, хранитель лесов',        EN: 'A fluffy eco-bear, guardian of forests',     BY: 'Пухнаты эка-мядзведзь, ахоўнік лясоў'       } },
   { id: 'fox',    name: { RU: 'Лисёнок',   EN: 'Fox Cub',  BY: 'Лісяня'    }, desc: { RU: 'Хитрый и умный эко-лис, любит природу',         EN: 'A clever eco-fox who loves nature',          BY: 'Хітры эка-ліс, які любіць прыроду'          } },
-  { id: 'turtle', name: { RU: 'Кролик',    EN: 'Bunny',    BY: 'Трус'      }, desc: { RU: 'Пушистый эко-кролик, любит зелёные луга',      EN: 'A fluffy eco-bunny who loves green meadows', BY: 'Пухнаты эка-трус, любіць зялёныя лугі'      } },
+  { id: 'rabbit', name: { RU: 'Кролик',    EN: 'Bunny',    BY: 'Трус'      }, desc: { RU: 'Пушистый эко-кролик, любит зелёные луга',      EN: 'A fluffy eco-bunny who loves green meadows', BY: 'Пухнаты эка-трус, любіць зялёныя лугі'      } },
 ];
 
 const STAGE_LABELS = {
@@ -466,7 +466,7 @@ export default function PetPage() {
   if (loading) return <div className="pet-page"><div className="pet-loading"><span style={{ fontSize: 40 }}>🐾</span><span>{t('loading') || 'Загрузка...'}</span></div></div>;
   if (!pet) return <div className="pet-page"><ChooseScreen onChoose={p => setPet(p)} lang={lang} t={t} /></div>;
 
-  const PetComp = PET_COMPONENTS[pet.pet_type] || CatSVG;
+  const PetComp = PET_COMPONENTS[pet.pet_type] || BearSVG;
   const petDef = PET_TYPES.find(p => p.id === pet.pet_type);
   const displayName = pet.name || petDef?.name[lang] || 'Питомец';
   const stageLabel = getStageLabel(pet.level, lang);

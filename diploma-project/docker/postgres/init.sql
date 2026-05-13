@@ -456,7 +456,7 @@ CREATE TABLE IF NOT EXISTS carbon_calculations (
 CREATE TABLE IF NOT EXISTS user_pets (
     id SERIAL PRIMARY KEY,
     user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-    pet_type VARCHAR(20) NOT NULL CHECK (pet_type IN ('cat', 'fox', 'turtle')),
+    pet_type VARCHAR(20) NOT NULL CHECK (pet_type IN ('bear', 'fox', 'rabbit')),
     name VARCHAR(30) DEFAULT NULL,
     level INTEGER DEFAULT 1,
     xp INTEGER DEFAULT 0,

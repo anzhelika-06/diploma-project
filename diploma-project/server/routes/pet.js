@@ -89,7 +89,7 @@ router.post('/choose', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { pet_type, name } = req.body;
-    if (!['cat', 'fox', 'turtle'].includes(pet_type)) {
+    if (!['bear', 'fox', 'rabbit'].includes(pet_type)) {
       return res.status(400).json({ success: false, error: 'Invalid pet type' });
     }
     const existing = await pool.query('SELECT id FROM user_pets WHERE user_id=$1', [userId]);
