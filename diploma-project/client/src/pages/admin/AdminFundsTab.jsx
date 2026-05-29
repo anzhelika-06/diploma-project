@@ -295,6 +295,17 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
 
   const handlePlant = async () => {
     if (!selectedRequest || pendingMarkers.length === 0) return;
+    
+    // Validate that number of markers matches trees_count
+    if (pendingMarkers.length !== selectedRequest.trees_count) {
+      setMsg({ 
+        text: t('fundsMarkerCountMismatch') || `Количество меток (${pendingMarkers.length}) должно соответствовать количеству деревьев (${selectedRequest.trees_count})`, 
+        type: 'error' 
+      });
+      setTimeout(() => setMsg(null), 4000);
+      return;
+    }
+    
     // Validate all have at least 1 photo
     const missing = pendingMarkers.findIndex(m => !m.photos?.length);
     if (missing !== -1) {
@@ -626,9 +637,26 @@ const AdminFundsTab = ({ showSuccessModal, setConfirmModal }) => {
                         </div>
                       ))}
 
-                      <button className="submit-button primary" onClick={handlePlant} disabled={planting || pendingMarkers.some(m => !m.photos?.length)}>
-                        {planting ? '...' : `${t('fundsConfirmPlant') || 'Подтвердить посадку'} (${pendingMarkers.length})`}
-                      </button>
+                      {(() => {
+                        const missingMarkers = pendingMarkers.length !== selectedRequest.trees_count;
+                        const missingPhoto = pendingMarkers.some(m => !m.photos?.length);
+                        const isDisabled = planting || missingMarkers || missingPhoto;
+                        const tooltip = missingMarkers
+                          ? `Расставьте все метки (${pendingMarkers.length}/${selectedRequest.trees_count})`
+                          : missingPhoto
+                          ? 'Прикрепите фото для каждой метки'
+                          : undefined;
+                        return (
+                          <button
+                            className="submit-button primary"
+                            onClick={handlePlant}
+                            disabled={isDisabled}
+                            title={tooltip}
+                          >
+                            {planting ? '...' : `${t('fundsConfirmPlant') || 'Подтвердить посадку'} (${pendingMarkers.length}/${selectedRequest.trees_count})`}
+                          </button>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

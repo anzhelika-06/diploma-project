@@ -207,6 +207,14 @@ router.post('/admin/plant', authenticateToken, isAdmin, async (req, res) => {
     const request = reqRes.rows[0];
     if (request.status === 'planted') return res.status(400).json({ success: false, message: 'Already planted' });
 
+    // Validate that number of markers matches trees_count
+    if (markersArr.length !== request.trees_count) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Количество меток (${markersArr.length}) должно соответствовать количеству деревьев в запросе (${request.trees_count})` 
+      });
+    }
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
