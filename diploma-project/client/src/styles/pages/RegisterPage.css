@@ -569,7 +569,7 @@
 
 .error-message {
   position: absolute;
-  top: 52px!important;
+  top: 52px;
   left: 0;
   color: var(--auth-error-color);
   font-size: clamp(11px, 1vw, 12px);
