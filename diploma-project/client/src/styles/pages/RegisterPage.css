@@ -569,7 +569,7 @@
 
 .error-message {
   position: absolute;
-  top: 52px;
+  top: 52px!important;
   left: 0;
   color: var(--auth-error-color);
   font-size: clamp(11px, 1vw, 12px);
@@ -586,9 +586,7 @@
   white-space: normal;
 }
 
-.error-message.gender-error {
-  top: 42px;
-}
+
 
 /* Кнопки */
 .button-group {

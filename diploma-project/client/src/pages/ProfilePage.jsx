@@ -1543,7 +1543,7 @@ const ProfilePage = () => {
                 placeholder="ДД/ММ/ГГГГ"
                 className={`form-input ${dateError ? 'input-error' : ''}`}
               />
-              {dateError && <div className="error-message">{dateError}</div>}
+              {dateError && <div className="perror-message">{dateError}</div>}
             </div>
             
             <div className="form-actions">
