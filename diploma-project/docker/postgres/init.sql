@@ -1843,16 +1843,16 @@ WHERE status = 'reviewing';
 
 -- ============ ТЕСТОВЫЕ ЗАПРОСЫ НА ПОСАДКУ ДЕРЕВЬЕВ ============
 INSERT INTO tree_requests (user_id, coins_spent, trees_count, status, admin_id, admin_note, created_at, updated_at) VALUES
-    (2, 200, 1, 'pending', NULL, NULL, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours'),
-    (3, 400, 2, 'pending', NULL, NULL, NOW() - INTERVAL '5 hours', NOW() - INTERVAL '5 hours'),
-    (4, 200, 1, 'planted', 1, 'Дерево успешно посажено в парке. Спасибо за вклад!', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
-    (5, 600, 3, 'pending', NULL, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
-    (6, 200, 1, 'planted', 1, 'Посажено возле школы. Отличное место!', NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days'),
-    (7, 400, 2, 'planted', 1, 'Два дерева посажены в городском парке.', NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days'),
-    (8, 200, 1, 'pending', NULL, NULL, NOW() - INTERVAL '8 hours', NOW() - INTERVAL '8 hours'),
-    (9, 800, 4, 'planted', 1, 'Четыре дерева посажены вдоль аллеи. Прекрасная работа!', NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'),
-    (10, 200, 1, 'pending', NULL, NULL, NOW() - INTERVAL '12 hours', NOW() - INTERVAL '12 hours'),
-    (11, 400, 2, 'pending', NULL, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days');
+    (2, 100, 1, 'pending', NULL, NULL, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 hours'),
+    (3, 200, 2, 'pending', NULL, NULL, NOW() - INTERVAL '5 hours', NOW() - INTERVAL '5 hours'),
+    (4, 100, 1, 'planted', 1, 'Дерево успешно посажено в парке. Спасибо за вклад!', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
+    (5, 300, 3, 'pending', NULL, NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'),
+    (6, 100, 1, 'planted', 1, 'Посажено возле школы. Отличное место!', NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days'),
+    (7, 200, 2, 'planted', 1, 'Два дерева посажены в городском парке.', NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days'),
+    (8, 100, 1, 'pending', NULL, NULL, NOW() - INTERVAL '8 hours', NOW() - INTERVAL '8 hours'),
+    (9, 400, 4, 'planted', 1, 'Четыре дерева посажены вдоль аллеи. Прекрасная работа!', NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'),
+    (10, 100, 1, 'pending', NULL, NULL, NOW() - INTERVAL '12 hours', NOW() - INTERVAL '12 hours'),
+    (11, 200, 2, 'pending', NULL, NULL, NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days');
 
 -- ============ ТЕСТОВЫЕ МАРКЕРЫ ПОСАЖЕННЫХ ДЕРЕВЬЕВ ============
 -- Маркеры для запроса #3 (user_id=4, 1 дерево) - Минск, парк Горького
