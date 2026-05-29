@@ -289,7 +289,7 @@ CREATE TABLE IF NOT EXISTS user_streaks (
 CREATE TABLE IF NOT EXISTS tree_requests (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    coins_spent INTEGER NOT NULL DEFAULT 200,
+    coins_spent INTEGER NOT NULL DEFAULT 100,
     trees_count INTEGER NOT NULL DEFAULT 1,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'planted')),
     admin_id INTEGER REFERENCES users(id),

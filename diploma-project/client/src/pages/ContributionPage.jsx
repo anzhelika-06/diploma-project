@@ -60,7 +60,7 @@ const treeIcon = new L.DivIcon({
   popupAnchor: [0, -48],
 });
 
-const TREE_COST = 200;
+const TREE_COST = 100;
 const authHeader = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
 
 const ContributionPage = () => {

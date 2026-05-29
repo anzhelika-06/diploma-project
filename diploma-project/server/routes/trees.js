@@ -4,7 +4,7 @@ const { pool } = require('../config/database');
 const { authenticateToken, isAdmin } = require('../middleware/authMiddleware');
 const { notifyUserAboutAchievement } = require('../utils/notificationHelper');
 
-const TREE_COST = 200; // eco coins per tree
+const TREE_COST = 100; // eco coins per tree
 
 // Helper: award tree achievement if not already awarded
 async function awardTreeAchievement(client, userId, code, io) {
