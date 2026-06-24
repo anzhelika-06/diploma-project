@@ -113,7 +113,10 @@ export const exportUsers = (users, t) => {
     t('registrationDate') || 'Дата регистрации'
   ];
   
-  const data = users.map(user => {
+  const data = users
+    .slice()
+    .sort((a, b) => a.id - b.id)
+    .map(user => {
     // Определяем эко-уровень на основе carbon_saved если eco_level не задан
     const ecoLevel = user.eco_level || getEcoLevelFromCarbon(user.carbon_saved, t);
     
@@ -290,7 +293,10 @@ export const exportReports = (reports, t) => {
     t('createdDate') || 'Дата создания'
   ];
   
-  const data = reports.map(report => ({
+  const data = reports
+    .slice()
+    .sort((a, b) => a.id - b.id)
+    .map(report => ({
     [t('reportId') || 'ID']: report.id,
     [t('reporter') || 'Отправитель']: report.reporter_nickname,
     [t('reporterEmail') || 'Email отправителя']: report.reporter_email,
